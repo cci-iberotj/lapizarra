@@ -26,6 +26,12 @@ create table if not exists public.perfiles (
 comment on table public.perfiles is
   'Rol de cada persona. coordinacion = Leo, redaccion = Marysol, publicacion = Sergio.';
 
+-- Marca de contraseña temporal. Mientras esté encendida, la aplicación
+-- no deja pasar a nadie sin cambiarla primero. Asi Leo puede entregar
+-- una clave provisional de viva voz sin quedarse sabiendo la definitiva.
+alter table public.perfiles
+  add column if not exists debe_cambiar_clave boolean not null default true;
+
 
 -- ── 2. Todo el contenido ───────────────────────────────────
 --  Una sola tabla para piezas, ideas, equipos, temas y expertos.
@@ -81,8 +87,9 @@ $$;
 alter table public.perfiles  enable row level security;
 alter table public.registros enable row level security;
 
-drop policy if exists "ver perfiles"        on public.perfiles;
+drop policy if exists "ver perfiles"         on public.perfiles;
 drop policy if exists "administrar perfiles" on public.perfiles;
+drop policy if exists "actualizar lo mio"    on public.perfiles;
 drop policy if exists "ver registros"       on public.registros;
 drop policy if exists "crear registros"     on public.registros;
 drop policy if exists "cambiar registros"   on public.registros;
@@ -96,6 +103,15 @@ create policy "administrar perfiles" on public.perfiles
   for all to authenticated
   using      (public.mi_rol() = 'coordinacion')
   with check (public.mi_rol() = 'coordinacion');
+
+-- Cada quien puede apagar su marca de contraseña temporal y corregir
+-- su nombre. Lo que NO puede es cambiarse el rol: la condicion exige
+-- que el rol siga siendo el mismo que ya tenia, asi que nadie se
+-- asciende solo aunque manipule la peticion.
+create policy "actualizar lo mio" on public.perfiles
+  for update to authenticated
+  using      (id = auth.uid())
+  with check (id = auth.uid() and rol = public.mi_rol());
 
 -- Todos leen el contenido: el calendario es de todos
 create policy "ver registros" on public.registros
@@ -159,17 +175,16 @@ end $$;
 --     to sign up". Sin eso, cualquiera con la llave publica puede
 --     crearse cuenta.
 --
---  2. Authentication → Users → INVITE USER (no "Add user"):
---     escribir el correo de cada quien. Les llega una liga y ELLOS
---     ponen su contraseña. Nadie mas la conoce, ni Leo.
+--  2. Authentication → Users → Add user → Create new user.
+--     Marcar AUTO CONFIRM. Contrasena temporal para Marysol y
+--     Sergio, la que sea; se las pasas de viva voz.
 --
---     Ojo: el correo que Supabase manda gratis es limitado. Para
---     dos invitaciones alcanza; si alguien pierde su contrasena
---     mas adelante y el correo de recuperacion no llega, se puede
---     reenviar desde este mismo panel.
+--     No hace falta invitacion por correo: la aplicacion los obliga
+--     a cambiar la contrasena la primera vez que entran, y a partir
+--     de ahi tu ya no la conoces.
 --
---  3. Cuando cada quien haya aceptado su invitacion y puesto su
---     contrasena, volver aquí y correr con los correos reales:
+--  3. Volver aquí y correr, con los correos reales, para asignar
+--     los roles:
 --
 --       update public.perfiles set rol = 'coordinacion', nombre = 'Leo'
 --        where id = (select id from auth.users where email = 'CORREO_DE_LEO');
@@ -180,8 +195,14 @@ end $$;
 --       update public.perfiles set rol = 'publicacion', nombre = 'Sergio'
 --        where id = (select id from auth.users where email = 'CORREO_DE_SERGIO');
 --
---  4. Comprobar que quedó bien:
+--  4. Si tu ya pusiste tu contrasena definitiva y no quieres que
+--     te la pida cambiar, exímete a ti nada mas:
 --
---       select p.nombre, p.rol, u.email
+--       update public.perfiles set debe_cambiar_clave = false
+--        where id = (select id from auth.users where email = 'CORREO_DE_LEO');
+--
+--  5. Comprobar que quedó bien:
+--
+--       select p.nombre, p.rol, p.debe_cambiar_clave, u.email
 --         from public.perfiles p join auth.users u on u.id = p.id;
 -- ═══════════════════════════════════════════════════════════
