@@ -159,10 +159,17 @@ end $$;
 --     to sign up". Sin eso, cualquiera con la llave publica puede
 --     crearse cuenta.
 --
---  2. Authentication → Users → Add user: crear las tres cuentas
---     con correo y contraseña.
+--  2. Authentication → Users → INVITE USER (no "Add user"):
+--     escribir el correo de cada quien. Les llega una liga y ELLOS
+--     ponen su contraseña. Nadie mas la conoce, ni Leo.
 --
---  3. Volver aquí y correr, con los correos reales:
+--     Ojo: el correo que Supabase manda gratis es limitado. Para
+--     dos invitaciones alcanza; si alguien pierde su contrasena
+--     mas adelante y el correo de recuperacion no llega, se puede
+--     reenviar desde este mismo panel.
+--
+--  3. Cuando cada quien haya aceptado su invitacion y puesto su
+--     contrasena, volver aquí y correr con los correos reales:
 --
 --       update public.perfiles set rol = 'coordinacion', nombre = 'Leo'
 --        where id = (select id from auth.users where email = 'CORREO_DE_LEO');
