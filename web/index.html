@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CABINA · Diseño y Medios · IBERO Tijuana</title>
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="marca">
+    <span class="marca-nombre">CABINA</span>
+    <span class="marca-sub">Diseño y Medios · IBERO Tijuana</span>
+  </div>
+  <nav class="tabs">
+    <button class="tab activo" data-vista="parrilla">Parrilla</button>
+    <button class="tab" data-vista="inventario">Inventario</button>
+    <button class="tab" data-vista="redaccion">Redacción</button>
+    <button class="tab" data-vista="expertos">Expertos</button>
+    <button class="tab" data-vista="auditoria">Auditoría</button>
+  </nav>
+  <div class="barra-derecha">
+    <div class="grupo-historial">
+      <button class="btn-barra" id="btnDeshacer" title="Deshacer (Ctrl+Z)" disabled>↶</button>
+      <button class="btn-barra" id="btnRehacer" title="Rehacer (Ctrl+Y)" disabled>↷</button>
+      <button class="btn-barra ancho" id="btnHistorial" title="Ver historial de cambios">Historial</button>
+      <button class="btn-barra" id="btnTema" title="Cambiar entre tema claro y oscuro">◐</button>
+    </div>
+    <div class="estado-guardado" id="estadoGuardado" aria-live="polite"></div>
+  </div>
+
+  <div class="panel-historial" id="panelHistorial" hidden>
+    <div class="panel-historial-cabecera">
+      <h3>Historial de cambios</h3>
+      <button class="btn-icono" id="cerrarHistorial" title="Cerrar">×</button>
+    </div>
+    <p class="tenue nota">Clic en cualquier punto para volver a ese momento. Se conservan los últimos 60 cambios de esta sesión.</p>
+    <div class="lista-historial" id="listaHistorial"></div>
+  </div>
+</header>
+
+<!-- ══════════════════════ PARRILLA ══════════════════════ -->
+<main id="vista-parrilla" class="vista activo">
+
+  <section class="semana-cabecera">
+    <div class="semana-nav">
+      <button class="btn-icono" id="semanaAnterior" title="Semana anterior">‹</button>
+      <div class="semana-info">
+        <h2 id="semanaTitulo">Semana</h2>
+        <span id="semanaRango" class="tenue"></span>
+      </div>
+      <button class="btn-icono" id="semanaSiguiente" title="Semana siguiente">›</button>
+      <button class="btn-plano" id="semanaHoy">Hoy</button>
+    </div>
+
+    <div class="balance" id="balance">
+      <div class="balance-encabezado">
+        <span class="balance-titulo">Balance de la semana</span>
+        <span id="balanceVeredicto" class="balance-veredicto"></span>
+      </div>
+      <div class="balance-barra" id="balanceBarra"></div>
+      <div class="balance-leyenda" id="balanceLeyenda"></div>
+    </div>
+  </section>
+
+  <section class="controles">
+    <button class="btn-primario" id="nuevaPieza">+ Nueva pieza</button>
+    <div class="conmutador" role="tablist">
+      <button class="conmutador-op activo" data-modo="lista">Lista</button>
+      <button class="conmutador-op" data-modo="calendario">Calendario</button>
+    </div>
+    <div class="filtros">
+      <select id="filtroPilar" class="campo-mini">
+        <option value="">Todos los pilares</option>
+      </select>
+      <select id="filtroCanal" class="campo-mini">
+        <option value="">Todos los canales</option>
+      </select>
+      <select id="filtroEstado" class="campo-mini">
+        <option value="">Todos los estados</option>
+      </select>
+      <label class="check-inline" id="envolturaTodas">
+        <input type="checkbox" id="filtroTodasSemanas"> Ver todas las fechas
+      </label>
+    </div>
+  </section>
+
+  <section class="tablero" id="tableroPiezas"></section>
+
+  <section class="calendario-envoltorio" id="calendarioEnvoltorio" hidden>
+    <div class="calendario-barra">
+      <button class="btn-icono" id="mesAnterior" title="Mes anterior">‹</button>
+      <h2 id="mesTitulo">Mes</h2>
+      <button class="btn-icono" id="mesSiguiente" title="Mes siguiente">›</button>
+      <button class="btn-plano" id="mesHoy">Este mes</button>
+      <div class="espaciador"></div>
+      <button class="btn-plano btn-auto" id="acomodarPendientes">◈ Acomodar pendientes</button>
+    </div>
+    <div class="calendario-dias" id="calendarioEncabezado"></div>
+    <div class="calendario" id="calendarioMes"></div>
+  </section>
+
+  <section class="bloque-ideas">
+    <div class="bloque-encabezado">
+      <h3>Fechas que vienen</h3>
+    </div>
+    <p class="tenue nota">Perchas para colgar contenido en los próximos dos meses y medio. Clic en una para guardarla como idea.</p>
+    <div class="tira-efemerides" id="tiraEfemerides"></div>
+  </section>
+
+  <section class="bloque-ideas">
+    <div class="bloque-encabezado">
+      <h3>Banco de ideas</h3>
+      <div class="acciones-bloque">
+        <button class="btn-plano btn-auto" id="ideaClasificada">◈ Capturar y clasificar</button>
+        <button class="btn-plano" id="nuevaIdea">+ Agregar idea</button>
+      </div>
+    </div>
+    <p class="tenue nota">Lo que todavía no tiene fecha. Cada idea se clasifica sola: el color te dice de qué pilar es.</p>
+    <div class="resumen-ideas" id="resumenIdeas"></div>
+    <div class="ideas" id="listaIdeas"></div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════ INVENTARIO ══════════════════════ -->
+<main id="vista-inventario" class="vista">
+
+  <section class="resumen" id="resumenInventario"></section>
+
+  <section class="controles">
+    <button class="btn-primario" id="nuevoEquipo">+ Registrar equipo</button>
+    <div class="filtros">
+      <select id="filtroCategoria" class="campo-mini">
+        <option value="">Todas las categorías</option>
+      </select>
+      <select id="filtroEstadoEquipo" class="campo-mini">
+        <option value="">Todos los estados</option>
+      </select>
+      <input type="search" id="buscarEquipo" class="campo-mini" placeholder="Buscar por nombre, marca o dónde está">
+    </div>
+  </section>
+
+  <section class="bloque-prestamos" id="bloquePrestamos"></section>
+
+  <div class="barra-seleccion" id="barraSeleccion" hidden>
+    <span class="cuenta-seleccion" id="cuentaSeleccion"></span>
+    <div class="espaciador"></div>
+    <button class="btn-plano" id="copiarLista">Copiar lista</button>
+    <button class="btn-plano" id="prestarSeleccion">Marcar como salida</button>
+    <button class="btn-plano" id="limpiarSeleccion">Quitar selección</button>
+  </div>
+
+  <section class="tabla-envoltorio">
+    <table class="tabla" id="tablaEquipos">
+      <thead>
+        <tr>
+          <th class="col-marca"><input type="checkbox" id="marcarTodos" title="Seleccionar todo lo visible"></th>
+          <th>Equipo</th>
+          <th>Categoría</th>
+          <th>Dónde está</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="bloque-vuelos" id="bloqueVuelos">
+    <div class="bloque-encabezado">
+      <h3>Bitácora de drone</h3>
+      <button class="btn-plano" id="nuevoVuelo">+ Registrar vuelo</button>
+    </div>
+    <p class="tenue nota">Registro de operación. Te respalda ante cualquier revisión o incidente.</p>
+    <div class="tabla-envoltorio">
+      <table class="tabla" id="tablaVuelos">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Piloto</th>
+            <th>Ubicación</th>
+            <th>Propósito</th>
+            <th>Duración</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════ REDACCIÓN ══════════════════════ -->
+<main id="vista-redaccion" class="vista">
+
+  <section class="auditoria-cabecera">
+    <div class="auditoria-intro" style="grid-column:1/-1">
+      <h2>Mesa de redacción</h2>
+      <p class="tenue">Una nota pasa por tres manos: tú detectas la oportunidad y produces el reel, <b id="rolRedaccion">Marysol</b> escribe, <b id="rolPublicacion">Sergio</b> publica en el sitio. Aquí preparas el encargo y sigues la nota por toda la cadena.</p>
+    </div>
+  </section>
+
+  <section class="bloque-auditoria">
+    <div class="bloque-encabezado">
+      <h3>Temas en observación</h3>
+      <button class="btn-plano btn-auto" id="nuevoTema">◈ Anotar tema</button>
+    </div>
+    <p class="tenue nota">Asuntos donde ya sabes que tienes quién opine, esperando que la coyuntura los active. Cuando salga la noticia, ya tienes medio camino andado.</p>
+    <div class="rejilla-temas" id="listaTemas"></div>
+  </section>
+
+  <section class="bloque-auditoria">
+    <div class="bloque-encabezado">
+      <h3>Notas en curso</h3>
+      <button class="btn-primario" id="nuevaNota">+ Encargar nota</button>
+    </div>
+    <p class="tenue nota">Cada columna es una mano. Clic en una nota para abrirla; el botón <b>Encargo</b> arma el texto que le mandas a quien escribe.</p>
+    <div class="tablero-notas" id="tableroNotas"></div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════ EXPERTOS ══════════════════════ -->
+<main id="vista-expertos" class="vista">
+
+  <section class="auditoria-cabecera">
+    <div class="auditoria-intro" style="grid-column:1/-1">
+      <h2>Directorio de expertos</h2>
+      <p class="tenue">Cuando algo pasa en la mañana y la nota tiene que salir en la tarde, no hay tiempo de preguntar quién sabe del tema. Esta lista es la que hace posible ese ritmo: qué académico habla de qué, y qué tan rápido responde.</p>
+    </div>
+  </section>
+
+  <section class="controles">
+    <button class="btn-primario" id="nuevoExperto">+ Registrar experto</button>
+    <div class="filtros">
+      <input type="search" id="buscarExperto" class="campo-mini" placeholder="Buscar por tema, nombre o departamento">
+      <select id="filtroDisponibilidad" class="campo-mini">
+        <option value="">Toda disponibilidad</option>
+        <option value="alta">Responde rápido</option>
+        <option value="media">Con agenda</option>
+        <option value="baja">Difícil de agendar</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="temas-cobertura" id="temasCobertura"></section>
+  <section class="rejilla-expertos" id="listaExpertos"></section>
+
+</main>
+
+<!-- ══════════════════════ AUDITORÍA ══════════════════════ -->
+<main id="vista-auditoria" class="vista">
+
+  <section class="auditoria-cabecera">
+    <div class="marcador" id="marcador"></div>
+    <div class="auditoria-intro">
+      <h2>Diagnóstico del sistema</h2>
+      <p class="tenue">Revisa la parrilla y el inventario contra las reglas del plan maestro y te dice qué corregir. Se recalcula solo con cada cambio.</p>
+      <div class="controles" style="margin:14px 0 0">
+        <select id="periodoAuditoria" class="campo-mini">
+          <option value="mes">Este mes</option>
+          <option value="proximo">Próximo mes</option>
+          <option value="trimestre">Próximos 3 meses</option>
+          <option value="todo">Todo lo registrado</option>
+        </select>
+        <button class="btn-plano" id="recalcular">Recalcular</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloque-auditoria">
+    <h3>Hallazgos</h3>
+    <p class="tenue nota">Ordenados por lo que más te cuesta si no lo atiendes.</p>
+    <div class="hallazgos" id="hallazgos"></div>
+  </section>
+
+  <section class="bloque-auditoria">
+    <h3>Mezcla de pilares contra la meta</h3>
+    <p class="tenue nota">La meta viene del plan maestro. La barra clara es lo que deberías tener; la sólida, lo que tienes.</p>
+    <div class="barras-meta" id="barrasMeta"></div>
+  </section>
+
+  <section class="dos-columnas">
+    <div class="bloque-auditoria">
+      <h3>Cobertura por canal</h3>
+      <div class="barras-canal" id="barrasCanal"></div>
+    </div>
+    <div class="bloque-auditoria">
+      <h3>Embudo de producción</h3>
+      <div class="embudo" id="embudo"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════ MODAL ══════════════════════ -->
+<div class="modal-fondo" id="modalFondo" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+    <div class="modal-cabecera">
+      <h3 id="modalTitulo"></h3>
+      <button class="btn-icono" id="modalCerrar" title="Cerrar">×</button>
+    </div>
+    <div class="modal-cuerpo" id="modalCuerpo"></div>
+    <div class="modal-pie">
+      <button class="btn-peligro" id="modalEliminar">Eliminar</button>
+      <div class="espaciador"></div>
+      <button class="btn-plano" id="modalCancelar">Cancelar</button>
+      <button class="btn-primario" id="modalGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="aviso" id="aviso" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

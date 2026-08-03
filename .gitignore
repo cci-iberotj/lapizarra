@@ -1,0 +1,31 @@
+# ══════════════════════════════════════════════════════════
+#  Lo que NUNCA debe salir de esta computadora
+# ══════════════════════════════════════════════════════════
+
+# La llave de API. Si esto se sube a GitHub, la llave queda
+# expuesta y hay que revocarla de inmediato.
+clave_ia.txt
+
+# Los datos de trabajo: parrilla, inventario, contactos de
+# academicos. Y la base, que ademas guarda las contrasenas
+# cifradas de las tres cuentas.
+datos/
+
+# ══════════════════════════════════════════════════════════
+#  Basura de Python y del sistema
+# ══════════════════════════════════════════════════════════
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
