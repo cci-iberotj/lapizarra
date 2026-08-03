@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-CABINA - Almacen de datos y cuentas
+LA PIZARRA - Almacen de datos y cuentas
 IBERO Tijuana
 
 Sustituye los archivos JSON por SQLite. El cambio de fondo no es la base de
@@ -24,7 +24,7 @@ from datetime import datetime, timedelta
 
 RAIZ = os.path.dirname(os.path.abspath(__file__))
 DATOS = os.path.join(RAIZ, "datos")
-BD = os.path.join(DATOS, "cabina.db")
+BD = os.path.join(DATOS, "la-pizarra.db")
 
 VUELTAS = 240_000
 DIAS_SESION = 30

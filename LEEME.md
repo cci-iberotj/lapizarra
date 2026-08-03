@@ -1,4 +1,4 @@
-# CABINA
+﻿# LA PIZARRA
 ### Departamento de Diseño y Medios · IBERO Tijuana
 
 Sistema de gestión para parrilla de contenido e inventario de equipo.
@@ -7,7 +7,7 @@ Sistema de gestión para parrilla de contenido e inventario de equipo.
 
 ## Cómo abrirla
 
-Doble clic en **`CABINA.bat`**.
+Doble clic en **`LA PIZARRA.bat`**.
 
 Se abre una ventana negra (el servidor) y el navegador con la aplicación.
 **No cierres la ventana negra** mientras la estés usando — es lo que la mantiene viva.
@@ -45,20 +45,20 @@ ahí `Ctrl+Z` deshace lo que estás tecleando, como es de esperarse.
 
 **El botón Historial es lo que de verdad te salva.** Abre la lista de todo lo
 que has hecho en la sesión, con hora y descripción. Clic en cualquier punto y
-CABINA vuelve a ese momento — no importa si fueron veinte cambios atrás. El paso
+LA PIZARRA vuelve a ese momento — no importa si fueron veinte cambios atrás. El paso
 actual va marcado en rojo; los que quedaron adelante (deshechos) aparecen
 atenuados y puedes volver a ellos.
 
 Se conservan los últimos 60 cambios. **El historial es de la sesión**: al cerrar
-CABINA arranca de nuevo. Para eso están los respaldos de disco.
+LA PIZARRA arranca de nuevo. Para eso están los respaldos de disco.
 
 ### Respaldos
 
 Cada vez que se guarda algo, se copia la versión anterior a `datos/respaldos/`.
 Se conservan los últimos 30 respaldos de cada archivo. Si algo sale mal y ya
-cerraste CABINA, ahí está la versión previa: los archivos llevan fecha y hora en
+cerraste LA PIZARRA, ahí está la versión previa: los archivos llevan fecha y hora en
 el nombre, así que basta con copiar el que quieras encima de `datos/parrilla.json`
-con CABINA cerrada.
+con LA PIZARRA cerrada.
 
 Para respaldar todo: **copia la carpeta `datos/`** a OneDrive o a un disco externo.
 Eso es todo lo que necesitas guardar.
@@ -97,7 +97,7 @@ pilar es** sin abrirla. Arriba hay un contador por pilar: de un vistazo ves si
 tienes cinco de Sé IBERO y ninguna de Voz. Clic en cualquier pilar filtra el
 banco por ese color.
 
-Si CABINA no reconoció vocabulario claro, la tarjeta lleva un **?** ámbar: la
+Si LA PIZARRA no reconoció vocabulario claro, la tarjeta lleva un **?** ámbar: la
 clasificó por descarte y conviene revisarla.
 
 Cada ficha trae además:
@@ -158,7 +158,7 @@ el calendario te dice de un vistazo dónde puedes soltarla:
 - **Verde** → el día acepta la pieza
 - **Atenuado** → no se puede (ya hay algo ese día, o violaría su ventana de fechas)
 
-Si sueltas en un día inválido no pasa nada y CABINA te dice por qué.
+Si sueltas en un día inválido no pasa nada y LA PIZARRA te dice por qué.
 
 Para subir la miniatura: abre la pieza y usa **Imagen de referencia**. Las
 imágenes se guardan en `datos/miniaturas/` (máximo 12 MB cada una).
@@ -172,7 +172,7 @@ vez que los usas.
 
 ### Capturar y clasificar
 
-En el banco de ideas. Describes la idea en tus palabras y CABINA propone
+En el banco de ideas. Describes la idea en tus palabras y LA PIZARRA propone
 título, pilar, formato y canales. Funciona reconociendo el vocabulario propio
 de cada pilar: *POV*, *parcial* o *cafetería* apuntan a Vida IBERO; *egresado*
 o *investigación* a Orgullo; *convocatoria* o *beca* a Sé IBERO; *taller* o
@@ -186,7 +186,7 @@ qué. Es una sugerencia: tú confirmas o corriges antes de guardar.
 Cada pieza puede llevar dos límites: **no antes de** y **no después de**. Es lo
 que evita que una cobertura salga antes del evento.
 
-CABINA los propone sola cuando escribes la fecha en el texto. Si capturas
+LA PIZARRA los propone sola cuando escribes la fecha en el texto. Si capturas
 *"Reel de IGNITE, el evento es el 10 de agosto"*, detecta el 10, entiende que
 un reel del evento es cobertura, y fija **no antes del 10 de agosto**. Si en
 cambio escribes *"Invitación a IGNITE, te esperamos el 10 de agosto"*, entiende
@@ -302,7 +302,7 @@ registrado.
 
 ## Sobre el copy
 
-El copy no se genera dentro de CABINA: se trabaja en sesión con Claude, donde
+El copy no se genera dentro de LA PIZARRA: se trabaja en sesión con Claude, donde
 puedes iterarlo hasta que suene bien, y aquí guardas el resultado. Escribir
 con criterio de ritmo no es algo que unas reglas locales puedan hacer.
 
@@ -388,7 +388,7 @@ bajo qué permiso.
 
 - Corre con **Python 3.12**. El núcleo usa solo la biblioteca estándar; el
   asistente de IA necesita el SDK oficial (`pip install anthropic`, ya instalado).
-  Si ese paquete faltara, CABINA arranca igual y solo oculta la IA.
+  Si ese paquete faltara, LA PIZARRA arranca igual y solo oculta la IA.
 - Solo escucha en `127.0.0.1` — nadie fuera de esta computadora puede entrar.
 - Los datos son JSON plano y cada registro tiene un identificador único, para que
   el día que se integre con el CRM de Sergio la migración sea directa.

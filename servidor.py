@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-CABINA - Sistema de gestion del Departamento de Diseno y Medios
+LA PIZARRA - Sistema de gestion del Departamento de Diseno y Medios
 IBERO Tijuana
 
 Servidor local sin dependencias externas (solo stdlib de Python).
@@ -31,7 +31,7 @@ MAX_MINIATURA = 12 * 1024 * 1024  # 12 MB por imagen
 
 try:
     import ia
-except Exception:  # el modulo es opcional: CABINA funciona sin el
+except Exception:  # el modulo es opcional: LA PIZARRA funciona sin el
     ia = None
 
 # Estructura inicial de cada coleccion
@@ -148,7 +148,7 @@ def escribir(nombre, contenido):
 
 
 class Manejador(BaseHTTPRequestHandler):
-    server_version = "Cabina/1.0"
+    server_version = "La Pizarra/1.0"
 
     def log_message(self, formato, *args):
         pass  # silencio: no ensuciar la consola
@@ -343,13 +343,13 @@ def main():
         servidor = ThreadingHTTPServer(("127.0.0.1", PUERTO), Manejador)
     except OSError:
         print("\n  El puerto {} ya esta ocupado.".format(PUERTO))
-        print("  Probablemente CABINA ya esta abierta en otra ventana.")
+        print("  Probablemente LA PIZARRA ya esta abierta en otra ventana.")
         print("  Abre {} en tu navegador.\n".format(direccion))
         input("  Presiona Enter para cerrar...")
         sys.exit(1)
 
     print("")
-    print("  CABINA - Departamento de Diseno y Medios")
+    print("  LA PIZARRA - Departamento de Diseno y Medios")
     print("  IBERO Tijuana")
     print("  " + "-" * 44)
     print("  Corriendo en: {}".format(direccion))
@@ -363,7 +363,7 @@ def main():
     try:
         servidor.serve_forever()
     except KeyboardInterrupt:
-        print("\n  CABINA cerrada. Tus datos quedaron guardados.\n")
+        print("\n  LA PIZARRA cerrada. Tus datos quedaron guardados.\n")
         servidor.shutdown()
 
 

@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   CABINA · Departamento de Diseño y Medios · IBERO Tijuana
+   LA PIZARRA · Departamento de Diseño y Medios · IBERO Tijuana
    ═══════════════════════════════════════════════════════════ */
 
 'use strict';
@@ -405,7 +405,7 @@ function pintarHistorial() {
 
 function aplicarTema(tema) {
   document.documentElement.dataset.tema = tema;
-  try { localStorage.setItem('cabina-tema', tema); } catch (e) { /* modo privado */ }
+  try { localStorage.setItem('la-pizarra-tema', tema); } catch (e) { /* modo privado */ }
   const b = $('#btnTema');
   if (b) {
     b.textContent = tema === 'oscuro' ? '☀' : '◐';
@@ -415,7 +415,7 @@ function aplicarTema(tema) {
 
 function iniciarTema() {
   let guardado = null;
-  try { guardado = localStorage.getItem('cabina-tema'); } catch (e) { /* modo privado */ }
+  try { guardado = localStorage.getItem('la-pizarra-tema'); } catch (e) { /* modo privado */ }
   const prefiereOscuro = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   aplicarTema(guardado || (prefiereOscuro ? 'oscuro' : 'claro'));
 }
@@ -1165,7 +1165,7 @@ function normalizar(t) {
 }
 
 /* \u2500\u2500 Detecci\u00f3n de fechas escritas en el texto \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-   Si escribes "IGNITE, 10 de agosto", CABINA saca esa fecha y
+   Si escribes "IGNITE, 10 de agosto", LA PIZARRA saca esa fecha y
    la usa para acotar cu\u00e1ndo puede publicarse la pieza.        */
 
 const MESES_CORTOS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -1426,7 +1426,7 @@ function clasificarTexto(texto) {
 }
 
 function capturarIdeaClasificada() {
-  const texto = prompt('Describe la idea en tus palabras. CABINA la clasifica y la deja lista para que la revises.');
+  const texto = prompt('Describe la idea en tus palabras. LA PIZARRA la clasifica y la deja lista para que la revises.');
   if (!texto || !texto.trim()) return;
 
   const s = clasificarTexto(texto.trim());
@@ -2491,7 +2491,7 @@ function refrescarInventario() {
 
 /* ══════════════════════════════════════════════════════════
    LISTAS RÁPIDAS
-   Marcas lo que te llevas y CABINA arma la lista: para
+   Marcas lo que te llevas y LA PIZARRA arma la lista: para
    copiarla, imprimirla o sacar todo el lote de una vez.
    ══════════════════════════════════════════════════════════ */
 
@@ -2828,7 +2828,7 @@ function guardarModal() {
 
 /* ── Cadena de contenido ───────────────────────────────────
    Una nota no es una publicación: es la pieza madre de varias.
-   Al guardar una, CABINA ofrece crear sus derivados de un jalón. */
+   Al guardar una, LA PIZARRA ofrece crear sus derivados de un jalón. */
 function ofrecerDerivados(nota) {
   const derivados = [
     { formato: 'Reel',  canales: ['ig', 'yt'], dias: 1, que: 'el experto dice la idea clave en 30 segundos' },
@@ -3052,7 +3052,7 @@ function conectarEventos() {
   llenarSelectores();
   conectarEventos();
   await cargar();
-  registrar('Estado al abrir CABINA');
+  registrar('Estado al abrir LA PIZARRA');
   aplicarModoParrilla();
   refrescarParrilla();
   refrescarInventario();

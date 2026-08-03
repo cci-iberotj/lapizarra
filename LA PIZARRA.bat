@@ -1,5 +1,5 @@
-@echo off
-title CABINA - Diseno y Medios - IBERO Tijuana
+﻿@echo off
+title LA PIZARRA - Diseno y Medios - IBERO Tijuana
 pushd "%~dp0"
 
 where python >nul 2>nul

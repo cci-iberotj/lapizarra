@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-CABINA - Asistente de IA
+LA PIZARRA - Asistente de IA
 IBERO Tijuana
 
 Usa el SDK oficial de Anthropic. La llave de API vive SOLO aqui, del lado del
@@ -95,7 +95,7 @@ def _cliente():
             "Falta la llave de API. Pegala en clave_ia.txt o define "
             "ANTHROPIC_API_KEY."
         )
-    import anthropic  # import diferido: CABINA arranca aunque no este instalado
+    import anthropic  # import diferido: LA PIZARRA arranca aunque no este instalado
     return anthropic.Anthropic(api_key=llave)
 
 

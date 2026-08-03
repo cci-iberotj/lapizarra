@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-CABINA - Configuracion inicial de cuentas
+LA PIZARRA - Configuracion inicial de cuentas
 IBERO Tijuana
 
 Corre esto UNA VEZ para pasar tus datos a la base y crear las tres cuentas.
@@ -49,7 +49,7 @@ def alta(usuario, nombre, rol):
 
 def main():
     print("")
-    print("  CABINA — configuracion inicial")
+    print("  LA PIZARRA — configuracion inicial")
     print("  " + "-" * 44)
 
     almacen.preparar()
@@ -70,7 +70,7 @@ def main():
     for u in almacen.listar_usuarios():
         print(f"    {u['usuario']:<10} {u['nombre']:<12} {u['rol']}")
 
-    print("\n  Listo. Ya puedes abrir CABINA.")
+    print("\n  Listo. Ya puedes abrir LA PIZARRA.")
     print("  Para agregar a alguien mas despues, vuelve a correr este script")
     print("  o pidemelo y lo agrego.\n")
 
