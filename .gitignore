@@ -11,6 +11,15 @@ clave_ia.txt
 # cifradas de las tres cuentas.
 datos/
 
+# El token de cuenta de Supabase. Ya queda cubierto por datos/,
+# pero se nombra aparte a proposito: si algun dia esa carpeta se
+# mueve o se deja de ignorar, este renglon lo sigue tapando.
+# Con ese token se administra la cuenta ENTERA de Supabase, no
+# solo este proyecto. Si se filtra, se revoca en:
+#   https://supabase.com/dashboard/account/tokens
+token_supabase.txt
+*token*.txt
+
 # ══════════════════════════════════════════════════════════
 #  Basura de Python y del sistema
 # ══════════════════════════════════════════════════════════
