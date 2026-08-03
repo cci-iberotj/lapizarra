@@ -55,10 +55,15 @@ def leer_token():
             "       {}\n\n"
             "  Esa carpeta esta fuera del repositorio: no se sube a GitHub.".format(TOKEN)
         )
+    # El archivo trae instrucciones arriba para que se explique solo.
+    # Se salta los renglones con # y se queda con el primero de verdad.
     with open(TOKEN, "r", encoding="utf-8") as f:
-        t = f.read().strip()
+        reales = [l.strip() for l in f
+                  if l.strip() and not l.strip().startswith("#")]
+    t = reales[0] if reales else ""
     if not t:
-        salir("El archivo del token esta vacio:\n\n    {}".format(TOKEN))
+        salir("Todavia no hay token en el archivo. Pega el tuyo en:\n\n"
+              "    {}".format(TOKEN))
     if not t.startswith("sbp_"):
         salir(
             "Eso no parece un token de Supabase: los que sirven empiezan\n"
