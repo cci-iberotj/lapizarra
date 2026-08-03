@@ -1610,15 +1610,20 @@ function acomodarPendientes() {
 const ESTADOS_NOTA = [
   { id: 'encargada',  nombre: 'Encargada',      quien: 'redaccion',    color: '#7A8B99', nota: 'Ya se mandó el encargo; falta que empiece' },
   { id: 'escribiendo',nombre: 'Escribiendo',    quien: 'redaccion',    color: '#8A5A1F', nota: 'En manos de quien redacta' },
-  { id: 'borrador',   nombre: 'Borrador listo', quien: 'coordinacion', color: '#3D5A80', nota: 'Texto terminado, falta tu visto bueno' },
+  { id: 'borrador',   nombre: 'Borrador listo', quien: 'difusion',     color: '#3D5A80', nota: 'Texto terminado, falta armar el post y el reel' },
   { id: 'con_sitio',  nombre: 'Con publicación',quien: 'publicacion',  color: '#6A4C93', nota: 'Enviada para subir al sitio' },
-  { id: 'publicada',  nombre: 'En el sitio',    quien: 'coordinacion', color: '#147468', nota: 'Ya vive en el sitio; toca difundirla' },
+  { id: 'publicada',  nombre: 'En el sitio',    quien: 'difusion',     color: '#147468', nota: 'Ya vive en el sitio; toca difundirla' },
   { id: 'difundida',  nombre: 'Difundida',      quien: '—',            color: '#357044', nota: 'Post y reel publicados. Cerrada.' },
 ];
 
+/* Estas claves son funciones dentro del flujo de una nota — quién
+   escribe, quién sube al sitio, quién la difunde — no puestos ni
+   niveles de permiso. Son cosas distintas y no conviene mezclarlas. */
 function rolDe(clave) {
   const eq = (datos.redaccion && datos.redaccion.equipo) || {};
-  return eq[clave] || { redaccion: 'quien escribe', publicacion: 'quien publica', coordinacion: 'tú' }[clave] || '—';
+  return eq[clave] || {
+    redaccion: 'quien escribe', publicacion: 'quien publica', difusion: 'quien difunde',
+  }[clave] || '—';
 }
 
 function notasEnCurso() {
@@ -1864,7 +1869,7 @@ async function generarEncargo(idNota) {
   l.push('  · Reel de 30 seg con el experto diciendo la idea clave.');
   l.push('  · El reel se graba EN LA MISMA SESIÓN de la entrevista. Avísame para agendarla.');
   l.push('');
-  l.push(`Cualquier duda: ${rolDe('coordinacion')}`);
+  l.push(`Cualquier duda: ${rolDe('difusion')}`);
 
   const texto = l.join('\n');
   try {

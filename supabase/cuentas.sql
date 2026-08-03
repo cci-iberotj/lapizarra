@@ -10,7 +10,7 @@
 
 
 -- ── PASO A · Revisar que la base quedó bien ────────────────
---  Correr esto solo. Deben salir tres renglones diciendo "sí".
+--  Correr esto solo. Deben salir cuatro renglones diciendo "sí".
 
 select 'tabla de perfiles'          as revisa,
        case when to_regclass('public.perfiles')  is not null then 'sí' else 'FALTA' end as estado
@@ -22,6 +22,12 @@ select 'marca de contraseña temporal',
        case when exists (select 1 from information_schema.columns
                          where table_schema = 'public' and table_name = 'perfiles'
                            and column_name = 'debe_cambiar_clave')
+            then 'sí' else 'FALTA — vuelve a correr esquema.sql' end
+union all
+select 'roles renombrados (admin / direccion)',
+       case when exists (select 1 from pg_constraint
+                         where conname = 'perfiles_rol_check'
+                           and pg_get_constraintdef(oid) like '%admin%')
             then 'sí' else 'FALTA — vuelve a correr esquema.sql' end;
 
 
@@ -40,14 +46,19 @@ select u.email,
 -- ── PASO C · Asignar los roles ─────────────────────────────
 --  Esto es lo que convierte tres cuentas iguales en tres
 --  personas con permisos distintos.
+--
+--  El rol dice qué puede tocar cada quien en el programa, no quién
+--  manda en el departamento. Marysol es la jefa del área; Leo tiene
+--  'admin' porque es quien opera y mantiene la herramienta. El día
+--  que eso cambie, se cambia aquí y ya.
 
 update public.perfiles
-   set rol = 'coordinacion', nombre = 'Leo', debe_cambiar_clave = false
+   set rol = 'admin', nombre = 'Leo', debe_cambiar_clave = false
  where id = (select id from auth.users
               where email = 'leonardo.gonzalez@tijuana.ibero.mx');
 
 update public.perfiles
-   set rol = 'redaccion', nombre = 'Marysol'
+   set rol = 'direccion', nombre = 'Marysol'
  where id = (select id from auth.users
               where email = 'marysol.castro@tijuana.ibero.mx');
 
@@ -60,9 +71,9 @@ update public.perfiles
 -- ── PASO D · Comprobar ─────────────────────────────────────
 --  Así debe quedar:
 --
---    Leo      coordinacion   marca apagada  (ya pusiste tu clave buena)
---    Marysol  redaccion      marca prendida (cambia al entrar)
---    Sergio   publicacion    marca prendida (cambia al entrar)
+--    Leo      admin        marca apagada  (ya pusiste tu clave buena)
+--    Marysol  direccion    marca prendida (cambia al entrar)
+--    Sergio   publicacion  marca prendida (cambia al entrar)
 
 select p.nombre,
        p.rol,

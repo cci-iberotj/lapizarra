@@ -18,13 +18,33 @@
 create table if not exists public.perfiles (
   id     uuid primary key references auth.users(id) on delete cascade,
   nombre text not null default '',
-  rol    text not null default 'produccion'
-         check (rol in ('coordinacion', 'redaccion', 'publicacion', 'produccion')),
+  rol    text not null default 'produccion',
   creado timestamptz not null default now()
 );
 
+-- OJO: el rol dice qué puede TOCAR cada quien en el sistema, no quién
+-- manda en el departamento. Son dos cosas distintas y conviene no
+-- confundirlas: Marysol es la jefa del área, y Leo es quien administra
+-- la herramienta porque es quien la opera todos los días.
+--
+--   admin       Administra el sistema y opera todo.        (Leo)
+--   direccion   Jefatura: todo lo editorial, sin inventario. (Marysol)
+--   redaccion   Escribe notas academicas.       (para cuando contraten)
+--   publicacion Publica las notas en el sitio.             (Sergio)
+--   produccion  Sube piezas e ideas.               (agencia, a futuro)
+
+-- La primera version llamaba 'coordinacion' al permiso total, y eso
+-- daba a entender una jerarquia que no existe. Se renombra. Este
+-- renglon traduce lo que ya estuviera guardado antes de apretar la
+-- regla, para que el archivo se pueda volver a correr sin tronar.
+update public.perfiles set rol = 'admin' where rol = 'coordinacion';
+
+alter table public.perfiles drop constraint if exists perfiles_rol_check;
+alter table public.perfiles add constraint perfiles_rol_check
+  check (rol in ('admin', 'direccion', 'redaccion', 'publicacion', 'produccion'));
+
 comment on table public.perfiles is
-  'Rol de cada persona. coordinacion = Leo, redaccion = Marysol, publicacion = Sergio.';
+  'Permiso de cada persona en el sistema. No refleja jerarquia del departamento.';
 
 -- Marca de contraseña temporal. Mientras esté encendida, la aplicación
 -- no deja pasar a nadie sin cambiarla primero. Asi Leo puede entregar
@@ -70,11 +90,16 @@ returns boolean
 language sql stable security definer set search_path = public
 as $$
   select case public.mi_rol()
-    when 'coordinacion' then true
-    when 'redaccion'    then col in ('redaccion_temas', 'parrilla_piezas',
-                                     'parrilla_ideas', 'expertos_personas')
-    when 'publicacion'  then col = 'parrilla_piezas'
-    when 'produccion'   then col in ('parrilla_piezas', 'parrilla_ideas')
+    when 'admin'       then true
+    -- La jefatura toca todo lo editorial. El inventario no, porque no
+    -- administra camaras: puede verlo, pero no tiene por que moverlo.
+    when 'direccion'   then col in ('parrilla_piezas', 'parrilla_ideas',
+                                    'redaccion_temas', 'expertos_personas',
+                                    'ajustes_equipo')
+    when 'redaccion'   then col in ('redaccion_temas', 'parrilla_piezas',
+                                    'parrilla_ideas', 'expertos_personas')
+    when 'publicacion' then col = 'parrilla_piezas'
+    when 'produccion'  then col in ('parrilla_piezas', 'parrilla_ideas')
     else false
   end
 $$;
@@ -98,11 +123,11 @@ drop policy if exists "cambiar registros"   on public.registros;
 create policy "ver perfiles" on public.perfiles
   for select to authenticated using (true);
 
--- Sólo coordinación asigna roles
+-- Sólo quien administra el sistema asigna roles
 create policy "administrar perfiles" on public.perfiles
   for all to authenticated
-  using      (public.mi_rol() = 'coordinacion')
-  with check (public.mi_rol() = 'coordinacion');
+  using      (public.mi_rol() = 'admin')
+  with check (public.mi_rol() = 'admin');
 
 -- Cada quien puede apagar su marca de contraseña temporal y corregir
 -- su nombre. Lo que NO puede es cambiarse el rol: la condicion exige
@@ -132,7 +157,7 @@ create policy "cambiar registros" on public.registros
 
 
 -- ── 5. Perfil automático al crear cuenta ───────────────────
---  Entra con el rol de menos permisos. Coordinación lo sube
+--  Entra con el rol de menos permisos. Quien administra lo sube
 --  después. Si un alta se cuela, no puede hacer daño.
 
 create or replace function public.nuevo_perfil()
@@ -186,10 +211,10 @@ end $$;
 --  3. Volver aquí y correr, con los correos reales, para asignar
 --     los roles:
 --
---       update public.perfiles set rol = 'coordinacion', nombre = 'Leo'
+--       update public.perfiles set rol = 'admin', nombre = 'Leo'
 --        where id = (select id from auth.users where email = 'CORREO_DE_LEO');
 --
---       update public.perfiles set rol = 'redaccion', nombre = 'Marysol'
+--       update public.perfiles set rol = 'direccion', nombre = 'Marysol'
 --        where id = (select id from auth.users where email = 'CORREO_DE_MARYSOL');
 --
 --       update public.perfiles set rol = 'publicacion', nombre = 'Sergio'

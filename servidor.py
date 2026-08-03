@@ -42,7 +42,7 @@ ESQUEMAS = {
     "redaccion": {"temas": [], "equipo": {
         "redaccion": "Marysol",
         "publicacion": "Sergio",
-        "coordinacion": "Leo",
+        "difusion": "Leo",
     }},
     "config": {
         "nombre_depto": "Departamento de Diseno y Medios",

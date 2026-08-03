@@ -30,14 +30,22 @@ VUELTAS = 240_000
 DIAS_SESION = 30
 
 # Que puede tocar cada rol. La coleccion "*" significa todo.
+#
+# El rol es un permiso del programa, no un puesto del organigrama:
+# "admin" es quien mantiene la herramienta, no quien manda en el area.
 PERMISOS = {
-    "coordinacion": {"escribe": ["*"], "descripcion": "Coordina todo el departamento"},
-    "redaccion":    {"escribe": ["redaccion_temas", "parrilla_piezas", "expertos_personas"],
-                     "descripcion": "Escribe las notas academicas"},
-    "publicacion":  {"escribe": ["parrilla_piezas"],
-                     "descripcion": "Publica las notas en el sitio"},
-    "produccion":   {"escribe": ["parrilla_piezas", "parrilla_ideas"],
-                     "descripcion": "Produce contenido"},
+    "admin":       {"escribe": ["*"], "descripcion": "Administra el sistema"},
+    "direccion":   {"escribe": ["parrilla_piezas", "parrilla_ideas",
+                                "redaccion_temas", "expertos_personas",
+                                "ajustes_equipo"],
+                    "descripcion": "Jefatura del area"},
+    "redaccion":   {"escribe": ["redaccion_temas", "parrilla_piezas",
+                                "parrilla_ideas", "expertos_personas"],
+                    "descripcion": "Escribe las notas academicas"},
+    "publicacion": {"escribe": ["parrilla_piezas"],
+                    "descripcion": "Publica las notas en el sitio"},
+    "produccion":  {"escribe": ["parrilla_piezas", "parrilla_ideas"],
+                    "descripcion": "Produce contenido"},
 }
 
 _local = threading.local()

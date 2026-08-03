@@ -16,10 +16,11 @@ import sys
 import almacen
 
 ROLES = {
-    "1": ("coordinacion", "Coordinacion - ve y edita todo"),
-    "2": ("redaccion",    "Redaccion - escribe las notas academicas"),
-    "3": ("publicacion",  "Publicacion - marca las notas como publicadas"),
-    "4": ("produccion",   "Produccion - sube piezas y avanza su estado"),
+    "1": ("admin",       "Admin - administra el sistema, ve y edita todo"),
+    "2": ("direccion",   "Direccion - jefatura del area, todo lo editorial"),
+    "3": ("redaccion",   "Redaccion - escribe las notas academicas"),
+    "4": ("publicacion", "Publicacion - marca las notas como publicadas"),
+    "5": ("produccion",  "Produccion - sube piezas y avanza su estado"),
 }
 
 
@@ -61,8 +62,8 @@ def main():
     print("\n  Ahora las cuentas. Vas a escribir tres contrasenas.")
     print("  No se muestran mientras las tecleas: es normal.")
 
-    alta("leo",     "Leo",     "coordinacion")
-    alta("marysol", "Marysol", "redaccion")
+    alta("leo",     "Leo",     "admin")
+    alta("marysol", "Marysol", "direccion")
     alta("sergio",  "Sergio",  "publicacion")
 
     print("\n  " + "-" * 44)
