@@ -1117,39 +1117,34 @@ async function pintarAjustes() {
   if (!cont || !Almacen.usuario) return;
   const yo = Almacen.usuario;
   const esAdmin = yo.rol === 'admin';
+  /* Quién reparte el trabajo de la mesa de redacción: quien
+     administra y la jefatura. Sergio publica lo que le llega, no
+     decide quién escribe. */
+  const repartelTrabajo = esAdmin || yo.rol === 'direccion';
 
   cont.innerHTML = '<p class="tenue nota">Cargando…</p>';
 
-  try {
-    const d = await llamarAdmin('listar');
-    usuariosDelSistema = d.usuarios || [];
-    personasDelSistema = usuariosDelSistema.map(u => ({ nombre: u.nombre, rol: u.rol }));
-  } catch (e) {
-    usuariosDelSistema = [];
+  // La lista de cuentas sólo se pide si hay a quién enseñársela.
+  if (esAdmin) {
+    try {
+      const d = await llamarAdmin('listar');
+      usuariosDelSistema = d.usuarios || [];
+      personasDelSistema = usuariosDelSistema.map(u => ({ nombre: u.nombre, rol: u.rol }));
+    } catch (e) {
+      usuariosDelSistema = [];
+    }
   }
 
   const eq = (datos.redaccion && datos.redaccion.equipo) || {};
   const nunca = u => !u.ultima_entrada;
+  const miRol = ROLES_SISTEMA.find(r => r.id === yo.rol);
 
-  cont.innerHTML = `
-    <section class="ajustes-cabecera">
-      <div>
-        <h2>Ajustes</h2>
-        <p class="tenue">Cuentas, roles y cómo se reparte el trabajo.</p>
-      </div>
-      <div class="ficha-plana">
-        <b>${esc(yo.nombre)}</b>
-        <span class="tenue">${esc(yo.correo || '')}</span>
-        <span class="sello-tipo es-post">${esc(yo.rol)}</span>
-      </div>
-    </section>
-
+  const bloqueCuentas = !esAdmin ? '' : `
     <section class="bloque-auditoria">
       <div class="bloque-encabezado">
         <h3>Personas con cuenta</h3>
-        ${esAdmin ? '<button class="btn-primario" id="aj_nueva">+ Dar de alta</button>' : ''}
+        <button class="btn-primario" id="aj_nueva">+ Dar de alta</button>
       </div>
-      ${!esAdmin ? '<p class="tenue nota">Sólo quien administra puede dar de alta o cambiar roles.</p>' : ''}
       <div class="tabla-envoltorio">
         <table class="tabla" id="aj_tabla">
           <thead>
@@ -1167,8 +1162,8 @@ async function pintarAjustes() {
                 </td>
                 <td class="tenue">${esc(u.correo)}</td>
                 <td>
-                  ${esAdmin && u.id !== yo.id ? `
-                    <select class="campo-mini" data-rol="${esc(u.id)}">
+                  ${u.id !== yo.id ? `
+                    <select class="campo-mini" data-rol="${esc(u.id)}" aria-label="Rol de ${esc(u.nombre)}">
                       ${ROLES_SISTEMA.map(r =>
                         `<option value="${r.id}"${r.id === u.rol ? ' selected' : ''}>${esc(r.nombre)}</option>`).join('')}
                     </select>`
@@ -1176,7 +1171,7 @@ async function pintarAjustes() {
                 </td>
                 <td class="tenue">${nunca(u) ? 'Todavía no entra' : esc(fechaLegible(u.ultima_entrada.slice(0,10)))}</td>
                 <td>
-                  ${esAdmin && u.id !== yo.id ? `
+                  ${u.id !== yo.id ? `
                     <button class="btn-mini" data-clave="${esc(u.id)}" title="Poner una contraseña provisional nueva">Reponer clave</button>
                     <button class="btn-mini" data-baja="${esc(u.id)}" title="Eliminar la cuenta">Baja</button>` : ''}
                 </td>
@@ -1187,6 +1182,31 @@ async function pintarAjustes() {
       </div>
     </section>
 
+    <section class="bloque-auditoria">
+      <div class="bloque-encabezado"><h3>Qué puede hacer cada rol</h3></div>
+      <div class="tabla-envoltorio">
+        <table class="tabla">
+          <thead><tr><th scope="col">Rol</th><th scope="col">Alcance</th><th scope="col">Qué ve</th></tr></thead>
+          <tbody>
+            ${ROLES_SISTEMA.map(r => {
+              const v = VISTAS_POR_ROL[r.id];
+              return `<tr>
+                <td><b>${esc(r.nombre)}</b></td>
+                <td class="tenue">${esc(r.que)}</td>
+                <td class="tenue">${v ? esc(v.ve.length) + ' de 7 pestañas' : '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="tenue nota" style="margin-top:12px">
+        El rol dice qué se puede tocar en el programa, no quién manda en el
+        departamento. Los permisos los aplica la base de datos: aunque alguien
+        manipule su navegador, el cambio se rechaza igual.
+      </p>
+    </section>`;
+
+  const bloqueEquipo = !repartelTrabajo ? '' : `
     <section class="bloque-auditoria">
       <div class="bloque-encabezado">
         <h3>Quién hace qué en la mesa de redacción</h3>
@@ -1212,24 +1232,61 @@ async function pintarAjustes() {
       <div style="margin-top:14px">
         <button class="btn-primario" id="aj_guardarEquipo">Guardar</button>
       </div>
+    </section>`;
+
+  cont.innerHTML = `
+    <section class="ajustes-cabecera">
+      <div>
+        <h2>Ajustes</h2>
+        <p class="tenue">${esAdmin
+          ? 'Cuentas, roles y cómo se reparte el trabajo.'
+          : 'Tu cuenta y tu contraseña.'}</p>
+      </div>
+      <div class="ficha-plana">
+        <b>${esc(yo.nombre)}</b>
+        <span class="tenue">${esc(yo.correo || '')}</span>
+        <span class="sello-tipo es-post">${esc(miRol ? miRol.nombre : yo.rol)}</span>
+      </div>
+    </section>
+
+    ${bloqueCuentas}
+    ${bloqueEquipo}
+
+    <section class="bloque-auditoria">
+      <div class="bloque-encabezado"><h3>Tu contraseña</h3></div>
+      <p class="tenue nota">
+        Cámbiala cuando quieras. Sólo tú la conoces: no queda guardada en
+        ningún lado ni la puede ver quien administra.
+      </p>
+      <div class="fila-campos">
+        <div class="grupo-campo">
+          <label for="aj_clave1">Contraseña nueva</label>
+          <input type="password" class="campo" id="aj_clave1" autocomplete="new-password" minlength="8">
+          <span class="ayuda">Mínimo 8 caracteres.</span>
+        </div>
+        <div class="grupo-campo">
+          <label for="aj_clave2">Repítela</label>
+          <input type="password" class="campo" id="aj_clave2" autocomplete="new-password" minlength="8">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn-plano" id="aj_cambiarClave">Cambiar mi contraseña</button>
+      </div>
     </section>
 
     <section class="bloque-auditoria">
-      <div class="bloque-encabezado"><h3>Qué puede hacer cada rol</h3></div>
-      <div class="tabla-envoltorio">
-        <table class="tabla">
-          <thead><tr><th scope="col">Rol</th><th scope="col">Alcance</th></tr></thead>
-          <tbody>
-            ${ROLES_SISTEMA.map(r => `
-              <tr><td><b>${esc(r.nombre)}</b></td><td class="tenue">${esc(r.que)}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-      <p class="tenue nota" style="margin-top:12px">
-        El rol dice qué se puede tocar en el programa, no quién manda en el
-        departamento. Los permisos los aplica la base de datos: aunque alguien
-        manipule su navegador, el cambio se rechaza igual.
+      <div class="bloque-encabezado"><h3>Qué ves tú</h3></div>
+      <p class="tenue nota">
+        ${miRol ? esc(miRol.que) + '. ' : ''}Las pestañas que no aparecen no son
+        parte de tu trabajo — no están escondidas por desconfianza, están fuera
+        para no estorbar.
       </p>
+      <div class="lista-personas">
+        ${vistasQueVeo().map(v => {
+          const t = $(`.tab[data-vista="${v}"]`);
+          return `<div class="ficha-plana"><b>${esc(t ? t.textContent : v)}</b></div>`;
+        }).join('')}
+      </div>
     </section>
   `;
 
@@ -1274,17 +1331,38 @@ async function pintarAjustes() {
     }));
   }
 
-  $('#aj_guardarEquipo').addEventListener('click', () => {
-    datos.redaccion = datos.redaccion || {};
-    datos.redaccion.equipo = {
-      redaccion:   $('#aj_redaccion').value.trim(),
-      publicacion: $('#aj_publicacion').value.trim(),
-      difusion:    $('#aj_difusion').value.trim(),
-    };
-    guardar('redaccion');
-    registrar('Cambió quién hace qué en la mesa de redacción');
-    pintarRedaccion();
-    avisar('Guardado.');
+  if (repartelTrabajo) {
+    $('#aj_guardarEquipo').addEventListener('click', () => {
+      datos.redaccion = datos.redaccion || {};
+      datos.redaccion.equipo = {
+        redaccion:   $('#aj_redaccion').value.trim(),
+        publicacion: $('#aj_publicacion').value.trim(),
+        difusion:    $('#aj_difusion').value.trim(),
+      };
+      guardar('redaccion');
+      registrar('Cambió quién hace qué en la mesa de redacción');
+      pintarRedaccion();
+      avisar('Guardado.');
+    });
+  }
+
+  /* Cambiar la propia contraseña. Antes sólo existía en el paso
+     forzado del primer ingreso: quien ya había entrado no tenía
+     ninguna forma de cambiarla, y pedírsela a quien administra
+     significaba que otra persona la eligiera por ti. */
+  $('#aj_cambiarClave').addEventListener('click', async () => {
+    const a = $('#aj_clave1').value, b = $('#aj_clave2').value;
+    if (a.length < 8) { avisar('La contraseña necesita al menos 8 caracteres.'); return; }
+    if (a !== b) { avisar('Las dos contraseñas no coinciden.'); return; }
+    const boton = $('#aj_cambiarClave');
+    boton.disabled = true;
+    try {
+      await Almacen.cambiarClave(a);
+      $('#aj_clave1').value = ''; $('#aj_clave2').value = '';
+      avisar('Contraseña cambiada. Sólo tú la conoces.');
+    } catch (e) {
+      avisar(e.message || 'No se pudo cambiar.');
+    } finally { boton.disabled = false; }
   });
 }
 
@@ -4222,7 +4300,86 @@ function conectarEventos() {
 }
 
 /* ══════════════════════════════════════════════════════════
-   QUÉ VE Y QUÉ TOCA CADA QUIEN
+   QUÉ VE CADA QUIEN
+
+   Cambio de criterio, a pedido de Leo. Antes todos veían las siete
+   pestañas y lo que no les tocaba salía apagado. El argumento era
+   que el calendario compartido es el punto de la herramienta — y
+   sigue siendo cierto PARA EL CALENDARIO.
+
+   Pero no aplica a todo. El inventario es el control interno del
+   equipo de Leo: para Marysol y Sergio no es contexto compartido,
+   es ruido. Y la administración de cuentas con los roles de los
+   demás no tiene por qué estar a la vista de nadie más.
+
+   La regla que quedó: se comparte lo que es del EQUIPO, se esconde
+   lo que es de UNA persona o de la administración.
+
+   OJO — esto es comodidad, no seguridad. Quien manipule el
+   navegador puede volver a mostrar una pestaña. Lo que de verdad
+   cierra la puerta son las reglas de la base: escribir ya estaba
+   bloqueado, y ahora leer el inventario también.
+   ══════════════════════════════════════════════════════════ */
+
+const VISTAS_POR_ROL = {
+  admin: {
+    ve: ['parrilla', 'escritorio', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    porque: 'Administra y opera todo',
+  },
+  direccion: {
+    // La jefa: el plan, la mesa de redacción que es su trabajo, los
+    // expertos que entrevista, y el diagnóstico. El inventario no:
+    // no administra cámaras.
+    ve: ['parrilla', 'escritorio', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    porque: 'Dirige el área y escribe las notas',
+  },
+  redaccion: {
+    ve: ['parrilla', 'escritorio', 'redaccion', 'expertos', 'ajustes'],
+    porque: 'Escribe las notas académicas',
+  },
+  publicacion: {
+    // Sergio publica notas en el sitio: necesita ver la parrilla y
+    // la mesa de redacción, que es de donde le llegan. No necesita
+    // el directorio de expertos — él no entrevista a nadie — ni el
+    // inventario, ni el diagnóstico del área.
+    ve: ['parrilla', 'escritorio', 'redaccion', 'ajustes'],
+    porque: 'Publica las notas en el sitio',
+  },
+  produccion: {
+    // La agencia: sube piezas e ideas y nada más.
+    ve: ['parrilla', 'escritorio', 'ajustes'],
+    porque: 'Produce contenido',
+  },
+};
+
+function vistasQueVeo() {
+  if (!Almacen.enLaNube || !Almacen.usuario) {
+    return ['parrilla', 'escritorio', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'];
+  }
+  const r = VISTAS_POR_ROL[Almacen.usuario.rol];
+  return r ? r.ve : ['parrilla', 'escritorio', 'ajustes'];
+}
+
+function aplicarVistasPorRol() {
+  const mias = vistasQueVeo();
+
+  $$('.tab').forEach(t => {
+    const v = t.dataset.vista;
+    if (!v) return;
+    t.hidden = !mias.includes(v);
+  });
+
+  // Si estabas parado en una pestaña que ya no te toca — por
+  // ejemplo al cambiar de cuenta en la misma computadora — te
+  // devuelve a la parrilla en vez de dejarte en una vista muerta.
+  if (!mias.includes(vistaActual)) {
+    const primera = $(`.tab[data-vista="${mias[0]}"]`);
+    if (primera) primera.click();
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   QUÉ TOCA CADA QUIEN
 
    Todos ven todas las pestañas, a propósito. El calendario
    compartido es justo el punto de la herramienta: Sergio tiene
@@ -4285,6 +4442,8 @@ function soloLectura(coleccion) {
 }
 
 function aplicarPermisos() {
+  aplicarVistasPorRol();
+
   for (const [vista, controles] of Object.entries(CONTROLES_QUE_EDITAN)) {
     let algoSeEdita = false;
 
@@ -4383,7 +4542,9 @@ function pintarQuien(u) {
   el.hidden = false;
   $('#btnSalir').hidden = false;
   $('#btnAjustes').hidden = false;
-  $('#tabAjustes').hidden = false;
+  // Las pestañas las destapa aplicarVistasPorRol, todas por el
+  // mismo camino: aquí sólo se enciende el engrane.
+  aplicarVistasPorRol();
 }
 
 /* Cerrar de este lado pase lo que pase. Quedarse dentro por un

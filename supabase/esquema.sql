@@ -142,9 +142,26 @@ create policy "actualizar lo mio" on public.perfiles
   using      (id = auth.uid())
   with check (id = auth.uid() and rol = public.mi_rol());
 
--- Todos leen el contenido: el calendario es de todos
+-- Leer tambien depende del rol. El calendario SIGUE siendo de
+-- todos -- piezas, ideas, eventos, temas y expertos se comparten a
+-- proposito -- pero el inventario es el control interno del equipo
+-- de Leo y no es contexto compartido de nadie mas.
+--
+-- Esto importa: esconder la pestana en la pagina no cerraba nada.
+-- Los datos seguian saliendo por la API con pedirlos.
+create or replace function public.puede_leer(col text)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select case
+    when col like 'inventario_%' then public.mi_rol() = 'admin'
+    else true
+  end
+$$;
+
 create policy "ver registros" on public.registros
-  for select to authenticated using (true);
+  for select to authenticated
+  using (public.puede_leer(coleccion));
 
 -- Escribir depende del rol
 create policy "crear registros" on public.registros
