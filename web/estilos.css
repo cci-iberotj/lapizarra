@@ -2283,3 +2283,105 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 }
 .celda-agregar:hover { color: var(--marca-tinta); background: var(--marca-velo); }
 .celda.finde .celda-agregar { color: var(--tinta-media); }
+
+/* ═══════════════════════════════════════════════════════════
+   TRES CARRILES
+   En escritorio sobraba ancho y todo iba apilado: para llegar al
+   banco de ideas había que dejar de ver el calendario, que es
+   justo donde vas a soltar la idea.
+
+   Los lados se quedan fijos y se desplazan por su cuenta. El
+   centro manda la altura.
+   ═══════════════════════════════════════════════════════════ */
+
+.carriles { display: grid; gap: var(--e-5); }
+
+@media (min-width: 1100px) {
+  .carriles {
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(240px, 320px);
+    align-items: start;
+  }
+
+  .riel {
+    position: sticky;
+    /* 62px de barra + un respiro */
+    top: 78px;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+    overscroll-behavior: contain;   /* al topar, no arrastra la página */
+    padding-right: 4px;
+    display: grid; gap: var(--e-5); align-content: start;
+  }
+
+  /* Barra de desplazamiento discreta: en un carril angosto, la de
+     fábrica se come el ancho y parte el diseño. */
+  .riel { scrollbar-width: thin; scrollbar-color: var(--linea-control) transparent; }
+  .riel::-webkit-scrollbar { width: 7px; }
+  .riel::-webkit-scrollbar-thumb {
+    background: var(--linea-control); border-radius: var(--r-pastilla);
+  }
+  .riel::-webkit-scrollbar-track { background: transparent; }
+
+  /* Dentro de un carril angosto todo va a una columna */
+  .riel .ideas,
+  .riel .tira-efemerides { grid-template-columns: 1fr; display: grid; }
+  .riel .tira-efemerides { overflow: visible; }
+  .riel .efemeride { min-width: 0; }
+  .riel .bloque-ideas { margin: 0; }
+}
+
+/* Debajo de 1100 se apila, y el orden importa: primero el plan,
+   luego lo que hay que cubrir, al final el banco. */
+@media (max-width: 1099px) {
+  .riel-centro { order: 1; }
+  .riel-izq    { order: 2; }
+  .riel-der    { order: 3; }
+  .carriles    { display: flex; flex-direction: column; }
+}
+
+/* ── Arrastrar una idea al calendario ──────────────────────
+   Es lo que vuelve práctico tener el banco al lado. */
+
+.idea[draggable="true"] { cursor: grab; }
+.idea.arrastrando { opacity: .45; cursor: grabbing; }
+.celda.recibe-idea {
+  background: var(--soltar-valido);
+  border-color: var(--ok);
+  box-shadow: inset 0 0 0 1px var(--ok);
+}
+
+/* ── Ajustes ───────────────────────────────────────────── */
+
+.ajustes-cabecera {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--e-5); flex-wrap: wrap; margin-bottom: var(--e-6);
+}
+.ajustes-cabecera h2 { margin: 0 0 4px; }
+.ajustes-cabecera p { margin: 0; }
+
+/* La credencial que se le entrega a alguien. Es lo único de la
+   aplicación que se lee para dictarlo en voz alta, así que va
+   grande y con la clave en monoespaciada: una l y un 1 tienen que
+   distinguirse. */
+.credencial {
+  display: grid; gap: var(--e-3);
+  background: var(--capa-hundida);
+  border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-lg);
+  padding: var(--e-5);
+  margin: var(--e-4) 0;
+}
+.credencial > div { display: grid; gap: 2px; }
+.credencial span {
+  font-size: var(--t-sello); color: var(--tinta-tenue);
+  text-transform: uppercase; letter-spacing: .08em; font-weight: var(--peso-alto);
+}
+.credencial b { font-size: var(--t-guia); color: var(--tinta); }
+.credencial .clave {
+  font-family: Consolas, "SF Mono", Menlo, monospace;
+  font-size: var(--t-titulo); letter-spacing: .02em;
+  color: var(--marca-tinta); user-select: all;
+}
+
+.tabla .btn-mini + .btn-mini { margin-left: 6px; }
+.tabla td .campo-mini { min-height: 32px; padding: 4px 8px; }

@@ -72,12 +72,13 @@
     <span class="marca-sub">Diseño y Medios · IBERO Tijuana</span>
   </div>
   <nav class="tabs">
-    <button class="tab activo" data-vista="escritorio">Mi escritorio</button>
-    <button class="tab" data-vista="parrilla">Parrilla</button>
+    <button class="tab activo" data-vista="parrilla">Parrilla</button>
+    <button class="tab" data-vista="escritorio">Mi escritorio</button>
     <button class="tab" data-vista="inventario">Inventario</button>
     <button class="tab" data-vista="redaccion">Redacción</button>
     <button class="tab" data-vista="expertos">Expertos</button>
     <button class="tab" data-vista="auditoria">Auditoría</button>
+    <button class="tab" id="tabAjustes" data-vista="ajustes" hidden>Ajustes</button>
   </nav>
   <div class="barra-derecha">
     <div class="grupo-historial">
@@ -105,11 +106,11 @@
 <!-- ══════════════════════ PARRILLA ══════════════════════ -->
 <!-- ══════════════════════ MI ESCRITORIO ══════════════════════
      Lo unico de la aplicacion que es distinto para cada quien. -->
-<main id="vista-escritorio" class="vista activo">
+<main id="vista-escritorio" class="vista">
   <section id="escritorio"></section>
 </main>
 
-<main id="vista-parrilla" class="vista">
+<main id="vista-parrilla" class="vista activo">
 
   <section class="semana-cabecera">
     <div class="semana-nav">
@@ -162,7 +163,34 @@
 
   <section class="tablero" id="tableroPiezas" hidden></section>
 
-  <section class="calendario-envoltorio" id="calendarioEnvoltorio">
+  <!-- ══ Tres carriles ══
+       Izquierda: lo que va a ocurrir en el mundo.
+       Centro: el plan.
+       Derecha: lo que podría salir.
+       Los lados se quedan fijos al desplazar el centro, y cada uno
+       tiene su propio desplazamiento — así se puede tomar una idea
+       del banco y arrastrarla al calendario sin perderlo de vista. -->
+  <div class="carriles" id="carriles">
+
+    <aside class="riel riel-izq">
+<section class="bloque-ideas">
+    <div class="bloque-encabezado">
+      <h3>Lo que hay que cubrir</h3>
+    </div>
+    <p class="tenue nota">Eventos que ya sabemos que van a ocurrir. Cualquiera del equipo puede anotarlos; a futuro llegarán solos desde la plataforma de solicitudes.</p>
+    <div class="eventos" id="listaEventos"></div>
+  </section>
+<section class="bloque-ideas">
+    <div class="bloque-encabezado">
+      <h3>Fechas que vienen</h3>
+    </div>
+    <p class="tenue nota">Perchas para colgar contenido en los próximos dos meses y medio. Clic en una para guardarla como idea.</p>
+    <div class="tira-efemerides" id="tiraEfemerides"></div>
+  </section>
+    </aside>
+
+    <div class="riel-centro">
+<section class="calendario-envoltorio" id="calendarioEnvoltorio">
     <div class="calendario-barra">
       <button class="btn-icono" id="mesAnterior" title="Mes anterior">‹</button>
       <h2 id="mesTitulo">Mes</h2>
@@ -178,24 +206,10 @@
       <div class="calendario" id="calendarioMes"></div>
     </div>
   </section>
-
-  <section class="bloque-ideas">
-    <div class="bloque-encabezado">
-      <h3>Lo que hay que cubrir</h3>
     </div>
-    <p class="tenue nota">Eventos que ya sabemos que van a ocurrir. Cualquiera del equipo puede anotarlos; a futuro llegarán solos desde la plataforma de solicitudes.</p>
-    <div class="eventos" id="listaEventos"></div>
-  </section>
 
-  <section class="bloque-ideas">
-    <div class="bloque-encabezado">
-      <h3>Fechas que vienen</h3>
-    </div>
-    <p class="tenue nota">Perchas para colgar contenido en los próximos dos meses y medio. Clic en una para guardarla como idea.</p>
-    <div class="tira-efemerides" id="tiraEfemerides"></div>
-  </section>
-
-  <section class="bloque-ideas">
+    <aside class="riel riel-der">
+<section class="bloque-ideas">
     <div class="bloque-encabezado">
       <h3>Banco de ideas</h3>
       <div class="acciones-bloque">
@@ -207,6 +221,9 @@
     <div class="resumen-ideas" id="resumenIdeas"></div>
     <div class="ideas" id="listaIdeas"></div>
   </section>
+    </aside>
+
+  </div>
 
 </main>
 
@@ -380,6 +397,12 @@
     </div>
   </section>
 
+</main>
+
+<!-- ══════════════════════ AJUSTES ══════════════════════
+     Pestaña completa: aqui se administran cuentas de verdad. -->
+<main id="vista-ajustes" class="vista">
+  <section id="ajustes"></section>
 </main>
 
 <!-- ══════════════════════ MODAL ══════════════════════ -->

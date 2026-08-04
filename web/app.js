@@ -723,7 +723,7 @@ function pintarIdeas() {
       </details>` : '';
 
     return `
-    <article class="idea" style="--tono:${pil.color};--idea-tono:${pil.solido}">
+    <article class="idea" data-idea="${esc(i.id)}"${puedeProgramar() ? ' draggable="true"' : ''} style="--tono:${pil.color};--idea-tono:${pil.solido}">
       <header class="idea-cabecera">
         <span class="idea-pilar" style="background:${pil.color}">${esc(pil.nombre)}</span>
         <span class="idea-formato">${esc(s.formato)}</span>
@@ -1050,94 +1050,326 @@ function pintarEscritorio() {
 
 /* ══════════════════════════════════════════════════════════
    AJUSTES
-   Sólo lo que de verdad hay que poder cambiar sin tocar código.
+   Pestaña completa, no una ventanita. Aquí se administra de
+   verdad: altas, bajas, roles, contraseñas.
+
+   Todo lo que toca cuentas pasa por la función 'administrar' que
+   corre en el servidor de Supabase. Ahí vive la llave que puede
+   crear usuarios, y ahí se comprueba de nuevo quién llama. Nunca
+   se confía en que el navegador diga "soy admin": lo dice la base.
    ══════════════════════════════════════════════════════════ */
 
-function abrirAjustes() {
-  const yo = Almacen.usuario || {};
+const ROLES_SISTEMA = [
+  { id: 'admin',       nombre: 'Administra',  que: 'Todo, incluidas las cuentas' },
+  { id: 'direccion',   nombre: 'Dirección',   que: 'Todo lo editorial, sin inventario' },
+  { id: 'redaccion',   nombre: 'Redacción',   que: 'Notas, temas y expertos' },
+  { id: 'publicacion', nombre: 'Publicación', que: 'Piezas y eventos' },
+  { id: 'produccion',  nombre: 'Producción',  que: 'Piezas, ideas y eventos' },
+];
+
+let usuariosDelSistema = [];
+
+async function llamarAdmin(accion, datos = {}) {
+  const token = await Almacen.motor._token();
+  const r = await fetch(CONFIG.supabase.url + '/functions/v1/administrar', {
+    method: 'POST',
+    headers: {
+      apikey: CONFIG.supabase.llave,
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ accion, ...datos }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.error) throw new Error(d.error || 'No se pudo completar.');
+  return d;
+}
+
+/* Contraseña provisional legible: se dicta por teléfono sin que
+   nadie tenga que deletrear. Se cambia al primer ingreso de todas
+   formas, así que lo que importa es poder pasarla sin errores. */
+function claveProvisional() {
+  const palabras = ['aurora','bosque','cabo','duna','faro','grana','islote','jade',
+                    'lumbre','marea','norte','otoño','puerto','ronda','sierra','tinta'];
+  const al = n => Math.floor(Math.random() * n);
+  return palabras[al(palabras.length)] + '-' + palabras[al(palabras.length)] +
+         '-' + String(100 + al(900));
+}
+
+async function pintarAjustes() {
+  const cont = $('#ajustes');
+  if (!cont || !Almacen.usuario) return;
+  const yo = Almacen.usuario;
   const esAdmin = yo.rol === 'admin';
 
-  modalCtx = { tipo: 'ajustes', datos: {}, esNuevo: false };
-  $('#modalTitulo').textContent = 'Ajustes';
-  $('#modalEliminar').hidden = true;
-  $('#modalGuardar').hidden = true;
-  $('#modalCancelar').textContent = 'Cerrar';
+  cont.innerHTML = '<p class="tenue nota">Cargando…</p>';
+
+  try {
+    const d = await llamarAdmin('listar');
+    usuariosDelSistema = d.usuarios || [];
+    personasDelSistema = usuariosDelSistema.map(u => ({ nombre: u.nombre, rol: u.rol }));
+  } catch (e) {
+    usuariosDelSistema = [];
+  }
 
   const eq = (datos.redaccion && datos.redaccion.equipo) || {};
+  const nunca = u => !u.ultima_entrada;
 
-  $('#modalCuerpo').innerHTML = `
-    <div class="grupo-campo">
-      <label>Tu cuenta</label>
-      <div class="ficha-plana">
-        <b>${esc(yo.nombre || '—')}</b>
-        <span class="tenue">${esc(yo.correo || '')}</span>
-        <span class="sello-tipo es-post">${esc(yo.rol || '')}</span>
+  cont.innerHTML = `
+    <section class="ajustes-cabecera">
+      <div>
+        <h2>Ajustes</h2>
+        <p class="tenue">Cuentas, roles y cómo se reparte el trabajo.</p>
       </div>
-    </div>
+      <div class="ficha-plana">
+        <b>${esc(yo.nombre)}</b>
+        <span class="tenue">${esc(yo.correo || '')}</span>
+        <span class="sello-tipo es-post">${esc(yo.rol)}</span>
+      </div>
+    </section>
 
-    <div class="grupo-campo">
-      <label>Quién hace qué en la mesa de redacción</label>
+    <section class="bloque-auditoria">
+      <div class="bloque-encabezado">
+        <h3>Personas con cuenta</h3>
+        ${esAdmin ? '<button class="btn-primario" id="aj_nueva">+ Dar de alta</button>' : ''}
+      </div>
+      ${!esAdmin ? '<p class="tenue nota">Sólo quien administra puede dar de alta o cambiar roles.</p>' : ''}
+      <div class="tabla-envoltorio">
+        <table class="tabla" id="aj_tabla">
+          <thead>
+            <tr>
+              <th>Nombre</th><th>Correo</th><th>Rol</th>
+              <th>Última entrada</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${usuariosDelSistema.length ? usuariosDelSistema.map(u => `
+              <tr data-id="${esc(u.id)}">
+                <td>
+                  <div class="nombre-equipo">${esc(u.nombre)}</div>
+                  ${u.debe_cambiar_clave ? '<div class="sub-equipo">Clave provisional sin cambiar</div>' : ''}
+                </td>
+                <td class="tenue">${esc(u.correo)}</td>
+                <td>
+                  ${esAdmin && u.id !== yo.id ? `
+                    <select class="campo-mini" data-rol="${esc(u.id)}">
+                      ${ROLES_SISTEMA.map(r =>
+                        `<option value="${r.id}"${r.id === u.rol ? ' selected' : ''}>${esc(r.nombre)}</option>`).join('')}
+                    </select>`
+                  : `<span class="sello-tipo es-post">${esc(u.rol)}</span>`}
+                </td>
+                <td class="tenue">${nunca(u) ? 'Todavía no entra' : esc(fechaLegible(u.ultima_entrada.slice(0,10)))}</td>
+                <td>
+                  ${esAdmin && u.id !== yo.id ? `
+                    <button class="btn-mini" data-clave="${esc(u.id)}" title="Poner una contraseña provisional nueva">Reponer clave</button>
+                    <button class="btn-mini" data-baja="${esc(u.id)}" title="Eliminar la cuenta">Baja</button>` : ''}
+                </td>
+              </tr>`).join('')
+            : '<tr><td colspan="5"><div class="vacio" style="border:0;background:none">No se pudo leer la lista de cuentas.</div></td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bloque-auditoria">
+      <div class="bloque-encabezado">
+        <h3>Quién hace qué en la mesa de redacción</h3>
+      </div>
+      <p class="tenue nota">Estos nombres salen en el encargo que se le manda a quien redacta. Si están vacíos, el encargo dice «quien escribe» y llega mal.</p>
       <div class="fila-campos">
         <div class="grupo-campo">
-          <label for="a_redaccion">Escribe las notas</label>
-          <input class="campo" id="a_redaccion" value="${esc(eq.redaccion || '')}" list="lista_responsables">
+          <label for="aj_redaccion">Escribe las notas</label>
+          <input class="campo" id="aj_redaccion" value="${esc(eq.redaccion || '')}" list="aj_nombres">
         </div>
         <div class="grupo-campo">
-          <label for="a_publicacion">Publica en el sitio</label>
-          <input class="campo" id="a_publicacion" value="${esc(eq.publicacion || '')}" list="lista_responsables">
+          <label for="aj_publicacion">Publica en el sitio</label>
+          <input class="campo" id="aj_publicacion" value="${esc(eq.publicacion || '')}" list="aj_nombres">
         </div>
       </div>
-      <div class="grupo-campo">
-        <label for="a_difusion">Arma el post y el reel</label>
-        <input class="campo" id="a_difusion" value="${esc(eq.difusion || '')}" list="lista_responsables">
+      <div class="grupo-campo" style="margin-top:12px">
+        <label for="aj_difusion">Arma el post y el reel</label>
+        <input class="campo" id="aj_difusion" value="${esc(eq.difusion || '')}" list="aj_nombres">
       </div>
-      <datalist id="lista_responsables">
+      <datalist id="aj_nombres">
         ${equipoConocido().map(n => `<option value="${esc(n)}"></option>`).join('')}
       </datalist>
-      <span class="ayuda">Estos nombres salen en el encargo que le mandas a quien redacta. Si están vacíos, el encargo dice «quien escribe» y queda mal.</span>
-      <button type="button" class="btn-plano" id="a_guardarEquipo">Guardar nombres</button>
-    </div>
-
-    <div class="grupo-campo">
-      <label>Personas con cuenta</label>
-      <div class="lista-personas" id="a_personas">
-        ${personasDelSistema.length
-          ? personasDelSistema.map(p => `
-            <div class="ficha-plana">
-              <b>${esc(p.nombre)}</b>
-              <span class="sello-tipo es-post">${esc(p.rol)}</span>
-            </div>`).join('')
-          : '<p class="tenue nota">No se pudo leer la lista.</p>'}
+      <div style="margin-top:14px">
+        <button class="btn-primario" id="aj_guardarEquipo">Guardar</button>
       </div>
-      ${esAdmin ? `
-      <span class="ayuda">
-        Las cuentas se crean en Supabase — <b>Authentication → Users → Add user</b>,
-        con «Auto Confirm» marcado. Al entrar por primera vez, la aplicación obliga
-        a cambiar la contraseña, así que la provisional que pongas deja de servir.
-        Para asignarle rol, corre <b>supabase/cuentas.sql</b>.
-      </span>` : '<span class="ayuda">Sólo quien administra puede dar de alta cuentas.</span>'}
-    </div>
+    </section>
 
-    <div class="grupo-campo">
-      <label>Aspecto</label>
-      <button type="button" class="btn-plano" id="a_tema">Cambiar entre claro y oscuro</button>
-    </div>
+    <section class="bloque-auditoria">
+      <div class="bloque-encabezado"><h3>Qué puede hacer cada rol</h3></div>
+      <div class="tabla-envoltorio">
+        <table class="tabla">
+          <thead><tr><th>Rol</th><th>Alcance</th></tr></thead>
+          <tbody>
+            ${ROLES_SISTEMA.map(r => `
+              <tr><td><b>${esc(r.nombre)}</b></td><td class="tenue">${esc(r.que)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <p class="tenue nota" style="margin-top:12px">
+        El rol dice qué se puede tocar en el programa, no quién manda en el
+        departamento. Los permisos los aplica la base de datos: aunque alguien
+        manipule su navegador, el cambio se rechaza igual.
+      </p>
+    </section>
   `;
 
-  $('#a_guardarEquipo').addEventListener('click', () => {
+  if (esAdmin) {
+    $('#aj_nueva').addEventListener('click', abrirAltaDeUsuario);
+
+    $$('[data-rol]', cont).forEach(sel => sel.addEventListener('change', async () => {
+      const antes = usuariosDelSistema.find(u => u.id === sel.dataset.rol);
+      sel.disabled = true;
+      try {
+        await llamarAdmin('rol', { id: sel.dataset.rol, rol: sel.value });
+        avisar('Rol actualizado.');
+        if (antes) antes.rol = sel.value;
+      } catch (e) {
+        avisar(e.message);
+        if (antes) sel.value = antes.rol;
+      } finally { sel.disabled = false; }
+    }));
+
+    $$('[data-clave]', cont).forEach(b => b.addEventListener('click', async () => {
+      const u = usuariosDelSistema.find(x => x.id === b.dataset.clave);
+      const clave = claveProvisional();
+      if (!confirm(`Poner una contraseña provisional nueva a ${u.nombre}.\n\n` +
+                   `La va a tener que cambiar al entrar.\n\n¿Seguir?`)) return;
+      try {
+        await llamarAdmin('reponer_clave', { id: u.id, clave });
+        mostrarClave(u.nombre, u.correo, clave);
+        pintarAjustes();
+      } catch (e) { avisar(e.message); }
+    }));
+
+    $$('[data-baja]', cont).forEach(b => b.addEventListener('click', async () => {
+      const u = usuariosDelSistema.find(x => x.id === b.dataset.baja);
+      if (!confirm(`¿Eliminar la cuenta de ${u.nombre} (${u.correo})?\n\n` +
+                   `Lo que haya capturado se queda; lo que pierde es el acceso.\n` +
+                   `Esto no se puede deshacer.`)) return;
+      try {
+        await llamarAdmin('baja', { id: u.id });
+        avisar('Cuenta eliminada.');
+        pintarAjustes();
+      } catch (e) { avisar(e.message); }
+    }));
+  }
+
+  $('#aj_guardarEquipo').addEventListener('click', () => {
     datos.redaccion = datos.redaccion || {};
     datos.redaccion.equipo = {
-      redaccion:   $('#a_redaccion').value.trim(),
-      publicacion: $('#a_publicacion').value.trim(),
-      difusion:    $('#a_difusion').value.trim(),
+      redaccion:   $('#aj_redaccion').value.trim(),
+      publicacion: $('#aj_publicacion').value.trim(),
+      difusion:    $('#aj_difusion').value.trim(),
     };
     guardar('redaccion');
     registrar('Cambió quién hace qué en la mesa de redacción');
     pintarRedaccion();
-    avisar('Nombres guardados.');
+    avisar('Guardado.');
   });
+}
 
-  $('#a_tema').addEventListener('click', () => $('#btnTema').click());
+
+/* ── Alta ──────────────────────────────────────────────── */
+
+function abrirAltaDeUsuario() {
+  modalCtx = { tipo: 'alta', datos: {}, esNuevo: true };
+  $('#modalTitulo').textContent = 'Dar de alta una cuenta';
+  $('#modalEliminar').hidden = true;
+  $('#modalGuardar').textContent = 'Crear cuenta';
+
+  const clave = claveProvisional();
+
+  $('#modalCuerpo').innerHTML = `
+    <div class="fila-campos">
+      <div class="grupo-campo">
+        <label for="u_nombre">Nombre</label>
+        <input class="campo" id="u_nombre" placeholder="Como quieres que aparezca">
+      </div>
+      <div class="grupo-campo">
+        <label for="u_correo">Correo institucional</label>
+        <input type="email" class="campo" id="u_correo" placeholder="nombre@tijuana.ibero.mx">
+      </div>
+    </div>
+
+    <div class="grupo-campo">
+      <label for="u_rol">Rol</label>
+      <select class="campo" id="u_rol">
+        ${ROLES_SISTEMA.map(r =>
+          `<option value="${r.id}"${r.id === 'produccion' ? ' selected' : ''}>${esc(r.nombre)} — ${esc(r.que)}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="grupo-campo">
+      <label for="u_clave">Contraseña provisional</label>
+      <input class="campo" id="u_clave" value="${esc(clave)}">
+      <span class="ayuda">
+        Se la pasas de viva voz o por donde acostumbres — <b>no por correo junto con el usuario</b>.
+        Al entrar la primera vez, el sistema la obliga a cambiarla, así que a partir
+        de ese momento ni tú la conoces.
+      </span>
+    </div>
+  `;
+  mostrarModal();
+}
+
+async function crearUsuario() {
+  const nombre = $('#u_nombre').value.trim();
+  const correo = $('#u_correo').value.trim();
+  const rol    = $('#u_rol').value;
+  const clave  = $('#u_clave').value;
+
+  if (!nombre) { avisar('Falta el nombre.'); return false; }
+  if (!correo.includes('@')) { avisar('Ese correo no se ve bien.'); return false; }
+  if (clave.length < 8) { avisar('La contraseña provisional necesita 8 caracteres.'); return false; }
+
+  $('#modalGuardar').disabled = true;
+  try {
+    await llamarAdmin('crear', { nombre, correo, rol, clave });
+    cerrarModal();
+    mostrarClave(nombre, correo, clave);
+    pintarAjustes();
+    return false;   // el cierre y el repintado ya se hicieron aquí
+  } catch (e) {
+    avisar(e.message);
+    return false;
+  } finally {
+    $('#modalGuardar').disabled = false;
+  }
+}
+
+/* La clave provisional se enseña UNA vez, grande y copiable. Si se
+   pierde, se repone: no se guarda en ningún lado. */
+function mostrarClave(nombre, correo, clave) {
+  modalCtx = { tipo: 'clave', datos: {}, esNuevo: false };
+  $('#modalTitulo').textContent = 'Cuenta lista';
+  $('#modalEliminar').hidden = true;
+  $('#modalGuardar').hidden = true;
+  $('#modalCancelar').textContent = 'Listo';
+
+  $('#modalCuerpo').innerHTML = `
+    <p class="nota">Pásale esto a <b>${esc(nombre)}</b>:</p>
+    <div class="credencial">
+      <div><span>Página</span><b>cci-iberotj.github.io/lapizarra</b></div>
+      <div><span>Correo</span><b>${esc(correo)}</b></div>
+      <div><span>Contraseña provisional</span><b class="clave">${esc(clave)}</b></div>
+    </div>
+    <p class="tenue nota">
+      Esta contraseña <b>no se vuelve a mostrar</b> y no queda guardada en ningún
+      lado. Si se pierde, se repone desde la lista. Al entrar la primera vez el
+      sistema la obliga a cambiarla.
+    </p>
+    <button class="btn-plano" id="u_copiar">Copiar los tres datos</button>
+  `;
+
+  $('#u_copiar').addEventListener('click', async () => {
+    const texto = `LA PIZARRA\ncci-iberotj.github.io/lapizarra\n\nCorreo: ${correo}\nContraseña provisional: ${clave}\n\nAl entrar te va a pedir que la cambies.`;
+    try { await navigator.clipboard.writeText(texto); avisar('Copiado.'); }
+    catch (e) { avisar('No se pudo copiar. Selecciónalo a mano.'); }
+  });
 
   mostrarModal();
 }
@@ -1381,6 +1613,71 @@ function pintarEventos() {
 }
 
 
+/* ── Del banco al calendario ───────────────────────────────
+   Tener el banco al lado sólo sirve si puedes tomar una idea y
+   soltarla en un día. Al soltarla se abre la ficha con todo
+   prellenado: la idea no se pierde hasta que la pieza se guarda,
+   igual que al programarla con el botón. */
+
+let ideaArrastrada = null;
+
+function puedeProgramar() {
+  return !soloLectura('parrilla_piezas');
+}
+
+function conectarArrastreDeIdeas() {
+  $$('.idea[draggable="true"]').forEach(el => {
+    el.addEventListener('dragstart', ev => {
+      ideaArrastrada = (datos.parrilla.ideas || []).find(i => i.id === el.dataset.idea) || null;
+      el.classList.add('arrastrando');
+      ev.dataTransfer.effectAllowed = 'copy';
+      ev.dataTransfer.setData('text/plain', el.dataset.idea);
+    });
+    el.addEventListener('dragend', () => {
+      el.classList.remove('arrastrando');
+      $$('.celda').forEach(c => c.classList.remove('recibe-idea'));
+      ideaArrastrada = null;
+    });
+  });
+
+  $$('.celda').forEach(celda => {
+    if (celda.classList.contains('fuera')) return;
+
+    celda.addEventListener('dragover', ev => {
+      if (!ideaArrastrada) return;
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = 'copy';
+      celda.classList.add('recibe-idea');
+    });
+    celda.addEventListener('dragleave', () => celda.classList.remove('recibe-idea'));
+
+    celda.addEventListener('drop', ev => {
+      if (!ideaArrastrada) return;   // si viene una pieza, la maneja el otro
+      ev.preventDefault();
+      celda.classList.remove('recibe-idea');
+
+      const idea = ideaArrastrada;
+      ideaArrastrada = null;
+      const fecha = celda.dataset.fecha;
+      const c = clasificarTexto(idea.texto);
+
+      if (c.no_antes && fecha < c.no_antes) {
+        avisar(`Esa idea no puede ir antes del ${fechaLegible(c.no_antes)}.`);
+        return;
+      }
+
+      abrirPieza(null, {
+        vieneDeIdea: idea.id,
+        titulo: c.titulo, pilar: c.pilar, formato: c.formato, canales: c.canales,
+        fecha, notas: idea.texto, no_antes: c.no_antes, no_despues: c.no_despues,
+        produccion: (idea.produccion && idea.produccion.length ? idea.produccion : c.produccion)
+                      .map(x => '· ' + x).join('\n'),
+      });
+    });
+  });
+}
+
+
 function refrescarParrilla() {
   pintarSemana();
   pintarProgreso();
@@ -1390,6 +1687,7 @@ function refrescarParrilla() {
   pintarEfemerides();
   pintarEventos();
   pintarIdeas();
+  conectarArrastreDeIdeas();
 }
 
 /* ── Fechas que vienen ─────────────────────────────────── */
@@ -3584,6 +3882,8 @@ function cerrarModal() {
   // Ajustes esconde Guardar y renombra Cancelar; hay que devolver
   // el pie a su estado o la siguiente ficha abre sin boton de guardar.
   $('#modalGuardar').hidden = false;
+  $('#modalGuardar').disabled = false;
+  $('#modalGuardar').textContent = 'Guardar';
   $('#modalCancelar').textContent = 'Cancelar';
   $('#modalFondo').hidden = true;
   modalCtx = null;
@@ -3599,6 +3899,7 @@ function guardarModal() {
   if (tipo === 'experto') ok = leerExperto();
   if (tipo === 'tema')    ok = leerTema();
   if (tipo === 'evento')  ok = leerEvento();
+  if (tipo === 'alta')    { crearUsuario(); return; }
   if (!ok) return;
 
   // Si esta pieza nació de una idea del banco, la idea se va AHORA, que es
@@ -3726,6 +4027,7 @@ function conectarEventos() {
     if (vistaActual === 'expertos') pintarExpertos();
     if (vistaActual === 'redaccion') pintarRedaccion();
     if (vistaActual === 'escritorio') pintarEscritorio();
+    if (vistaActual === 'ajustes') pintarAjustes();
   }));
 
   $('#nuevoTema').addEventListener('click', () => abrirTema(null));
@@ -3785,7 +4087,7 @@ function conectarEventos() {
 
   $('#nuevaPieza').addEventListener('click', () => abrirPieza(null));
   $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));
-  $('#btnAjustes').addEventListener('click', abrirAjustes);
+  $('#btnAjustes').addEventListener('click', () => $('[data-vista="ajustes"]').click());
   $('#nuevoEquipo').addEventListener('click', () => abrirEquipo(null));
   $('#nuevoVuelo').addEventListener('click', () => abrirVuelo(null));
 
@@ -4008,11 +4310,13 @@ function errorPuerta(texto) {
 
 function pintarQuien(u) {
   const el = $('#quien');
-  if (!u) { el.hidden = true; $('#btnSalir').hidden = true; $('#btnAjustes').hidden = true; return; }
+  if (!u) { el.hidden = true; $('#btnSalir').hidden = true; $('#btnAjustes').hidden = true;
+    $('#tabAjustes').hidden = true; return; }
   el.innerHTML = `<b>${esc(u.nombre)}</b><span>${esc(u.rol)}</span>`;
   el.hidden = false;
   $('#btnSalir').hidden = false;
   $('#btnAjustes').hidden = false;
+  $('#tabAjustes').hidden = false;
 }
 
 /* Cerrar de este lado pase lo que pase. Quedarse dentro por un
