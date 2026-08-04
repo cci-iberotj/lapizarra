@@ -39,7 +39,7 @@ const CONFIG = {
 
      Pégalo aquí y la tipografía cambia sola. Mientras esté vacío,
      LA PIZARRA usa Iberoamericana, que también es de la casa. */
-  tipografia: '',
+  tipografia: 'ppp6aya',
 
   /* 'supabase' → la nube, con las tres cuentas. Es el modo bueno.
 

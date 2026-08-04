@@ -26,32 +26,23 @@ Se cargan cinco pesos y una cursiva - 271 KB en total. Los doce
 serian 800 KB por una jerarquia que se resuelve con cinco.
 
 
-ALVERATA - COMO ENCENDERLA
-Alverata es la tipografia institucional de la IBERO a nivel
-mundial. Es de Gerard Unger y la vende Type Together, y esta
-activada en la maquina de Leo por Adobe Fonts (Creative Cloud):
-18 caras, incluidas Irregular e Informal.
+ALVERATA - YA ESTA ENCENDIDA
+Proyecto web de Adobe Fonts, codigo  ppp6aya  (web/config.js).
+Adobe nombra las familias en minusculas: alverata,
+alverata-irregular, alverata-informal.
 
-NO se pueden copiar esos archivos. Adobe los sincroniza cifrados
-en AppData/Roaming/Adobe/CoreSync/plugins/livetype/r con nombres
-numericos, a proposito: extraerlos rompe sus terminos de uso.
+PENDIENTE: el proyecto solo trae los pesos 400 y 700. Falta
+agregar Light 300, Medium 500, Semibold 600 y Black 900 desde
+fonts.adobe.com -> el proyecto "La Pizarra" -> Edit project ->
+marcar las casillas. No hay que volver a tocar el codigo: el mismo
+enlace sirve los pesos nuevos en cuanto se guarden.
 
-El camino correcto YA ESTA PAGADO. Creative Cloud incluye
-proyectos web de Adobe Fonts sin costo extra:
+Mientras falten, el navegador resuelve al peso real mas cercano
+(300 -> 400, 900 -> 700). No deforma nada, pero la jerarquia por
+peso queda a medias.
 
-  1. fonts.adobe.com  ->  buscar Alverata  ->  Add to Web Project
-  2. Crear el proyecto: "La Pizarra"
-  3. Marcar los pesos: Light 300, Regular 400, Medium 500,
-     Semibold 600, Bold 700, Black 900
-  4. En Domains agregar:  cci-iberotj.github.io
-     (sin esto Adobe no sirve la fuente a la pagina publicada)
-  5. Adobe da un enlace tipo  https://use.typekit.net/abc1def.css
-     De ahi copiar solo el codigo:  abc1def
-  6. Pegarlo en  web/config.js  ->  tipografia: 'abc1def'
-
-Con eso la tipografia cambia sola. La pila ya lleva Alverata al
-frente y Iberoamericana detras, asi que si Adobe no responde la
-pagina cae en la otra tipografia de la casa y no en Arial.
+Ya no hay que configurar dominios: Adobe quito ese requisito y los
+proyectos funcionan en cualquiera.
 
 Lo que NO sirve: los .ttf de sitios como maisfontes o dafont.
 Traen un solo peso, salen de kits web ajenos, y el propio archivo
