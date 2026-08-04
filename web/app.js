@@ -6,13 +6,18 @@
 
 /* ── Catálogos ─────────────────────────────────────────── */
 
+/* Cada pilar trae DOS colores porque hacen dos trabajos distintos:
+   `solido` va de relleno con texto encima, `color` va de tinta sobre
+   una superficie. Usar el mismo tono para ambos era justo lo que
+   dejaba los chips en 4.14:1 — un tono no puede tener a la vez
+   suficiente contraste contra el blanco y contra el negro. */
 const PILARES = [
-  { id: 'vida',     nombre: 'Vida IBERO',    color: 'var(--pilar-vida)',    carril: 'casual',        meta: 30 },
-  { id: 'academia', nombre: 'Academia IBERO',color: 'var(--pilar-academia)',carril: 'institucional', meta: 20 },
-  { id: 'se_ibero', nombre: 'Sé IBERO',      color: 'var(--pilar-se)',      carril: 'institucional', meta: 18 },
-  { id: 'orgullo',  nombre: 'Orgullo IBERO', color: 'var(--pilar-orgullo)', carril: 'institucional', meta: 12 },
-  { id: 'cultura',  nombre: 'Cultura Viva',  color: 'var(--pilar-cultura)', carril: 'hibrido',       meta: 10 },
-  { id: 'voz',      nombre: 'Voz IBERO',     color: 'var(--pilar-voz)',     carril: 'institucional', meta: 10 },
+  { id: 'vida',     nombre: 'Vida IBERO',    color: 'var(--pilar-vida-tinta)',     solido: 'var(--pilar-vida-solido)',     carril: 'casual',        meta: 30 },
+  { id: 'academia', nombre: 'Academia IBERO',color: 'var(--pilar-academia-tinta)', solido: 'var(--pilar-academia-solido)', carril: 'institucional', meta: 20 },
+  { id: 'se_ibero', nombre: 'Sé IBERO',      color: 'var(--pilar-se-tinta)',       solido: 'var(--pilar-se-solido)',       carril: 'institucional', meta: 18 },
+  { id: 'orgullo',  nombre: 'Orgullo IBERO', color: 'var(--pilar-orgullo-tinta)',  solido: 'var(--pilar-orgullo-solido)',  carril: 'institucional', meta: 12 },
+  { id: 'cultura',  nombre: 'Cultura Viva',  color: 'var(--pilar-cultura-tinta)',  solido: 'var(--pilar-cultura-solido)',  carril: 'hibrido',       meta: 10 },
+  { id: 'voz',      nombre: 'Voz IBERO',     color: 'var(--pilar-voz-tinta)',      solido: 'var(--pilar-voz-solido)',      carril: 'institucional', meta: 10 },
 ];
 
 /* Vocabulario que delata a cada pilar. Se usa para sugerir la clasificación
@@ -147,13 +152,13 @@ const FORMATOS = ['Nota', 'Reel', 'Short', 'Carrusel', 'Foto', 'Video', 'Story',
 
 // El color acompaña la progresión del flujo: gris → ámbar → azul → verde.
 const ESTADOS = [
-  { id: 'idea',       nombre: 'Idea',               color: '#9A938C' },
-  { id: 'brief',      nombre: 'Brief',              color: '#7A8B99' },
-  { id: 'produccion', nombre: 'Producción',         color: '#A07B2E' },
-  { id: 'revision',   nombre: 'Revisión Leo',       color: '#3D5A80' },
-  { id: 'vobo',       nombre: 'VoBo institucional', color: '#6A4C93' },
-  { id: 'programado', nombre: 'Programado',         color: '#17877A' },
-  { id: 'publicado',  nombre: 'Publicado',          color: '#3F7A4E' },
+  { id: 'idea',       nombre: 'Idea',               color: 'var(--estado-idea)' },
+  { id: 'brief',      nombre: 'Brief',              color: 'var(--estado-brief)' },
+  { id: 'produccion', nombre: 'Producción',         color: 'var(--estado-produccion)' },
+  { id: 'revision',   nombre: 'Revisión Leo',       color: 'var(--estado-revision)' },
+  { id: 'vobo',       nombre: 'VoBo institucional', color: 'var(--estado-vobo)' },
+  { id: 'programado', nombre: 'Programado',         color: 'var(--estado-programado)' },
+  { id: 'publicado',  nombre: 'Publicado',          color: 'var(--estado-publicado)' },
 ];
 
 const CATEGORIAS = [
@@ -638,7 +643,7 @@ function pintarPiezas() {
           </div>
           <div class="pieza-meta">
             ${canales}
-            ${pil ? `<span class="chip chip-pilar" style="background:${pil.color}">${esc(pil.nombre)}</span>` : ''}
+            ${pil ? `<span class="chip chip-pilar" style="background:${pil.solido || pil.color}">${esc(pil.nombre)}</span>` : ''}
             ${est ? `<span class="chip chip-estado" style="color:${est.color}">${esc(est.nombre)}</span>` : ''}
           </div>
         </div>`;
@@ -743,11 +748,15 @@ function pintarIdeas() {
       registrar(`Borró la idea «${corto}»`);
       pintarIdeas();
     } else {
-      // La idea se retira del banco al promoverla; si cancelas el modal,
-      // el paso queda en el historial para devolverla con Ctrl+Z.
-      datos.parrilla.ideas = datos.parrilla.ideas.filter(i => i.id !== idea.id);
+      // La idea NO se retira aquí. Antes se borraba al abrir el modal y el
+      // comentario prometía un paso de historial que nunca se creaba: si
+      // cancelabas, la idea quedaba borrada en memoria, la tarjeta se
+      // quedaba de fantasma en pantalla, y el siguiente guardado cualquiera
+      // persistía el borrado sin que nada lo relacionara con lo que hiciste.
+      // Se retira hasta que la pieza se guarda de verdad — ver guardarModal.
       const s = clasificarTexto(idea.texto);
       abrirPieza(null, {
+        vieneDeIdea: idea.id,
         titulo: s.titulo, pilar: s.pilar, formato: s.formato, canales: s.canales,
         notas: idea.texto, no_antes: s.no_antes, no_despues: s.no_despues,
         produccion: (idea.produccion && idea.produccion.length ? idea.produccion : s.produccion)
@@ -757,8 +766,121 @@ function pintarIdeas() {
   }));
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   PROGRESO
+   Hacer visible el avance invisible.
+
+   Regla que ordena todo esto: cada número sale de un dato que la
+   operación YA genera. Si la racha sube, es porque de verdad se
+   programó esa semana. Nada de puntos inventados.
+
+   Y lo que a propósito NO existe: comparaciones entre las tres
+   personas. Son un equipo de tres y una es la jefa — una tabla de
+   posiciones ahí no motiva, envenena.
+   ══════════════════════════════════════════════════════════ */
+
+const META_SEMANAL = { piso: 3, objetivo: 4 };
+const PISO_INSTITUCIONAL = 40;
+
+function esInstitucional(pieza) {
+  const p = PILARES.find(x => x.id === pieza.pilar);
+  return !!p && p.carril === 'institucional';
+}
+
+function piezasDeSemana(inicio) {
+  const fin = new Date(inicio);
+  fin.setDate(fin.getDate() + 6);
+  const a = aTexto(inicio), b = aTexto(fin);
+  return datos.parrilla.piezas.filter(p => p.fecha >= a && p.fecha <= b);
+}
+
+/* Semanas seguidas hacia atrás que alcanzaron el piso. Se cuenta
+   desde la semana PASADA: la actual apenas se está construyendo y
+   sería injusto que la rompiera un lunes por la mañana. Si la
+   semana en curso ya cumplió, se suma — pero nunca se resta. */
+function rachaSemanas() {
+  const estaSemana = inicioSemana(new Date());
+  const cursor = new Date(estaSemana);
+  cursor.setDate(cursor.getDate() - 7);
+
+  let cerradas = 0;
+  for (let i = 0; i < 52; i++) {          // tope, para no recorrer el calendario entero
+    if (piezasDeSemana(cursor).length < META_SEMANAL.piso) break;
+    cerradas++;
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  const enCurso = piezasDeSemana(estaSemana).length >= META_SEMANAL.piso;
+  return { total: cerradas + (enCurso ? 1 : 0), cerradas, enCurso };
+}
+
+function pintarProgreso() {
+  const caja = $('#progreso');
+  if (!caja) return;
+
+  const piezas = piezasDeSemana(anclaSemana);
+  const inst = piezas.filter(esInstitucional).length;
+  const mezcla = piezas.length ? Math.round((inst / piezas.length) * 100) : 0;
+  // Se avanza con lo PROGRAMADO, no sólo con lo publicado: planear
+  // también es trabajo, y verlo contar es lo que sostiene el hábito.
+  const avance = Math.min(100, Math.round((piezas.length / META_SEMANAL.objetivo) * 100));
+  const r = rachaSemanas();
+
+  const cumplida = piezas.length >= META_SEMANAL.objetivo;
+  // Con la parrilla casi vacía todo saldría en rojo. Eso no es un
+  // diagnóstico, es un regaño a alguien que apenas llega.
+  const arrancando = datos.parrilla.piezas.length < META_SEMANAL.piso;
+
+  caja.className = 'progreso' + (arrancando ? ' arranque' : cumplida ? ' cumplida' : '');
+  caja.hidden = false;
+
+  const titulo = arrancando
+    ? 'Empieza por aquí'
+    : cumplida ? 'Semana completa'
+    : piezas.length >= META_SEMANAL.piso ? 'Semana en pie'
+    : 'Falta llenar la semana';
+
+  const detalle = arrancando
+    ? `Con ${META_SEMANAL.piso} piezas por semana la cuenta se sostiene sola. Llevas ${piezas.length}.`
+    : `${piezas.length} de ${META_SEMANAL.objetivo} piezas · ${mezcla}% institucional`;
+
+  const tonoMedidor = mezcla >= PISO_INSTITUCIONAL ? 'var(--ok)' : 'var(--alerta)';
+
+  caja.innerHTML = `
+    <div class="anillo" style="--avance:${avance}">
+      <div class="anillo-centro">
+        <div class="anillo-cifra">${piezas.length}</div>
+        <div class="anillo-meta">de ${META_SEMANAL.objetivo}</div>
+      </div>
+    </div>
+
+    <div class="progreso-texto">
+      <div class="progreso-titulo">${titulo}</div>
+      <div class="progreso-detalle">${esc(detalle)}</div>
+      <div class="medidor" title="Mezcla institucional: ${mezcla}%. El piso es ${PISO_INSTITUCIONAL}%.">
+        <div class="medidor-relleno" style="width:${mezcla}%;--medidor-tono:${tonoMedidor}"></div>
+        <div class="medidor-marca" style="left:${PISO_INSTITUCIONAL}%"></div>
+      </div>
+    </div>
+
+    <div class="racha">
+      <div class="racha-cifra${r.total ? ' viva' : ''}">${r.total}</div>
+      <div class="racha-rotulo">${r.total === 1 ? 'semana<br>seguida' : 'semanas<br>seguidas'}</div>
+    </div>`;
+
+  // El anillo se asienta cuando la semana se completa. Es el único
+  // momento del producto donde algo celebra, y celebra una vez.
+  if (cumplida && pintarProgreso._previo === false) {
+    const a = $('.anillo', caja);
+    if (a) a.classList.add('celebra');
+  }
+  pintarProgreso._previo = cumplida;
+}
+
+
 function refrescarParrilla() {
   pintarSemana();
+  pintarProgreso();
   pintarBalance();
   pintarPiezas();
   pintarCalendario();
@@ -1168,51 +1290,90 @@ function abrirPieza(idPieza, prellenado) {
   mostrarModal();
 }
 
-/* ── Imagen de referencia ──────────────────────────────── */
+/* ── Imagen de referencia ──────────────────────────────────
+   Antes se mandaba a /api/miniatura, un endpoint del servidor de
+   Python. Con los datos en la nube y la página en GitHub Pages esa
+   ruta no existe: devolvía 404 siempre, así que subir imagen NUNCA
+   funcionaba — y la auditoría además descontaba puntos por no tener
+   miniaturas, castigando algo que el sistema hacía imposible.
+
+   Ahora se reduce aquí mismo y se guarda con el registro. Un JPEG
+   de 480px de ancho al 72% pesa entre 30 y 80 KB: cabe de sobra en
+   la ficha y no necesita servidor, almacenamiento ni permisos. */
+
+const MINIATURA_ANCHO = 480;
+const MINIATURA_CALIDAD = .72;
+
+function reducirImagen(archivo) {
+  return new Promise((listo, falla) => {
+    const url = URL.createObjectURL(archivo);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      // No se agranda nunca: una foto chica se queda como está.
+      const escala = Math.min(1, MINIATURA_ANCHO / img.naturalWidth);
+      const lienzo = document.createElement('canvas');
+      lienzo.width  = Math.round(img.naturalWidth  * escala);
+      lienzo.height = Math.round(img.naturalHeight * escala);
+
+      const ctx = lienzo.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, lienzo.width, lienzo.height);
+
+      // PNG para lo que tiene transparencia, JPEG para lo demás:
+      // un JPEG con fondo transparente sale con bordes negros.
+      const tipo = archivo.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      listo(lienzo.toDataURL(tipo, MINIATURA_CALIDAD));
+    };
+
+    img.onerror = () => { URL.revokeObjectURL(url); falla(new Error('no se pudo leer')); };
+    img.src = url;
+  });
+}
 
 async function subirImagen(archivo) {
   if (!archivo) return;
-  if (archivo.size > 12 * 1024 * 1024) { avisar('La imagen pesa más de 12 MB.'); return; }
+  if (archivo.size > 25 * 1024 * 1024) { avisar('La imagen pesa más de 25 MB.'); return; }
 
-  const dataUri = await new Promise((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = () => res(fr.result);
-    fr.onerror = () => rej(new Error('lectura'));
-    fr.readAsDataURL(archivo);
-  }).catch(() => null);
+  avisar('Preparando la imagen…');
 
-  if (!dataUri) { avisar('No se pudo leer la imagen.'); return; }
-
-  avisar('Subiendo imagen…');
+  let miniatura;
   try {
-    const r = await fetch('/api/miniatura', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ datos: dataUri }),
-    });
-    const d = await r.json();
-    if (!r.ok || d.error) throw new Error(d.error || 'error');
-
-    modalCtx.datos.imagen = d.url;
-    const z = $('#zonaImagen');
-    z.classList.add('con-imagen');
-    z.innerHTML = `<img src="${esc(d.url)}" alt="Vista previa">`;
-    $('#btnCambiarImagen').textContent = 'Cambiar';
-    if (!$('#btnQuitarImagen')) {
-      $('.imagen-acciones').insertAdjacentHTML('beforeend',
-        '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>');
-      $('#btnQuitarImagen').addEventListener('click', () => {
-        modalCtx.datos.imagen = '';
-        z.classList.remove('con-imagen');
-        z.innerHTML = '<div class="pista">Haz clic para subir la miniatura que se verá en el calendario</div>';
-        $('#btnQuitarImagen').remove();
-        $('#btnCambiarImagen').textContent = 'Subir imagen';
-      });
-    }
-    avisar('Imagen lista.');
+    miniatura = await reducirImagen(archivo);
   } catch (e) {
-    avisar('No se pudo subir la imagen.');
+    avisar('No se pudo leer esa imagen. ¿Es un archivo de imagen válido?');
+    return;
   }
+
+  // Guarda muy rara: si algo sale mal en el redimensionado y el
+  // resultado sigue siendo enorme, mejor no meterlo en la ficha.
+  if (miniatura.length > 900_000) {
+    avisar('Esa imagen no se pudo reducir lo suficiente. Prueba con otra.');
+    return;
+  }
+
+  modalCtx.datos.imagen = miniatura;
+
+  const z = $('#zonaImagen');
+  z.classList.add('con-imagen');
+  z.innerHTML = `<img src="${esc(miniatura)}" alt="Vista previa">`;
+  $('#btnCambiarImagen').textContent = 'Cambiar';
+
+  if (!$('#btnQuitarImagen')) {
+    $('.imagen-acciones').insertAdjacentHTML('beforeend',
+      '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>');
+    $('#btnQuitarImagen').addEventListener('click', () => {
+      modalCtx.datos.imagen = '';
+      z.classList.remove('con-imagen');
+      z.innerHTML = '<div class="pista">Haz clic para subir la miniatura que se verá en el calendario</div>';
+      $('#btnQuitarImagen').remove();
+      $('#btnCambiarImagen').textContent = 'Subir imagen';
+    });
+  }
+
+  const kb = Math.round(miniatura.length * 0.75 / 1024);
+  avisar(`Imagen lista (${kb} KB). Se guarda al guardar la pieza.`);
 }
 
 function leerPieza() {
@@ -1700,12 +1861,12 @@ function acomodarPendientes() {
    ══════════════════════════════════════════════════════════ */
 
 const ESTADOS_NOTA = [
-  { id: 'encargada',  nombre: 'Encargada',      quien: 'redaccion',    color: '#7A8B99', nota: 'Ya se mandó el encargo; falta que empiece' },
-  { id: 'escribiendo',nombre: 'Escribiendo',    quien: 'redaccion',    color: '#8A5A1F', nota: 'En manos de quien redacta' },
-  { id: 'borrador',   nombre: 'Borrador listo', quien: 'difusion',     color: '#3D5A80', nota: 'Texto terminado, falta armar el post y el reel' },
-  { id: 'con_sitio',  nombre: 'Con publicación',quien: 'publicacion',  color: '#6A4C93', nota: 'Enviada para subir al sitio' },
-  { id: 'publicada',  nombre: 'En el sitio',    quien: 'difusion',     color: '#147468', nota: 'Ya vive en el sitio; toca difundirla' },
-  { id: 'difundida',  nombre: 'Difundida',      quien: '—',            color: '#357044', nota: 'Post y reel publicados. Cerrada.' },
+  { id: 'encargada',  nombre: 'Encargada',      quien: 'redaccion',    color: 'var(--estado-brief)', nota: 'Ya se mandó el encargo; falta que empiece' },
+  { id: 'escribiendo',nombre: 'Escribiendo',    quien: 'redaccion',    color: 'var(--estado-produccion)', nota: 'En manos de quien redacta' },
+  { id: 'borrador',   nombre: 'Borrador listo', quien: 'difusion',     color: 'var(--estado-revision)', nota: 'Texto terminado, falta armar el post y el reel' },
+  { id: 'con_sitio',  nombre: 'Con publicación',quien: 'publicacion',  color: 'var(--estado-vobo)', nota: 'Enviada para subir al sitio' },
+  { id: 'publicada',  nombre: 'En el sitio',    quien: 'difusion',     color: 'var(--estado-programado)', nota: 'Ya vive en el sitio; toca difundirla' },
+  { id: 'difundida',  nombre: 'Difundida',      quien: '—',            color: 'var(--estado-publicado)', nota: 'Post y reel publicados. Cerrada.' },
 ];
 
 /* Estas claves son funciones dentro del flujo de una nota — quién
@@ -2385,10 +2546,13 @@ function refrescarAuditoria() {
   const etiqueta = r.puntaje >= 80 ? 'Sano' : r.puntaje >= 55 ? 'Atención' : 'Requiere trabajo';
   $('#marcador').style.background =
     `conic-gradient(${color} ${r.puntaje * 3.6}deg, var(--fondo-alt) 0)`;
+  // El centro lleva fondo propio: es el hueco de la dona. Sin él, la
+  // cifra flota sobre el anillo y su contraste depende de en qué
+  // grado quedó el barrido — que es justo lo que no se puede medir.
   $('#marcador').innerHTML =
     `<div class="marcador-centro">
-       <div class="marcador-cifra" style="color:${color}">${r.puntaje}</div>
-       <div class="marcador-etiqueta">${esc(etiqueta)}</div>
+       <div class="marcador-cifra">${r.puntaje}</div>
+       <div class="marcador-etiqueta" style="color:${color}">${esc(etiqueta)}</div>
      </div>`;
 
   // Hallazgos
@@ -2909,6 +3073,15 @@ function guardarModal() {
   if (tipo === 'experto') ok = leerExperto();
   if (tipo === 'tema')    ok = leerTema();
   if (!ok) return;
+
+  // Si esta pieza nació de una idea del banco, la idea se va AHORA, que es
+  // cuando de verdad se convirtió en algo. Así cancelar el modal no cuesta
+  // nada, y deshacer devuelve las dos cosas juntas.
+  if (tipo === 'pieza' && esNuevo && d.vieneDeIdea) {
+    datos.parrilla.ideas = datos.parrilla.ideas.filter(i => i.id !== d.vieneDeIdea);
+    delete d.vieneDeIdea;
+    guardar('parrilla');
+  }
 
   const nombre = d.titulo || d.nombre || 'registro de vuelo';
   registrar(`${esNuevo ? 'Creó' : 'Editó'} «${nombre}»`);

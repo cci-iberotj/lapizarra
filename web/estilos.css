@@ -1,127 +1,285 @@
-﻿/* ═══════════════════════════════════════════════════════════
-   LA PIZARRA · Departamento de Diseño y Medios · IBERO Tijuana
+/* ═══════════════════════════════════════════════════════════
+   LA PIZARRA · CONTRALUZ
+   Departamento de Diseño y Medios · IBERO Tijuana
 
-   SISTEMA DE COLOR
-   · Marca      — rojo IBERO. Reservado para acciones y acentos.
-   · Pilares    — cinco matices distintos, saturación media, sin naranja.
-   · Canales    — color de cada red, desaturado para convivir con la marca.
-   · Estados    — progresión fría→cálida→verde a lo largo del flujo.
+   LA IDEA
+   Esto no es una página de presentación: es un panel que tres
+   personas abren todos los días. La expresividad no viene de
+   decorar, viene de la LUZ. Cada superficie lleva un filo claro
+   arriba y una sombra interna abajo — un bisel de un píxel — así
+   que las tarjetas dejan de ser rectángulos de color y se vuelven
+   materia apilada.
+
+   UNA SOLA SEMÁNTICA DE CAPAS EN AMBOS TEMAS
+   Capa más alta = capa más clara. Antes --superficie-2 significaba
+   "hundido" en claro y "elevado" en oscuro: la misma variable
+   queriendo decir cosas opuestas.
+
+   EL COLOR SE GANA
+   El rojo IBERO aparece en cuatro lugares y en ninguno más: acción
+   primaria, estado activo, anillo de foco e indicador de avance.
+   El resto del cromatismo pertenece a los seis pilares, cada uno
+   con dos variantes medidas — SÓLIDA para relleno y TINTA para
+   texto — porque el mismo tono no puede hacer los dos trabajos.
+
+   Cada par de color lleva su contraste calculado al lado, medido
+   contra el PEOR caso y no contra el promedio.
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  /* Neutros */
-  --fondo:        #F1EEEA;
-  --fondo-alt:    #E8E3DD;
-  --superficie:   #FFFFFF;
-  --superficie-2: #FAF8F6;
-  --borde:        #E2DCD5;
-  --borde-fuerte: #CBC3BA;
-  --texto:        #1A1816;
-  --texto-medio:  #4E4842;
-  /* Antes era #857D74 y daba 3.50:1 sobre el fondo — por debajo del mínimo
-     legible. Este llega a 5.1:1 sin perder el papel de texto secundario. */
-  --texto-tenue:  #6B635B;
+  color-scheme: light;
 
-  /* Marca */
-  --primario:     #7B1E2E;
-  --primario-osc: #5E1523;
-  --primario-luz: #F5E8EA;
-  --primario-med: #E3C9CE;
+  /* ── Capas ─────────────────────────────────────────────── */
+  --capa-hundida: #E6E1DB;   /* pistas de barra, th, campos */
+  --capa-0:       #F1EDE9;   /* fondo de vista */
+  --capa-1:       #FAF8F6;   /* tarjeta en reposo */
+  --capa-2:       #FFFFFF;   /* tarjeta elevada, hover, panel */
+  --capa-3:       #FFFFFF;   /* modal e historial */
 
-  /* Semánticos */
-  --ok:      #357044;
-  --ok-luz:  #E6F0E8;
-  --alerta:  #7D5E1E;   /* subido de #A07B2E: 3.42:1 no alcanzaba sobre su fondo */
-  --alerta-luz: #F7EFDD;
-  --peligro: #992525;
-  --peligro-luz: #F8E7E7;
-  --info:    #35507A;
-  --info-luz: #E7EDF4;
+  /* ── Tinta ─────────────────────────────────────────────── */
+  --tinta:        #191713;   /* 17.90 s/capa-2 · 13.77 s/hundida */
+  --tinta-media:  #463F38;   /* 10.35 s/capa-2 ·  7.97 s/hundida */
+  --tinta-tenue:  #655C54;   /*  6.54 s/capa-2 ·  5.03 s/hundida */
 
-  /* Pilares — todos ≥4.5:1 contra blanco */
-  --pilar-vida:     #B23C55;
-  --pilar-academia: #8A5A1F;   /* ocre editorial: evoca prensa sin caer en naranja */
-  --pilar-orgullo:  #3D5A80;
-  --pilar-se:       #6A4C93;
-  --pilar-cultura:  #147468;   /* bajado de #17877A para alcanzar el mínimo */
-  --pilar-voz:      #44603C;
+  /* ── Marca ─────────────────────────────────────────────── */
+  --marca-solida: #7B1E2E;   /* SÓLO relleno. Blanco encima = 10.16 */
+  --marca-tinta:  #7B1E2E;   /* 10.16 s/capa-2 · 8.72 s/capa-0 */
+  --marca-velo:   #F6E9EB;   /* --marca-tinta encima = 8.60 */
+  --texto-sobre-marca: #FFFFFF;
 
-  /* Escala tipográfica — seis pasos con un propósito cada uno.
-     Antes había 19 combinaciones de tamaño/peso sin sistema. */
-  --t-micro: 10.5px;  /* overline, etiquetas de columna */
-  --t-mini:  12px;    /* metadatos, notas al pie */
-  --t-base:  13.5px;  /* cuerpo */
-  --t-med:   15px;    /* título de tarjeta, dato destacado */
-  --t-alto:  19px;    /* título de sección */
-  --t-cifra: 28px;    /* cifras de resumen */
+  --linea-sutil:   #E4DED7;  /* separador decorativo, sin requisito */
+  --linea-control: #857F77;  /* borde de control: 3.96 s/capa-2 → SC 1.4.11 */
+  --foco:          #7B1E2E;
+  --foco-halo:     #FFFFFF;
 
-  /* Canales */
+  --sup-invertida: #231F1C;
+  --tinta-sobre-invertida: #F7F4F1;   /* 14.9 */
+  --texto-sobre-pilar: #FFFFFF;
+  --velo-modal: rgba(25,23,19,.46);
+
+  --bisel-luz:    rgba(255,255,255,.9);
+  --bisel-sombra: rgba(25,23,19,.05);
+
+  /* La barra corre una malla radial. Se declara su punto MÁS CLARO
+     como token para poder medir contra el peor caso. */
+  --barra-base:   #1C1013;
+  --barra-pico:   #4A1A23;
+  --barra-tinta:  #FFFFFF;   /* 14.35 s/pico */
+  --barra-media:  #DCD2CE;   /*  9.67 s/pico */
+  --barra-tenue:  #C9BDB8;   /*  7.83 s/pico */
+  --barra-acento: #E8B9C2;   /*  8.30 s/pico */
+
+  /* ── Semánticos ────────────────────────────────────────── */
+  --ok:      #2E6B41;  --ok-velo:      #E4EFE7;   /* 5.40 */
+  --alerta:  #7A5A1B;  --alerta-velo:  #F5EEDD;   /* 5.49 · ocre, nunca naranja */
+  --peligro: #96232B;  --peligro-velo: #F7E6E7;   /* 6.78 */
+  --info:    #2F4E7A;  --info-velo:    #E6EDF6;   /* 7.15 */
+  --soltar-valido: #E4EFE7;  --soltar-invalido: #F7E6E7;
+
+  /* ── Pilares · dos trabajos, dos tonos ─────────────────── */
+  --pilar-vida-solido:     #A62E48;  --pilar-vida-tinta:     #9A2A43;  /* chip 6.76 · tinta 7.54 */
+  --pilar-academia-solido: #7A4E18;  --pilar-academia-tinta: #75521C;  /* chip 7.17 · tinta 7.05 */
+  --pilar-orgullo-solido:  #34527A;  --pilar-orgullo-tinta:  #35527A;  /* chip 7.97 · tinta 6.12 */
+  --pilar-se-solido:       #5C3F85;  --pilar-se-tinta:       #5F428A;  /* chip 8.38 · tinta 6.14 */
+  --pilar-cultura-solido:  #106459;  --pilar-cultura-tinta:  #106459;  /* chip 7.03 · tinta 5.41 */
+  --pilar-voz-solido:      #3F5A37;  --pilar-voz-tinta:      #3F5A37;  /* chip 7.70 · tinta 5.92 */
+
+  /* ── Estados de pieza ──────────────────────────────────── */
+  --estado-idea:       #655C54;  /* 5.03 s/hundida, el peor caso claro */
+  --estado-brief:      #4C5D6E;  /* 5.22 */
+  --estado-produccion: #75521C;  /* 5.42 · sustituye #A07B2E, que reprobaba */
+  --estado-revision:   #35527A;  /* 6.12 */
+  --estado-vobo:       #5F428A;  /* 6.14 */
+  --estado-programado: #106459;  /* 5.41 · sustituye #17877A, que reprobaba */
+  --estado-publicado:  #2E6B41;  /* 4.90 */
+
+  /* ── Canales ───────────────────────────────────────────── */
   --canal-web: #4A4038;
-  --canal-ig:  #C13584;
-  --canal-fb:  #3B5998;
-  --canal-li:  #0A66C2;
-  --canal-yt:  #B02B26;
+  --canal-ig:  #A32A6E;
+  --canal-fb:  #33507F;
+  --canal-li:  #0A5AA8;
+  --canal-yt:  #96231F;
 
-  --r: 9px;
-  --r-lg: 14px;
-  --sombra: 0 1px 2px rgba(26,24,22,.05), 0 3px 10px rgba(26,24,22,.045);
-  --sombra-media: 0 2px 6px rgba(26,24,22,.07), 0 10px 24px rgba(26,24,22,.07);
-  --sombra-alta: 0 10px 40px rgba(26,24,22,.20);
+  /* ══ TIPOGRAFÍA ══
+     Antes el 69% de la interfaz vivía en 12px o 10.5px y el paso de
+     19px se usaba UNA vez en todo el archivo. Eso no es jerarquía,
+     es una meseta: todo susurraba al mismo volumen. No faltaba
+     color, faltaba RANGO. */
   --fuente: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+
+  --t-sello:    11px;   /* versalitas, un rótulo por bloque */
+  --t-meta:     12px;   /* metadatos, chips, pie de tarjeta */
+  --t-cuerpo:   14px;   /* cuerpo real */
+  --t-guia:     15px;   /* título de tarjeta */
+  --t-titulo:   20px;   /* título de sección */
+  --t-dato:     28px;   /* cifra de resumen */
+  --t-vista:    clamp(22px, 1.1rem + 1.4vw, 28px);
+  --t-marcador: clamp(40px, 2rem + 4vw, 56px);
+
+  --peso-normal: 400; --peso-medio: 600; --peso-fuerte: 700;
+
+  /* ══ ESPACIO ══
+     Antes no había ni un token: 31 valores distintos, todos los
+     enteros del 1 al 20 sin faltar uno, y cinco tarjetas
+     equivalentes con cinco rellenos distintos. Base de 4px. */
+  --e-1: 2px;  --e-2: 4px;  --e-3: 8px;  --e-4: 12px;
+  --e-5: 16px; --e-6: 24px; --e-7: 32px; --e-8: 48px;
+
+  --e-tarjeta: var(--e-4);
+  --e-bloque:  var(--e-5);
+  --e-seccion: var(--e-7);
+  --alto-fila: 40px;
+
+  /* ══ FORMA ══ */
+  --r-xs: 5px;  --r-sm: 7px;   --r-md: 10px;
+  --r-lg: 14px; --r-xl: 18px;  --r-pastilla: 999px;
+  --linea-fina: 1px; --acento: 3px; --anillo: 2px;
+
+  --elev-1: 0 1px 2px var(--bisel-sombra);
+  --elev-2: 0 2px 4px var(--bisel-sombra), 0 8px 24px var(--bisel-sombra);
+  --elev-3: 0 8px 16px var(--bisel-sombra), 0 24px 56px var(--bisel-sombra);
+
+  /* ══ MOVIMIENTO ══
+     Antes: cero animaciones, ocho duraciones distintas y 45 de 48
+     transiciones sin curva declarada. Sólo se anima transform y
+     opacity — las compone la tarjeta gráfica. Nunca padding ni
+     width, salvo en las barras de progreso donde el ancho ES el
+     dato. */
+  --dur-instantanea: 120ms;
+  --dur-rapida:      160ms;
+  --dur-media:       220ms;
+  --dur-lenta:       320ms;
+  --curva-estandar: cubic-bezier(.4, 0, .2, 1);
+  --curva-salida:   cubic-bezier(.16, 1, .3, 1);
 }
 
-/* ── Tema oscuro ─────────────────────────────────────────
-   Mismos tokens, otros valores. Útil de verdad cuando revisas
-   miniaturas y color: el gris claro falsea lo que ves.        */
+/* ═══════════════════════════════════════════════════════════
+   TEMA OSCURO
+   No es el claro invertido. Aquí la separación la hace la
+   LUMINANCIA DE LA CAPA, no la sombra: sobre #141419 una sombra
+   negra no separa nada.
+   ═══════════════════════════════════════════════════════════ */
 
 :root[data-tema="oscuro"] {
-  --fondo:        #16151A;
-  --fondo-alt:    #22212A;
-  --superficie:   #1E1D25;
-  --superficie-2: #26252F;
-  --borde:        #33313D;
-  --borde-fuerte: #47444F;
-  --texto:        #F0EDEA;
-  --texto-medio:  #BDB6B0;
-  --texto-tenue:  #918A85;
+  color-scheme: dark;   /* esto solo arregla los controles nativos
+                           que hoy se pintan blancos sobre blanco */
 
-  --primario:     #D4566B;
-  --primario-osc: #E4788A;
-  --primario-luz: #2E1F26;
-  --primario-med: #52303A;
+  --capa-hundida: #0E0E12;
+  --capa-0:       #141419;
+  --capa-1:       #1C1C22;
+  --capa-2:       #23232A;
+  --capa-3:       #2A2A33;
 
-  --ok:      #6FBF85;
-  --ok-luz:  #1C2A21;
-  --alerta:  #D9AC55;
-  --alerta-luz: #2C2618;
-  --peligro: #E2757A;
-  --peligro-luz: #2E1C1E;
-  --info:    #7DA5DB;
-  --info-luz: #1B2331;
+  --tinta:       #F2EFEB;   /* 16.02 s/capa-0 · 12.40 s/capa-3 */
+  --tinta-media: #C0B9B2;   /*  8.74 s/capa-1 ·  7.33 s/capa-3 */
+  --tinta-tenue: #9C948C;   /*  5.26 s/capa-1 ·  4.76 s/capa-3 */
 
-  --pilar-vida:     #D9647C;
-  --pilar-academia: #C99A4E;
-  --pilar-orgullo:  #6E93C4;
-  --pilar-se:       #9C7FC9;
-  --pilar-cultura:  #35B0A0;
-  --pilar-voz:      #7FA274;
+  /* El rojo institucional sigue sirviendo de RELLENO — la tinta
+     clara encima da 8.86. Pero como TEXTO daría 2.07:1, así que
+     para eso se aclara. Éste era exactamente el defecto del botón
+     de acción de todas las pantallas: 3.93:1. */
+  --marca-solida: #7B1E2E;
+  --marca-tinta:  #E0788C;   /* 5.84 s/capa-1 · 4.90 s/capa-3 */
+  --marca-velo:   #3A2028;   /* --marca-tinta encima = 5.11 */
+  --texto-sobre-marca: #FFFFFF;   /* 10.16 sobre el rojo sólido */
+
+  --linea-sutil:   #302E39;
+  --linea-control: #85807A;  /* 3.63 s/capa-3 → ≥3 */
+  --foco:          #E0788C;
+  --foco-halo:     #141419;
+
+  --sup-invertida: #F2EFEB;
+  --tinta-sobre-invertida: #17161C;   /* 14.6 */
+  --texto-sobre-pilar: #141419;
+  --velo-modal: rgba(6,6,9,.66);
+
+  --bisel-luz:    rgba(255,255,255,.07);
+  --bisel-sombra: rgba(0,0,0,.35);
+
+  --barra-base: #120B0D;
+  --barra-pico: #4A1A23;   /* mismo pico: la barra es oscura en ambos temas */
+
+  --ok:      #74C489;  --ok-velo:      #16241A;   /* 7.68 */
+  --alerta:  #D9AC55;  --alerta-velo:  #262015;   /* 7.68 */
+  --peligro: #E97F86;  --peligro-velo: #2A1618;   /* 6.40 */
+  --info:    #8DB2E6;  --info-velo:    #171F2C;   /* 7.60 */
+  --soltar-valido: #16241A;  --soltar-invalido: #2A1618;
+
+  --pilar-vida-solido:     #D9647C;  --pilar-vida-tinta:     #E8899E;  /* chip 5.30 · tinta 5.76 */
+  --pilar-academia-solido: #C99A4E;  --pilar-academia-tinta: #D2A257;  /* chip 7.18 · tinta 6.12 */
+  --pilar-orgullo-solido:  #6E93C4;  --pilar-orgullo-tinta:  #90B0DE;  /* chip 5.80 · tinta 6.40 */
+  --pilar-se-solido:       #9C7FC9;  --pilar-se-tinta:       #B197DE;  /* chip 5.50 · tinta 5.65 */
+  --pilar-cultura-solido:  #35B0A0;  --pilar-cultura-tinta:  #3FBEAD;  /* chip 6.88 · tinta 6.21 */
+  --pilar-voz-solido:      #7FA274;  --pilar-voz-tinta:      #96B78B;  /* chip 6.40 · tinta 6.39 */
+
+  --estado-idea:       #9C948C;  /* 4.76 s/capa-3, el peor caso oscuro */
+  --estado-brief:      #A6B6C4;  /* 6.84 */
+  --estado-produccion: #D2A257;  /* 6.12 */
+  --estado-revision:   #90B0DE;  /* 6.40 · antes #3D5A80 daba 2.36 */
+  --estado-vobo:       #B197DE;  /* 5.65 · antes #6A4C93 daba 2.44 */
+  --estado-programado: #3FBEAD;  /* 6.21 */
+  --estado-publicado:  #74C489;  /* 6.77 */
 
   --canal-web: #A8988A;
-  --canal-ig:  #E060A8;
-  --canal-fb:  #6486C9;
-  --canal-li:  #4D93DE;
-  --canal-yt:  #E06661;
-
-  --sombra: 0 1px 2px rgba(0,0,0,.4), 0 3px 10px rgba(0,0,0,.3);
-  --sombra-media: 0 2px 8px rgba(0,0,0,.45), 0 12px 28px rgba(0,0,0,.4);
-  --sombra-alta: 0 12px 44px rgba(0,0,0,.6);
-
-  /* En oscuro los colores de pilar se aclaran, así que el texto del chip
-     tiene que ser oscuro: blanco sobre esos tonos sólo da 2.7:1. */
-  --texto-chip: #17161C;
+  --canal-ig:  #E77CBE;
+  --canal-fb:  #8FA9DC;
+  --canal-li:  #79B4EE;
+  --canal-yt:  #EC8B87;
 }
 
-:root { --texto-chip: #FFFFFF; }
+/* ═══════════════════════════════════════════════════════════
+   PUENTE DE COMPATIBILIDAD
+   Abajo hay mil líneas escritas contra los nombres viejos. En vez
+   de tocarlas una por una — y arriesgar romper algo que ya
+   funciona — los nombres viejos apuntan a los nuevos.
+
+   OJO con --primario: antes hacía DOS trabajos, relleno y texto, y
+   de ahí venía el 3.93:1 del botón de acción en tema oscuro. Aquí
+   apunta a la variante de TEXTO; los tres lugares que lo usaban de
+   relleno se corrigieron a mano.
+   ═══════════════════════════════════════════════════════════ */
+
+:root, :root[data-tema="oscuro"] {
+  --fondo:        var(--capa-0);
+  --fondo-alt:    var(--capa-hundida);
+  --superficie:   var(--capa-1);
+  --superficie-2: var(--capa-2);
+  --borde:        var(--linea-sutil);
+  --borde-fuerte: var(--linea-control);
+  --texto:        var(--tinta);
+  --texto-medio:  var(--tinta-media);
+  --texto-tenue:  var(--tinta-tenue);
+
+  --primario:     var(--marca-tinta);
+  --primario-osc: var(--marca-solida);
+  --primario-luz: var(--marca-velo);
+  --primario-med: var(--marca-velo);
+
+  --ok-luz:      var(--ok-velo);
+  --alerta-luz:  var(--alerta-velo);
+  --peligro-luz: var(--peligro-velo);
+  --info-luz:    var(--info-velo);
+
+  --pilar-vida:     var(--pilar-vida-tinta);
+  --pilar-academia: var(--pilar-academia-tinta);
+  --pilar-orgullo:  var(--pilar-orgullo-tinta);
+  --pilar-se:       var(--pilar-se-tinta);
+  --pilar-cultura:  var(--pilar-cultura-tinta);
+  --pilar-voz:      var(--pilar-voz-tinta);
+
+  --t-micro: var(--t-sello);
+  --t-mini:  var(--t-meta);
+  --t-base:  var(--t-cuerpo);
+  --t-med:   var(--t-guia);
+  --t-alto:  var(--t-titulo);
+  --t-cifra: var(--t-dato);
+
+  --r:            var(--r-md);
+  --sombra:       var(--elev-1);
+  --sombra-media: var(--elev-2);
+  --sombra-alta:  var(--elev-3);
+  --texto-chip:   var(--texto-sobre-pilar);
+}
 
 * { box-sizing: border-box; }
 
@@ -961,10 +1119,16 @@ textarea.campo.alto { min-height: 132px; }
 
 /* ── Aviso flotante ─────────────────────────────────────── */
 
-.aviso {
+/* Va por identificador y no por clase: .aviso tambien la usa la
+   tarjeta de inventario (.tarjeta-dato.aviso), que asi heredaba
+   position:fixed y fondo oscuro. Dos cosas distintas con el mismo
+   nombre; el mensaje flotante es unico, asi que se ancla a su id. */
+#aviso {
   position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
-  background: var(--texto); color: #fff; padding: 12px 24px;
-  border-radius: 24px; font-size: var(--t-base); box-shadow: var(--sombra-alta); z-index: 200;
+  background: var(--sup-invertida); color: var(--tinta-sobre-invertida);
+  padding: 12px 24px; border-radius: var(--r-pastilla);
+  font-size: var(--t-cuerpo); box-shadow: var(--elev-3); z-index: 200;
+  animation: asomar var(--dur-rapida) var(--curva-salida);
 }
 
 /* ── Responsivo ─────────────────────────────────────────── */
@@ -1187,4 +1351,456 @@ textarea.campo.alto { min-height: 132px; }
   .btn-primario { width: 100%; }
   .conmutador { width: 100%; }
   .conmutador-op { flex: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTRALUZ · COMPONENTES
+   Todo lo de aquí abajo gana a lo anterior por orden de cascada.
+   Es el rediseño propiamente dicho; el bloque de arriba sólo
+   mantiene vivo lo que aún no se ha reescrito.
+   ═══════════════════════════════════════════════════════════ */
+
+body {
+  background: var(--capa-0);
+  font-size: var(--t-cuerpo);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── El bisel ──────────────────────────────────────────────
+   El gesto de mayor retorno visual por línea de CSS: filo de luz
+   arriba, sombra interna abajo. El ojo infiere profundidad de
+   dónde pega la luz, y la tarjeta deja de ser un rectángulo de
+   color para volverse materia apilada. */
+
+.pieza, .idea, .tarjeta-dato, .ficha-experto, .tarjeta-tema,
+.bloque-auditoria, .hallazgo, .tabla-envoltorio, .balance,
+.celda, .modal, .panel-historial, .puerta-caja, .nota-tarjeta,
+.resumen > *, .bloque-prestamos > * {
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-1);
+  border-color: var(--linea-sutil);
+}
+
+/* ══ BARRA SUPERIOR ══
+   Malla radial de dos fuentes en rojo institucional. Se declaró
+   su punto más claro como token (--barra-pico) para poder medir
+   el texto contra el peor caso y no contra el promedio. */
+
+.barra {
+  background:
+    radial-gradient(120% 180% at 12% -40%, var(--barra-pico) 0%, transparent 62%),
+    radial-gradient(90% 160% at 88% -30%, color-mix(in oklab, var(--barra-pico) 78%, transparent) 0%, transparent 58%),
+    var(--barra-base);
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.07), 0 1px 20px rgba(0,0,0,.22);
+}
+
+.marca-nombre {
+  color: var(--barra-tinta);
+  font-size: var(--t-guia);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: .18em;
+}
+.marca-sub { color: var(--barra-tenue); font-size: var(--t-sello); }
+
+.tab {
+  color: var(--barra-media);
+  font-size: var(--t-cuerpo);
+  border-radius: var(--r-sm);
+  padding: 8px 15px;
+  position: relative;
+  transition: color var(--dur-instantanea) var(--curva-estandar),
+              background var(--dur-instantanea) var(--curva-estandar);
+}
+.tab:hover { color: var(--barra-tinta); background: rgba(255,255,255,.07); }
+
+/* El peso NO cambia al activarse: cambiar de 500 a 700 mueve el
+   resto de la fila. Cambia el color y aparece el subrayado. */
+.tab.activo { color: var(--barra-tinta); background: rgba(255,255,255,.10); }
+.tab.activo::after {
+  content: ''; position: absolute; left: 15px; right: 15px; bottom: 3px;
+  height: 2px; border-radius: 2px; background: var(--barra-acento);
+  animation: subrayado var(--dur-rapida) var(--curva-salida);
+}
+@keyframes subrayado { from { transform: scaleX(.3); opacity: 0 } }
+
+.btn-barra {
+  background: rgba(255,255,255,.09);
+  border: 1px solid rgba(255,255,255,.15);
+  color: var(--barra-media);
+  border-radius: var(--r-sm);
+  transition: background var(--dur-instantanea), color var(--dur-instantanea);
+}
+.btn-barra:hover:not(:disabled) { background: rgba(255,255,255,.19); color: var(--barra-tinta); }
+
+/* Antes usaba el rojo de RELLENO y encima texto blanco: en tema
+   oscuro el rojo se aclaraba y quedaba en 3.93:1. */
+.btn-barra.abierto {
+  background: var(--barra-acento);
+  border-color: var(--barra-acento);
+  color: #2A0F15;
+}
+
+.quien b { color: var(--barra-tinta); font-size: var(--t-meta); }
+.quien span { color: var(--barra-tenue); font-size: var(--t-sello); }
+.estado-guardado { color: var(--barra-tenue); font-size: var(--t-meta); }
+.estado-guardado.visible { color: var(--barra-media); }
+
+/* ══ BOTONES ══ */
+
+.btn-primario {
+  background: var(--marca-solida);
+  color: var(--texto-sobre-marca);      /* 10.16 en ambos temas */
+  border: 1px solid var(--marca-solida);
+  border-radius: var(--r-sm);
+  font-size: var(--t-cuerpo);
+  font-weight: var(--peso-medio);
+  padding: 9px 16px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), var(--elev-1);
+  transition: transform var(--dur-instantanea) var(--curva-estandar),
+              filter var(--dur-instantanea);
+}
+.btn-primario:hover:not(:disabled) { filter: brightness(1.14); }
+.btn-primario:active:not(:disabled) { transform: translateY(1px); }
+
+.btn-plano, .btn-icono, .btn-mini, .conmutador-op, .campo, .campo-mini {
+  border-radius: var(--r-sm);
+  border-color: var(--linea-control);   /* 3.96:1 — SC 1.4.11 pide 3 */
+  font-size: var(--t-cuerpo);
+}
+.btn-plano, .btn-icono, .btn-mini {
+  background: var(--capa-2);
+  color: var(--tinta-media);
+  transition: border-color var(--dur-instantanea), color var(--dur-instantanea);
+}
+.btn-plano:hover:not(:disabled), .btn-icono:hover:not(:disabled),
+.btn-mini:hover:not(:disabled) { border-color: var(--marca-tinta); color: var(--marca-tinta); }
+
+/* El conmutador vivía en 2.7:1 en su segmento en reposo. */
+.conmutador { background: var(--capa-hundida); border-radius: var(--r-md); padding: 3px; }
+.conmutador-op {
+  color: var(--tinta-media); background: none; border: 0;
+  font-weight: var(--peso-normal); padding: 7px 15px;
+}
+.conmutador-op.activo {
+  background: var(--capa-2); color: var(--marca-tinta);
+  font-weight: var(--peso-medio); box-shadow: var(--elev-1);
+}
+
+/* Un anillo de foco visible es requisito, no adorno. */
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--anillo) solid var(--foco);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+/* ══ CHIPS ══
+   Antes daban 4.39:1 en claro y 3.80:1 en oscuro porque el mismo
+   tono servía de relleno y de texto. Ahora el relleno usa la
+   variante SÓLIDA y el texto su contraparte medida. */
+
+.chip {
+  font-size: var(--t-sello);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: .04em;
+  border-radius: var(--r-pastilla);
+  padding: 3px 9px;
+  color: var(--texto-sobre-pilar);
+}
+
+/* ══ TARJETA DE PIEZA ══ */
+
+.pieza {
+  background: var(--capa-1);
+  border-radius: var(--r-md);
+  padding: var(--e-tarjeta);
+  transition: transform var(--dur-instantanea) var(--curva-estandar),
+              box-shadow var(--dur-rapida) var(--curva-estandar),
+              background var(--dur-instantanea);
+}
+.pieza:hover {
+  background: var(--capa-2);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-2);
+}
+.pieza-titulo { font-size: var(--t-guia); font-weight: var(--peso-medio); letter-spacing: -.005em; }
+
+/* ══ IDEAS ══ */
+
+.idea {
+  background: var(--capa-1);
+  border-radius: var(--r-md);
+  transition: transform var(--dur-instantanea), box-shadow var(--dur-rapida);
+}
+.idea:hover { transform: translateY(-1px); box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-2); }
+
+/* ══ CELDAS DE CALENDARIO ══ */
+
+.celda {
+  background: var(--capa-1);
+  border-radius: var(--r-sm);
+  transition: background var(--dur-instantanea), box-shadow var(--dur-rapida);
+}
+.celda:hover { background: var(--capa-2); }
+.celda.hoy { border-color: var(--marca-tinta); box-shadow: 0 0 0 2px var(--marca-velo); }
+.celda.hoy .celda-numero { color: var(--marca-tinta); font-weight: var(--peso-fuerte); }
+
+/* ══ TABLA ══ */
+
+.tabla th {
+  background: var(--capa-hundida);
+  color: var(--tinta-media);          /* antes 4.45:1 en oscuro */
+  font-size: var(--t-sello);
+  letter-spacing: .08em;
+}
+.tabla td { font-size: var(--t-cuerpo); }
+.tabla tbody tr { transition: background var(--dur-instantanea); }
+.tabla tbody tr:hover { background: var(--capa-2); }
+.multiplo { color: var(--tinta-media); font-weight: var(--peso-medio); }
+
+/* ══ CIFRAS DE RESUMEN ══
+   Vivían en 2.94:1 claro y 1.80:1 oscuro. La cifra es el dato: si
+   no se lee, el bloque no sirve para nada. */
+
+.cifra {
+  font-size: var(--t-titulo);
+  font-weight: var(--peso-fuerte);
+  color: var(--tinta);
+  letter-spacing: -.012em;
+  font-variant-numeric: tabular-nums;
+}
+.etiqueta {
+  font-size: var(--t-sello);
+  color: var(--tinta-media);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: var(--peso-medio);
+}
+.col-vacia { color: var(--tinta-tenue); }   /* antes 1.74:1 */
+
+/* ══ MARCADOR DE AUDITORÍA ══
+   La cifra estaba en 2.65:1 sobre el hueco del anillo. Es el
+   número que resume el sistema entero. */
+
+.marcador-cifra {
+  font-size: var(--t-marcador);
+  font-weight: var(--peso-fuerte);
+  letter-spacing: -.022em;
+  color: var(--tinta) !important;
+  font-variant-numeric: tabular-nums;
+}
+.marcador-etiqueta {
+  font-size: var(--t-sello);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: var(--peso-fuerte);
+  color: var(--tinta-media) !important;
+}
+
+/* ══ MODAL ══ */
+
+.modal-fondo { background: var(--velo-modal); backdrop-filter: blur(3px); }
+.modal {
+  background: var(--capa-3);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-3);
+  animation: entrar-modal var(--dur-media) var(--curva-salida);
+}
+@keyframes entrar-modal { from { opacity: 0; transform: translateY(8px) scale(.985) } }
+
+.modal-cabecera {
+  background:
+    radial-gradient(140% 220% at 0% -60%, var(--marca-velo) 0%, transparent 70%),
+    var(--capa-3);
+  border-bottom: 1px solid var(--linea-sutil);
+}
+.modal-cabecera h3 { font-size: var(--t-titulo); letter-spacing: -.012em; }
+
+/* ══ TÍTULOS ══ */
+
+h2 { font-size: var(--t-vista); font-weight: var(--peso-medio); letter-spacing: -.022em; }
+h3 {
+  font-size: var(--t-sello); letter-spacing: .11em;
+  text-transform: uppercase; color: var(--tinta-media);
+  font-weight: var(--peso-fuerte);
+}
+
+/* ══ PUERTA ══ */
+
+.puerta {
+  background:
+    radial-gradient(900px 520px at 50% -12%, var(--marca-velo) 0%, transparent 68%),
+    var(--capa-0);
+}
+.puerta-caja {
+  background: var(--capa-3);
+  border-radius: var(--r-xl);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-3);
+  animation: asomar var(--dur-media) var(--curva-salida);
+}
+@keyframes asomar { from { opacity: 0; transform: translateY(10px) } }
+.puerta-marca .marca-nombre { color: var(--marca-tinta); }
+.puerta-marca .marca-sub { color: var(--tinta-tenue); }
+
+/* Quien pidió menos movimiento, recibe menos movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ── Marcador: dona de verdad ──────────────────────────────
+   El centro necesita fondo propio. Sin él la cifra flota sobre el
+   anillo y su contraste depende de en qué grado quedó el barrido. */
+
+.marcador-centro {
+  background: var(--capa-2);
+  border-radius: var(--r-circulo, 50%);
+  width: 76%; height: 76%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 var(--bisel-luz);
+}
+.marcador { transition: background var(--dur-lenta) var(--curva-salida); }
+
+.tarjeta-dato .cifra { font-size: var(--t-dato); color: var(--tinta); }
+.tarjeta-dato .etiqueta { color: var(--tinta-media); }
+.tarjeta-dato.acento .cifra { color: var(--marca-tinta); }
+
+
+/* ═══════════════════════════════════════════════════════════
+   PROGRESO
+   Hacer visible el avance invisible.
+
+   Regla que ordena todo esto: cada número sale de un dato que la
+   operación YA genera. Si la racha sube es porque de verdad se
+   publicó esa semana. Nada de puntos inventados, nada de medallas.
+
+   Y lo que a propósito NO existe: comparaciones entre las tres
+   personas. Son un equipo de tres y una es la jefa — una tabla de
+   posiciones ahí no motiva, envenena.
+   ═══════════════════════════════════════════════════════════ */
+
+.progreso {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--e-5);
+  align-items: center;
+  background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-lg);
+  padding: var(--e-5) var(--e-6);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-1);
+  margin-bottom: var(--e-5);
+}
+
+/* ── El anillo de la semana ──────────────────────────────── */
+
+.anillo {
+  --avance: 0;
+  width: 92px; height: 92px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  position: relative;
+  background: conic-gradient(
+    var(--anillo-tono, var(--marca-solida)) calc(var(--avance) * 3.6deg),
+    var(--capa-hundida) 0);
+  transition: background var(--dur-lenta) var(--curva-salida);
+}
+.anillo::after {
+  content: '';
+  position: absolute; inset: 9px;
+  border-radius: 50%;
+  background: var(--capa-1);
+  box-shadow: inset 0 1px 0 var(--bisel-luz);
+}
+.anillo-centro { position: relative; z-index: 1; text-align: center; line-height: 1.05; }
+.anillo-cifra {
+  font-size: 26px; font-weight: var(--peso-fuerte);
+  color: var(--tinta); font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.anillo-meta { font-size: var(--t-sello); color: var(--tinta-tenue); font-weight: var(--peso-medio); }
+
+/* ── Lo que dice el anillo ───────────────────────────────── */
+
+.progreso-texto { min-width: 0; }
+.progreso-titulo {
+  font-size: var(--t-guia); font-weight: var(--peso-medio);
+  color: var(--tinta); letter-spacing: -.005em;
+  margin-bottom: 3px;
+}
+.progreso-detalle { font-size: var(--t-meta); color: var(--tinta-media); }
+
+/* La barra del piso institucional: el ancho ES el dato, por eso
+   aquí sí se anima el ancho. */
+.medidor {
+  margin-top: 10px;
+  height: 6px; border-radius: var(--r-pastilla);
+  background: var(--capa-hundida);
+  overflow: hidden;
+  position: relative;
+}
+.medidor-relleno {
+  height: 100%; border-radius: inherit;
+  background: var(--medidor-tono, var(--ok));
+  transition: width var(--dur-lenta) var(--curva-salida);
+}
+/* La marca del 40%: la meta tiene que verse, no adivinarse. */
+.medidor-marca {
+  position: absolute; top: -2px; bottom: -2px;
+  width: 2px; border-radius: 1px;
+  background: var(--tinta-media);
+  opacity: .55;
+}
+
+/* ── Racha ───────────────────────────────────────────────── */
+
+.racha {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; min-width: 76px;
+  padding-left: var(--e-5);
+  border-left: 1px solid var(--linea-sutil);
+}
+.racha-cifra {
+  font-size: 30px; font-weight: var(--peso-fuerte);
+  color: var(--tinta); font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em; line-height: 1;
+}
+.racha-cifra.viva { color: var(--marca-tinta); }
+.racha-rotulo {
+  font-size: var(--t-sello); color: var(--tinta-media);
+  text-transform: uppercase; letter-spacing: .08em;
+  font-weight: var(--peso-medio); text-align: center;
+}
+
+/* ── Cuando apenas se empieza ────────────────────────────
+   Con tres piezas capturadas TODO sale en rojo: racha en cero,
+   25% de la meta, cuatro pilares vacíos. Si eso se pinta como
+   fracaso, la herramienta regaña a alguien que apenas llegó.
+   El arranque se lee como invitación. */
+
+.progreso.arranque { border-color: var(--marca-velo); }
+.progreso.arranque .anillo { --anillo-tono: var(--linea-control); }
+.progreso.arranque .racha-cifra { color: var(--tinta-tenue); }
+.progreso.arranque .progreso-titulo { color: var(--tinta); }
+
+/* ── Cuando se cumple ────────────────────────────────────── */
+
+.progreso.cumplida { border-color: color-mix(in oklab, var(--ok) 40%, var(--linea-sutil)); }
+.progreso.cumplida .anillo { --anillo-tono: var(--ok); }
+.progreso.cumplida .anillo-cifra { color: var(--ok); }
+
+@keyframes asentar { 0% { transform: scale(.97) } 60% { transform: scale(1.03) } 100% { transform: scale(1) } }
+.anillo.celebra { animation: asentar var(--dur-media) var(--curva-salida); }
+
+@media (max-width: 700px) {
+  .progreso { grid-template-columns: auto 1fr; gap: var(--e-4); padding: var(--e-4); }
+  .racha {
+    grid-column: 1 / -1; flex-direction: row; align-items: baseline;
+    gap: var(--e-3); border-left: 0; border-top: 1px solid var(--linea-sutil);
+    padding: var(--e-3) 0 0; min-width: 0;
+  }
+  .anillo { width: 76px; height: 76px; }
 }
