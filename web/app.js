@@ -338,6 +338,7 @@ function refrescarTodo() {
   refrescarInventario();
   refrescarExpertos();
   pintarRedaccion();
+  aplicarPermisos();
 }
 
 function marcarGuardado(txt) {
@@ -842,6 +843,12 @@ function pintarCalendario() {
 let piezaArrastrada = null;
 
 function conectarArrastre(cont) {
+  // Sin permiso de escritura no se arrastra: mover una pieza en el
+  // calendario y verla regresar sola sería peor que no poder moverla.
+  if (soloLectura('parrilla_piezas')) {
+    $$('.cal-pieza', cont).forEach(el => el.removeAttribute('draggable'));
+    return;
+  }
   $$('.cal-pieza', cont).forEach(el => {
     el.addEventListener('dragstart', ev => {
       piezaArrastrada = datos.parrilla.piezas.find(p => p.id === el.dataset.id) || null;
@@ -2801,6 +2808,7 @@ function leerVuelo() {
 
 function mostrarModal() {
   $('#modalFondo').hidden = false;
+  aplicarPermisosModal();
   // Huella de los campos al abrir: sirve para saber si hay trabajo sin guardar.
   if (modalCtx) modalCtx.huella = huellaFormulario();
 }
@@ -3077,6 +3085,118 @@ function conectarEventos() {
     else if (k === 'y' || (k === 'z' && ev.shiftKey)) { ev.preventDefault(); rehacer(); }
   });
 }
+
+/* ══════════════════════════════════════════════════════════
+   QUÉ VE Y QUÉ TOCA CADA QUIEN
+
+   Todos ven todas las pestañas, a propósito. El calendario
+   compartido es justo el punto de la herramienta: Sergio tiene
+   que ver lo que viene aunque no lo mueva, y Marysol tiene que
+   saber que hay inventario aunque no administre cámaras.
+   Esconder pestañas haría creer que la aplicación está rota.
+
+   Lo que sí cambia es qué se puede editar. Y se apaga ANTES de
+   que alguien capture algo, no al guardar: perder media hora de
+   captura por un permiso sería lo peor que puede pasar aquí.
+
+   Esto es comodidad, no seguridad. Quien edite esta página
+   puede reactivar los botones — y la base lo seguirá frenando
+   igual, porque el permiso de verdad vive allá.
+   ══════════════════════════════════════════════════════════ */
+
+/* Cada control apunta a la colección REAL que va a escribir, no a
+   la pestaña donde vive. La diferencia importa: Sergio puede
+   escribir piezas pero no ideas, y las dos están en Parrilla. Si
+   preguntáramos por pestaña, se le quedaría "+ Agregar idea"
+   encendido para que la base se lo rebotara después.
+
+   Sólo los que crean o modifican. Filtros, búsqueda, navegación
+   y "copiar lista" se quedan vivos: en lectura siguen sirviendo. */
+const CONTROLES_QUE_EDITAN = {
+  parrilla: {
+    nuevaPieza:         'parrilla_piezas',
+    acomodarPendientes: 'parrilla_piezas',
+    ideaClasificada:    'parrilla_ideas',
+    nuevaIdea:          'parrilla_ideas',
+  },
+  inventario: {
+    nuevoEquipo:      'inventario_equipos',
+    prestarSeleccion: 'inventario_equipos',
+    nuevoVuelo:       'inventario_vuelos',
+  },
+  redaccion: {
+    nuevoTema: 'redaccion_temas',
+    nuevaNota: 'parrilla_piezas',   // una nota es una pieza de formato Nota
+  },
+  expertos: {
+    nuevoExperto: 'expertos_personas',
+  },
+};
+
+/* Qué colección escribe cada ficha del modal. */
+const COLECCION_DE_MODAL = {
+  pieza:   'parrilla_piezas',
+  equipo:  'inventario_equipos',
+  vuelo:   'inventario_vuelos',
+  tema:    'redaccion_temas',
+  experto: 'expertos_personas',
+};
+
+function soloLectura(coleccion) {
+  if (!Almacen.enLaNube || !Almacen.usuario) return false;
+  return !Almacen.puedeEscribir(coleccion);
+}
+
+function aplicarPermisos() {
+  for (const [vista, controles] of Object.entries(CONTROLES_QUE_EDITAN)) {
+    let algoSeEdita = false;
+
+    for (const [id, coleccion] of Object.entries(controles)) {
+      const bloqueado = soloLectura(coleccion);
+      if (!bloqueado) algoSeEdita = true;
+      const b = $('#' + id);
+      if (!b) continue;
+      b.disabled = bloqueado;
+      if (bloqueado) b.title = 'Tu rol no edita esto';
+      else b.removeAttribute('title');
+    }
+
+    // El aviso sale sólo cuando la pestaña entera quedó de consulta.
+    // Si al menos una cosa se puede editar, los botones apagados ya
+    // lo dicen solos y un letrero grande sobraría.
+    const main = $('#vista-' + vista);
+    if (!main) continue;
+    const aviso = $('.aviso-lectura', main);
+
+    if (!algoSeEdita && !aviso) {
+      const nuevo = document.createElement('div');
+      nuevo.className = 'aviso-lectura';
+      nuevo.textContent =
+        `Estás viendo esto en modo lectura. Tu rol (${Almacen.usuario.rol}) ` +
+        'no edita esta sección — puedes consultarla y copiar lo que necesites.';
+      main.prepend(nuevo);
+    } else if (algoSeEdita && aviso) {
+      aviso.remove();
+    }
+  }
+}
+
+/* El modal se abre siempre — leer la ficha completa es útil para
+   todos. Lo que se apaga es guardar y eliminar. */
+function aplicarPermisosModal() {
+  const coleccion = COLECCION_DE_MODAL[modalCtx && modalCtx.tipo];
+  const bloqueado = coleccion ? soloLectura(coleccion) : false;
+  ['#modalGuardar', '#modalEliminar'].forEach(sel => {
+    const b = $(sel);
+    if (!b) return;
+    b.disabled = bloqueado;
+    if (bloqueado) b.title = 'Tu rol no edita esta sección';
+  });
+  $$('#modalCuerpo input, #modalCuerpo textarea, #modalCuerpo select')
+    .forEach(el => { el.readOnly = bloqueado && el.tagName !== 'SELECT';
+                     if (el.tagName === 'SELECT') el.disabled = bloqueado; });
+}
+
 
 /* ══════════════════════════════════════════════════════════
    LA PUERTA

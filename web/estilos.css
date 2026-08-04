@@ -1068,3 +1068,23 @@ textarea.campo.alto { min-height: 132px; }
    (18.7px), asi que ese 4.5:1 si aplica. Se aclara solo aqui:
    sobre la barra oscura de arriba el mismo rojo si pasa. */
 :root[data-tema="oscuro"] .puerta-marca .marca-nombre { color: #E88397; }
+
+/* Aviso de modo lectura. Va arriba de la vista y explica por que,
+   no solo que: "no puedes" sin motivo es lo que hace que la gente
+   crea que el programa esta descompuesto. */
+.aviso-lectura {
+  background: var(--alerta-luz);
+  border-left: 3px solid var(--alerta);
+  color: var(--texto-medio);
+  font-size: var(--t-mini);
+  line-height: 1.55;
+  padding: 10px 13px;
+  border-radius: 0 7px 7px 0;
+  margin-bottom: 16px;
+}
+
+/* Un boton apagado por permisos no debe verse "roto": se ve
+   tranquilo, y el title dice por que. */
+.btn-primario:disabled, .btn-plano:disabled, .btn-auto:disabled {
+  opacity: .45; cursor: not-allowed; filter: none; transform: none;
+}
