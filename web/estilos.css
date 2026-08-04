@@ -2385,3 +2385,53 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 
 .tabla .btn-mini + .btn-mini { margin-left: 6px; }
 .tabla td .campo-mini { min-height: 32px; padding: 4px 8px; }
+
+/* ═══════════════════════════════════════════════════════════
+   LA PARRILLA USA LA PANTALLA COMPLETA
+
+   El primer intento metió los carriles DENTRO de la caja de
+   1320px: el calendario se encogió a 620px y los márgenes de
+   afuera siguieron vacíos. Al revés de lo que se quería.
+
+   La Parrilla es un tablero, no un texto: no le aplica el límite
+   de ancho de lectura. Las demás vistas sí lo conservan, porque
+   ahí sí hay párrafos y una línea de 1900px no se lee.
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 1400px) {
+  #vista-parrilla {
+    max-width: none;
+    padding-inline: clamp(24px, 2.4vw, 56px);
+  }
+
+  /* Los carriles crecen con la pantalla en vez de quedarse fijos;
+     el centro se queda con todo lo que sobre, que es donde de
+     verdad hace falta el ancho. */
+  #vista-parrilla .carriles {
+    grid-template-columns:
+      clamp(280px, 21vw, 380px)
+      minmax(0, 1fr)
+      clamp(300px, 22vw, 400px);
+    gap: clamp(16px, 1.6vw, 32px);
+  }
+
+  /* Con más aire, la celda del mes puede respirar de verdad */
+  #vista-parrilla .celda { min-height: clamp(120px, 11vh, 168px); }
+
+  /* La cabecera y el progreso van de orilla a orilla igual que los
+     carriles. Toparlos en 1320 los dejaba cortos contra el borde
+     derecho del banco de ideas, y ese escalón se ve peor que una
+     barra larga. Lo que sí se controla es que el texto de en medio
+     no se estire: el anillo y la racha se quedan en su tamaño. */
+  #vista-parrilla .progreso { grid-template-columns: auto minmax(0, 1fr) auto; }
+  #vista-parrilla .progreso-texto { max-width: 760px; }
+}
+
+/* En pantallas muy anchas el banco de ideas puede ir a dos
+   columnas: es una rejilla de tarjetas, no una lista. */
+@media (min-width: 1900px) {
+  #vista-parrilla .riel-der .ideas {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #vista-parrilla .riel-der { }
+}
