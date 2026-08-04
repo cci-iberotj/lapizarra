@@ -5,31 +5,60 @@ Sistema de gestión para parrilla de contenido e inventario de equipo.
 
 ---
 
-## Cómo abrirla
+## Cómo entrar
 
-Doble clic en **`LA PIZARRA.bat`**.
+# https://cci-iberotj.github.io/lapizarra/
 
-Se abre una ventana negra (el servidor) y el navegador con la aplicación.
-**No cierres la ventana negra** mientras la estés usando — es lo que la mantiene viva.
+Desde cualquier computadora o teléfono, con tu correo institucional y tu
+contraseña. **Ya no depende de que la computadora de nadie esté prendida.**
 
-Para cerrar: cierra la ventana negra, o presiona `Ctrl+C` dentro de ella.
+La primera vez que entras te obliga a cambiar la contraseña provisional.
+A partir de ese momento nadie más la conoce — ni quien te la dio.
 
-Si el navegador no abre solo, entra a `http://localhost:8770`.
+---
+
+## Quién puede tocar qué
+
+Los tres ven **las cinco pestañas**. Eso es a propósito: el calendario
+compartido es el punto de la herramienta, y esconder secciones sólo hace
+creer que el programa está descompuesto.
+
+Lo que cambia es qué se puede **editar**:
+
+| | Piezas | Ideas | Inventario | Temas | Expertos |
+|---|:--:|:--:|:--:|:--:|:--:|
+| **Leo** — admin | sí | sí | sí | sí | sí |
+| **Marysol** — dirección | sí | sí | — | sí | sí |
+| **Sergio** — publicación | sí | — | — | — | — |
+
+Donde no puedes editar, el botón sale apagado y arriba aparece un aviso
+explicando por qué. Nada se bloquea a la mitad de la captura.
+
+**El rol dice qué tocas en el programa, no quién manda en el departamento.**
+Son dos cosas distintas. Leo tiene `admin` porque mantiene la herramienta;
+Marysol es la jefa del área.
+
+Los permisos los aplica la base de datos, no la página. Aunque alguien
+manipule su navegador para reencender un botón, el cambio se rechaza igual.
 
 ---
 
 ## Dónde viven tus datos
 
-Todo se guarda en la carpeta **`datos/`**, en archivos de texto legibles:
+En **Supabase** (el proyecto `wrezcukptrtmnhnlxmao`), no en tu computadora.
+Por eso los tres ven lo mismo al instante.
 
-| Archivo | Qué contiene |
-|---|---|
-| `parrilla.json` | Piezas programadas y banco de ideas |
-| `inventario.json` | Equipos, préstamos y bitácora de vuelos |
-| `config.json` | Configuración del departamento |
+**Se guarda solo.** No hay botón de "guardar todo": cada cambio se escribe
+medio segundo después de que lo haces, y sólo viaja lo que de verdad cambió
+— por eso dos personas pueden trabajar al mismo tiempo sin pisarse. Arriba a
+la derecha ves la hora del último guardado.
 
-**Se guarda solo.** No hay botón de "guardar todo": cada cambio se escribe medio
-segundo después de que lo haces. Arriba a la derecha ves la hora del último guardado.
+Cada 20 segundos entra lo que movieron los demás, sin recargar.
+
+> **Los archivos `datos/*.json` ya no son los datos vivos.** Quedaron
+> congelados el día que se migró a la nube. Si los abres vas a ver la
+> parrilla de ese momento, no la de hoy. No los borres, pero tampoco te
+> confíes de ellos.
 
 ### Deshacer y rehacer
 
@@ -52,16 +81,34 @@ atenuados y puedes volver a ellos.
 Se conservan los últimos 60 cambios. **El historial es de la sesión**: al cerrar
 LA PIZARRA arranca de nuevo. Para eso están los respaldos de disco.
 
-### Respaldos
+### Respaldos — léelo, esto cambió
 
-Cada vez que se guarda algo, se copia la versión anterior a `datos/respaldos/`.
-Se conservan los últimos 30 respaldos de cada archivo. Si algo sale mal y ya
-cerraste LA PIZARRA, ahí está la versión previa: los archivos llevan fecha y hora en
-el nombre, así que basta con copiar el que quieras encima de `datos/parrilla.json`
-con LA PIZARRA cerrada.
+**El plan gratis de Supabase no guarda copias restaurables.** Se comprobó
+contra su API: la lista de respaldos viene vacía y no hay "volver a ayer".
+No es un descuido de configuración, es lo que incluye el plan.
 
-Para respaldar todo: **copia la carpeta `datos/`** a OneDrive o a un disco externo.
-Eso es todo lo que necesitas guardar.
+Lo que sí protege:
+
+**1. Nada se borra de verdad.** Cuando eliminas algo, se marca como borrado
+pero el renglón se queda en la base. Un borrado por accidente se puede
+recuperar; hay que pedirlo, pero está ahí.
+
+**2. Respaldo a mano.** Baja una copia completa cuando quieras:
+
+```
+python supabase/respaldar.py
+```
+
+Deja un archivo con fecha en `datos/respaldos-nube/`. Se lleva **también**
+los borrados — un respaldo que ya decidió por ti qué se puede tirar no es un
+respaldo. Vale la pena correrlo después de una sesión larga de captura.
+
+Y para que sirva de verdad: **que la carpeta `datos/` esté en OneDrive**. Un
+respaldo que vive en el mismo disco que todo lo demás no protege contra el
+disco.
+
+Los respaldos viejos en `datos/respaldos/` son de la época en que todo vivía
+en tu computadora. Sirven como archivo histórico, no como copia de lo de hoy.
 
 ---
 
@@ -386,10 +433,42 @@ bajo qué permiso.
 
 ## Notas técnicas
 
-- Corre con **Python 3.12**. El núcleo usa solo la biblioteca estándar; el
-  asistente de IA necesita el SDK oficial (`pip install anthropic`, ya instalado).
-  Si ese paquete faltara, LA PIZARRA arranca igual y solo oculta la IA.
-- Solo escucha en `127.0.0.1` — nadie fuera de esta computadora puede entrar.
-- Los datos son JSON plano y cada registro tiene un identificador único, para que
-  el día que se integre con el CRM de Sergio la migración sea directa.
-- Puerto: `8770`. Se cambia en `servidor.py`, en la variable `PUERTO`.
+**Cómo está armado.** Página estática (HTML, CSS y JavaScript sin librerías ni
+`npm`) hospedada en GitHub Pages, hablando con Supabase por HTTP normal. No hay
+nada que compilar: lo que ves en `web/` es exactamente lo que corre.
+
+**Publicar un cambio.** Cualquier cosa que entre a `main` se publica sola
+(`.github/workflows/publicar.yml`). Tarda un minuto. Los archivos se sellan con
+el número del cambio para que el navegador no sirva una mezcla de código viejo
+y nuevo.
+
+**Los permisos viven en la base**, no en la página — `supabase/esquema.sql`.
+Para comprobar que siguen aplicando:
+
+```
+python supabase/verificar.sql
+```
+
+Se mete en la piel de cada persona y le pregunta a la base si la dejaría
+escribir. No es una copia de la regla: es la regla.
+
+**Correr SQL sin copiar y pegar:** `python supabase/correr.py <archivo.sql>`.
+Se niega a ejecutar instrucciones que borran a menos que se lo pidas a
+propósito con `--si-borra`.
+
+**El token de Supabase** vive en `datos/token_supabase.txt`, fuera del
+repositorio. El repositorio es público: nunca metas ahí contraseñas ni llaves.
+La llave que sí está en `web/config.js` es la publicable, y es pública por
+diseño — lo que protege los datos son los permisos de la base.
+
+### Lo que quedó a medias, a propósito
+
+- **`servidor.py` ya no guarda nada.** Sigue sirviendo para abrir la página en
+  tu máquina (`LA PIZARRA.bat`), pero los datos van a la nube. Poner
+  `motor: 'local'` en `web/config.js` deja la aplicación **sin datos**: ese
+  camino se quedó a medio terminar.
+- **`ia.py` está desconectado**, no roto. Se retiró cuando quedó claro que
+  clasificar y calendarizar son reglas, no lenguaje. Sigue ahí por si algún día
+  el diseñador nuevo necesita generar copy sin pasar por Leo.
+- Cada registro tiene identificador único, para que el día que se integre con el
+  CRM de Sergio la migración sea directa.
