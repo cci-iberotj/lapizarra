@@ -44,6 +44,19 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
+      # GitHub Pages manda cache-control: max-age=600. Sin esto, tras
+      # publicar un cambio la gente puede seguir diez minutos con el
+      # codigo viejo -- y peor, con el HTML nuevo y el JS viejo, que
+      # es una combinacion que ni siquiera existio nunca.
+      # Sellar la version con el commit obliga al navegador a bajar
+      # los cuatro archivos juntos o ninguno.
+      - name: Sellar la version en los archivos
+        run: |
+          sello="${GITHUB_SHA::7}"
+          sed -i "s/?v=DEV/?v=$sello/g" web/index.html
+          echo "Publicando version $sello"
+          grep -o '?v=[a-z0-9]*' web/index.html | sort -u
+
       - name: Empaquetar la carpeta web
         uses: actions/upload-pages-artifact@v3
         with:
