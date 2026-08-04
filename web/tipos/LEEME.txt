@@ -1,41 +1,58 @@
-AQUI VAN LOS ARCHIVOS DE ALVERATA
+TIPOGRAFIA DE LA PIZARRA
 Departamento de Diseno y Medios - IBERO Tijuana
 
-Esta carpeta esta vacia a proposito.
+IBEROAMERICANA
+Tipografia propia de la Universidad Iberoamericana.
+Diseno: Hector Raul Perez Cortes, 2019.
+Copyright (c) 2019 Universidad Iberoamericana A.C.
+Licencia: SIL Open Font License 1.1 - texto completo en OFL.txt
 
-Alverata es de Gerard Unger y la vende Type Together. No es libre.
-Usarla en un sitio web necesita una LICENCIA WEB, que es distinta
-de la de impresion: tener la fuente instalada en tu computadora
-para hacer carteles NO autoriza servirla desde una pagina.
+La OFL permite expresamente usarla en web, incrustarla y
+redistribuirla, incluso en un repositorio publico. Por eso los
+archivos pueden vivir aqui sin problema.
 
-Y este repositorio es PUBLICO. Cualquier archivo que viva aqui
-queda descargable por cualquier persona del mundo. Meter una
-fuente con licencia seria republicarla con el nombre de la
-universidad encima.
+Los .woff2 salieron de los .ttf instalados en el sistema, con
+fontTools. NO llevan subconjunto a proposito: la OFL reserva el
+nombre "Iberoamericana" para la version original, y recortar
+glifos seria modificarla. Convertir de formato no lo es, asi que
+el nombre se conserva y el archivo sigue siendo el de la
+universidad.
 
-QUE HACE FALTA
-  1. Licencia web de Alverata a nombre de la IBERO, del tramo de
-     visitas que corresponda (para tres personas, el mas chico).
-  2. Que el dominio declarado cubra  cci-iberotj.github.io
-  3. Los .woff2 de cada peso incluido. Si el kit trae .otf, se
-     convierten con fontTools:
-         pip install fonttools brotli
-         fonttools ttLib.woff2 compress alverata-regular.otf
+Para regenerarlos:
+    pip install fonttools brotli
+    python -c "from fontTools.ttLib import TTFont; f=TTFont('Iberoamericana-Regular.ttf'); f.flavor='woff2'; f.save('iberoamericana-400.woff2')"
 
-COMO ENCENDERLA
-  1. Copiar los .woff2 aqui, con estos nombres:
-         alverata-light.woff2      alverata-regular.woff2
-         alverata-medium.woff2     alverata-semibold.woff2
-         alverata-bold.woff2       alverata-black.woff2
-         alverata-italic.woff2
-  2. Descomentar el bloque @font-face en web/tipografia.css
-  3. Cambiar --fuente-marca a "Alverata"
-  4. Abrir los seis pesos en --peso-* del mismo archivo
+Se cargan cinco pesos y una cursiva - 271 KB en total. Los doce
+serian 800 KB por una jerarquia que se resuelve con cinco.
 
-OJO: no declarar una cara que no exista. Si falta un peso y se
-declara igual, el navegador baja un 404 y luego SINTETIZA el peso
-deformando el regular. Se ve peor que no haberlo puesto.
 
-Lo que NO sirve: los .ttf de sitios como maisfontes, dafont o
-similares. Traen un solo peso, salen de kits web ajenos, y el
-propio archivo dice adentro "Unauthorised use prohibited".
+ALVERATA - COMO ENCENDERLA
+Alverata es la tipografia institucional de la IBERO a nivel
+mundial. Es de Gerard Unger y la vende Type Together, y esta
+activada en la maquina de Leo por Adobe Fonts (Creative Cloud):
+18 caras, incluidas Irregular e Informal.
+
+NO se pueden copiar esos archivos. Adobe los sincroniza cifrados
+en AppData/Roaming/Adobe/CoreSync/plugins/livetype/r con nombres
+numericos, a proposito: extraerlos rompe sus terminos de uso.
+
+El camino correcto YA ESTA PAGADO. Creative Cloud incluye
+proyectos web de Adobe Fonts sin costo extra:
+
+  1. fonts.adobe.com  ->  buscar Alverata  ->  Add to Web Project
+  2. Crear el proyecto: "La Pizarra"
+  3. Marcar los pesos: Light 300, Regular 400, Medium 500,
+     Semibold 600, Bold 700, Black 900
+  4. En Domains agregar:  cci-iberotj.github.io
+     (sin esto Adobe no sirve la fuente a la pagina publicada)
+  5. Adobe da un enlace tipo  https://use.typekit.net/abc1def.css
+     De ahi copiar solo el codigo:  abc1def
+  6. Pegarlo en  web/config.js  ->  tipografia: 'abc1def'
+
+Con eso la tipografia cambia sola. La pila ya lleva Alverata al
+frente y Iberoamericana detras, asi que si Adobe no responde la
+pagina cae en la otra tipografia de la casa y no en Arial.
+
+Lo que NO sirve: los .ttf de sitios como maisfontes o dafont.
+Traen un solo peso, salen de kits web ajenos, y el propio archivo
+dice adentro "Unauthorised use prohibited".

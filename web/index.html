@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>La Pizarra · Diseño y Medios · IBERO Tijuana</title>
+<!-- Precarga de los dos pesos que se usan en casi todo. Sin esto
+     la fuente empieza a bajar hasta que el navegador termina de leer
+     el CSS, y se alcanza a ver un parpadeo con la del sistema. -->
+<link rel="preload" href="tipos/iberoamericana-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="tipos/iberoamericana-500.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="estilos.css?v=DEV">
 <link rel="stylesheet" href="tipografia.css?v=DEV">
 </head>

@@ -60,6 +60,12 @@ MIME = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".ico": "image/x-icon",
+    # Sin esto la fuente sale como application/octet-stream. El
+    # navegador la acepta igual, pero la precarga la descarta y
+    # se pierde justo la ventaja de precargarla.
+    ".woff2": "font/woff2",
+    ".woff": "font/woff",
+    ".txt": "text/plain; charset=utf-8",
 }
 
 
