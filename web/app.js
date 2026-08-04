@@ -279,16 +279,24 @@ function avisar(texto) {
 
 /* ── Persistencia ──────────────────────────────────────── */
 
+/* Los 24 lugares que llaman guardar('parrilla') no saben si atrás
+   hay un archivo, tu servidor o la nube. Sólo estas dos funciones
+   lo saben, y le preguntan al Almacén. */
+
 async function cargar() {
   try {
-    const r = await fetch('/api/todo');
-    const d = await r.json();
-    datos.parrilla   = Object.assign({ piezas: [], ideas: [] }, d.parrilla || {});
-    datos.inventario = Object.assign({ equipos: [], vuelos: [] }, d.inventario || {});
-    datos.expertos   = Object.assign({ personas: [] }, d.expertos || {});
-    datos.redaccion  = Object.assign({ temas: [], equipo: {} }, d.redaccion || {});
+    await Almacen.cargar(datos);
+    // Cada colección necesita su forma completa aunque venga vacía:
+    // el resto del código da por hecho que las listas existen.
+    datos.parrilla   = Object.assign({ piezas: [], ideas: [] }, datos.parrilla);
+    datos.inventario = Object.assign({ equipos: [], vuelos: [], prestamos_historial: [] }, datos.inventario);
+    datos.expertos   = Object.assign({ personas: [] }, datos.expertos);
+    datos.redaccion  = Object.assign({ temas: [], equipo: {} }, datos.redaccion);
   } catch (e) {
-    avisar('No se pudieron cargar los datos. ¿Está corriendo el servidor?');
+    if (e instanceof SinSesion) { await salirDeVerdad(); return; }
+    avisar(Almacen.enLaNube
+      ? 'No se pudieron cargar los datos. Revisa tu conexión.'
+      : 'No se pudieron cargar los datos. ¿Está corriendo el servidor?');
   }
 }
 
@@ -299,19 +307,37 @@ function guardar(coleccion) {
   marcarGuardado('Guardando…');
   guardarPendiente[coleccion] = setTimeout(async () => {
     try {
-      const r = await fetch('/api/' + coleccion, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datos[coleccion]),
-      });
-      if (!r.ok) throw new Error('respuesta ' + r.status);
+      const { tocados } = await Almacen.guardar(coleccion, datos);
       const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-      marcarGuardado('Guardado ' + hora);
+      marcarGuardado(tocados ? 'Guardado ' + hora : 'Sin cambios');
     } catch (e) {
       marcarGuardado('No se pudo guardar');
-      avisar('Error al guardar. Revisa que el servidor siga abierto.');
+      if (e instanceof SinSesion) {
+        avisar('Tu sesión expiró. Vuelve a entrar.');
+        await salirDeVerdad();
+      } else if (e instanceof SinPermiso) {
+        // La base rechazó el cambio. Recargamos para que la pantalla
+        // no siga mostrando algo que en realidad no se guardó.
+        avisar('Tu rol no puede modificar esto. Se deshizo el cambio.');
+        await cargar();
+        refrescarTodo();
+      } else {
+        avisar(Almacen.enLaNube
+          ? 'Error al guardar. Revisa tu conexión; el cambio sigue en pantalla.'
+          : 'Error al guardar. Revisa que el servidor siga abierto.');
+      }
     }
   }, 500);
+}
+
+/* Repintar todo. Se usa cuando el estado cambió por debajo:
+   al deshacer un rechazo o al traer trabajo de los demás. */
+function refrescarTodo() {
+  aplicarModoParrilla();
+  refrescarParrilla();
+  refrescarInventario();
+  refrescarExpertos();
+  pintarRedaccion();
 }
 
 function marcarGuardado(txt) {
@@ -3052,15 +3078,174 @@ function conectarEventos() {
   });
 }
 
+/* ══════════════════════════════════════════════════════════
+   LA PUERTA
+   Sólo existe cuando los datos viven en la nube. Corriendo en
+   tu máquina no hay a quién pedirle contraseña: el servidor
+   local es tuyo y ya.
+   ══════════════════════════════════════════════════════════ */
+
+/* Un campo con "required" dentro de un div oculto SIGUE contando
+   para la validación del navegador. Como no se ve, tampoco puede
+   enseñar el aviso: cancela el envío sin decir nada y el botón
+   parece muerto. Apagarlos es lo que los saca de la revisión —
+   ocultarlos no basta. */
+function apagarPaso(idPaso, apagado) {
+  $$(`#${idPaso} input`).forEach(i => { i.disabled = apagado; });
+}
+
+function mostrarPuerta(paso) {
+  const enClave = paso === 'clave';
+  $('#puerta').hidden = false;
+  $('#pasoEntrar').hidden = enClave;
+  $('#pasoClave').hidden  = !enClave;
+  apagarPaso('pasoEntrar', enClave);
+  apagarPaso('pasoClave', !enClave);
+  $('#btnPuerta').textContent = enClave ? 'Guardar y entrar' : 'Entrar';
+  $('#puertaError').hidden = true;
+  $('#puertaPie').textContent = enClave
+    ? 'No podrás seguir sin cambiarla.'
+    : '';
+  setTimeout(() => {
+    const foco = enClave ? $('#claveNueva') : $('#entrarCorreo');
+    if (foco) foco.focus();
+  }, 60);
+}
+
+function errorPuerta(texto) {
+  const el = $('#puertaError');
+  el.textContent = texto;
+  el.hidden = false;
+}
+
+function pintarQuien(u) {
+  const el = $('#quien');
+  if (!u) { el.hidden = true; $('#btnSalir').hidden = true; return; }
+  el.innerHTML = `<b>${esc(u.nombre)}</b><span>${esc(u.rol)}</span>`;
+  el.hidden = false;
+  $('#btnSalir').hidden = false;
+}
+
+/* Cerrar de este lado pase lo que pase. Quedarse dentro por un
+   error de red sería justo lo contrario de lo que se busca. */
+async function salirDeVerdad() {
+  try { await Almacen.salir(); } catch (e) { /* ignorado a propósito */ }
+  Almacen.usuario = null;
+  pintarQuien(null);
+  $('#entrarClave').value = '';
+  mostrarPuerta('entrar');
+}
+
+async function pasarAdentro(usuario) {
+  Almacen.usuario = usuario;
+  pintarQuien(usuario);
+
+  if (usuario.debe_cambiar_clave) { mostrarPuerta('clave'); return; }
+
+  await cargar();
+  $('#puerta').hidden = true;
+  historial.pila = []; historial.indice = -1;
+  registrar('Estado al abrir LA PIZARRA');
+  refrescarTodo();
+  arrancarSincronizacion();
+}
+
+function conectarPuerta() {
+  $('#formEntrar').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const btn = $('#btnPuerta');
+    if (btn.disabled) return;
+    btn.disabled = true;
+    $('#puertaError').hidden = true;
+
+    try {
+      if ($('#pasoClave').hidden) {
+        const usuario = await Almacen.entrar(
+          $('#entrarCorreo').value, $('#entrarClave').value);
+        $('#entrarClave').value = '';
+        await pasarAdentro(usuario);
+      } else {
+        const a = $('#claveNueva').value, b = $('#claveRepite').value;
+        if (a.length < 8)  throw new Error('La contraseña necesita al menos 8 caracteres.');
+        if (a !== b)       throw new Error('Las dos contraseñas no coinciden.');
+        await Almacen.cambiarClave(a);
+        $('#claveNueva').value = ''; $('#claveRepite').value = '';
+        avisar('Contraseña cambiada. Ya sólo tú la conoces.');
+        await pasarAdentro(Almacen.usuario);
+      }
+    } catch (e) {
+      errorPuerta(e.message || 'No se pudo completar. Intenta de nuevo.');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('#btnSalir').addEventListener('click', async () => {
+    if (!confirm('¿Cerrar sesión?')) return;
+    detenerSincronizacion();
+    await salirDeVerdad();
+  });
+}
+
+/* ── Trabajo de los demás ───────────────────────────────── */
+/* Cada tanto se pregunta qué movieron Marysol y Sergio. No se
+   sincroniza con el modal abierto ni con un guardado en vuelo:
+   traer cambios encima de algo a medio escribir lo pisaría. */
+
+let latido = null;
+
+function arrancarSincronizacion() {
+  if (!Almacen.enLaNube || latido) return;
+  latido = setInterval(async () => {
+    if (!$('#modalFondo').hidden) return;
+    if (Object.values(guardarPendiente).some(Boolean)) return;
+    try {
+      const { entraron } = await Almacen.sincronizar(datos);
+      if (entraron) {
+        refrescarTodo();
+        avisar(`Entraron ${entraron} cambio${entraron === 1 ? '' : 's'} de tu equipo.`);
+      }
+    } catch (e) {
+      if (e instanceof SinSesion) { detenerSincronizacion(); await salirDeVerdad(); }
+    }
+  }, 20_000);
+}
+
+function detenerSincronizacion() {
+  clearInterval(latido);
+  latido = null;
+}
+
+
 (async function iniciar() {
   iniciarTema();
   llenarSelectores();
   conectarEventos();
-  await cargar();
-  registrar('Estado al abrir LA PIZARRA');
-  aplicarModoParrilla();
-  refrescarParrilla();
-  refrescarInventario();
-  refrescarExpertos();
-  pintarRedaccion();
+
+  if (!Almacen.enLaNube) {
+    // Modo local: sin puerta, como siempre.
+    await cargar();
+    registrar('Estado al abrir LA PIZARRA');
+    refrescarTodo();
+    return;
+  }
+
+  // Se destapa ANTES de preguntar por la sesión guardada. Si no,
+  // se alcanza a ver la aplicación vacía por un instante.
+  $('#puerta').hidden = false;
+  $('#puertaPie').textContent = 'Comprobando tu sesión…';
+
+  conectarPuerta();
+  try {
+    const usuario = await Almacen.recuperarSesion();
+    if (usuario) await pasarAdentro(usuario);
+    else mostrarPuerta('entrar');
+  } catch (e) {
+    // Si algo revienta arrancando, la puerta tiene que quedar
+    // usable de todos modos: sin esto se queda en "Comprobando…"
+    // para siempre y no hay ni como escribir el correo.
+    console.error('Arranque:', e);
+    mostrarPuerta('entrar');
+    errorPuerta('Hubo un problema al arrancar. Intenta entrar.');
+  }
 })();

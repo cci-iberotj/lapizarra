@@ -986,3 +986,85 @@ textarea.campo.alto { min-height: 132px; }
   .calendario, .calendario-dias { gap: 5px; }
   .celda { min-height: 96px; padding: 6px; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   PUERTA
+   Tapa la aplicación hasta que hay sesión. Usa position fixed
+   y no display:none para que el fondo no se alcance a ver por
+   un parpadeo mientras se comprueba la sesión guardada.
+   ══════════════════════════════════════════════════════════ */
+
+.puerta {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(900px 500px at 50% -10%, rgba(123,30,46,.16), transparent 70%),
+    var(--fondo);
+}
+
+.puerta-caja {
+  width: 100%; max-width: 372px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 28px 26px 22px;
+  box-shadow: 0 18px 48px rgba(0,0,0,.13);
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.puerta-marca { text-align: center; margin-bottom: 4px; }
+.puerta-marca .marca-nombre { display: block; color: var(--primario); }
+.puerta-marca .marca-sub    { display: block; color: var(--texto-tenue); margin-top: 5px; }
+
+.puerta-campos { display: flex; flex-direction: column; gap: 13px; }
+
+.puerta-campo { display: flex; flex-direction: column; gap: 5px; }
+.puerta-campo > span {
+  font-size: var(--t-micro); text-transform: uppercase;
+  letter-spacing: .09em; font-weight: 700; color: var(--texto-tenue);
+}
+
+.puerta-pista { font-size: var(--t-mini); color: var(--texto-tenue); }
+
+.puerta-nota {
+  font-size: var(--t-mini); color: var(--texto-medio);
+  line-height: 1.55; margin: 0;
+  background: var(--alerta-luz);
+  border-left: 3px solid var(--alerta);
+  padding: 10px 12px; border-radius: 0 7px 7px 0;
+}
+
+.puerta-error {
+  font-size: var(--t-mini); color: #fff; font-weight: 600;
+  background: var(--primario); padding: 9px 12px; border-radius: 7px;
+}
+
+.btn-primario.ancho { width: 100%; justify-content: center; }
+
+.puerta-pie {
+  font-size: var(--t-micro); color: var(--texto-tenue);
+  text-align: center; min-height: 14px;
+}
+
+/* Quién está dentro, en la barra de arriba */
+.quien {
+  display: flex; flex-direction: column; align-items: flex-end;
+  line-height: 1.25; margin-left: 14px;
+}
+.quien b { font-size: var(--t-mini); color: #fff; font-weight: 600; }
+.quien span {
+  font-size: var(--t-micro); color: #B3A9A4;
+  text-transform: uppercase; letter-spacing: .07em;
+}
+
+@media (max-width: 520px) {
+  .puerta-caja { padding: 24px 20px 18px; }
+  .quien { display: none; }
+}
+
+/* El rojo de marca sobre la tarjeta de la puerta da 4.25:1 en
+   oscuro, y 15px en negrita no alcanza el umbral de texto grande
+   (18.7px), asi que ese 4.5:1 si aplica. Se aclara solo aqui:
+   sobre la barra oscura de arriba el mismo rojo si pasa. */
+:root[data-tema="oscuro"] .puerta-marca .marca-nombre { color: #E88397; }

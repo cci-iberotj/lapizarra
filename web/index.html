@@ -8,6 +8,58 @@
 </head>
 <body>
 
+<!-- ══════════════════════════════════════════════════════
+     PUERTA
+     Tapa la aplicación entera hasta que haya sesión. No es
+     la seguridad — ésa vive en la base — es lo que evita ver
+     una pantalla rota mientras no hay con qué llenarla.
+     ══════════════════════════════════════════════════════ -->
+<div class="puerta" id="puerta" hidden>
+  <form class="puerta-caja" id="formEntrar" autocomplete="on">
+    <div class="puerta-marca">
+      <span class="marca-nombre">LA PIZARRA</span>
+      <span class="marca-sub">Diseño y Medios · IBERO Tijuana</span>
+    </div>
+
+    <div class="puerta-campos" id="pasoEntrar">
+      <label class="puerta-campo">
+        <span>Correo institucional</span>
+        <input type="email" class="campo" id="entrarCorreo" autocomplete="username"
+               placeholder="nombre@tijuana.ibero.mx" required>
+      </label>
+      <label class="puerta-campo">
+        <span>Contraseña</span>
+        <input type="password" class="campo" id="entrarClave"
+               autocomplete="current-password" required>
+      </label>
+    </div>
+
+    <!-- Sólo aparece cuando la base dice que la clave es temporal -->
+    <div class="puerta-campos" id="pasoClave" hidden>
+      <p class="puerta-nota">
+        Tu contraseña es temporal. Pon una tuya para seguir —
+        de aquí en adelante nadie más la conoce, ni quien te dio
+        la provisional.
+      </p>
+      <label class="puerta-campo">
+        <span>Contraseña nueva</span>
+        <input type="password" class="campo" id="claveNueva"
+               autocomplete="new-password" minlength="8" required>
+        <small class="puerta-pista">Mínimo 8 caracteres. Que no sea la que usas en otro lado.</small>
+      </label>
+      <label class="puerta-campo">
+        <span>Repítela</span>
+        <input type="password" class="campo" id="claveRepite"
+               autocomplete="new-password" minlength="8" required>
+      </label>
+    </div>
+
+    <div class="puerta-error" id="puertaError" role="alert" hidden></div>
+    <button type="submit" class="btn-primario ancho" id="btnPuerta">Entrar</button>
+    <div class="puerta-pie" id="puertaPie"></div>
+  </form>
+</div>
+
 <header class="barra">
   <div class="marca">
     <span class="marca-nombre">LA PIZARRA</span>
@@ -26,7 +78,9 @@
       <button class="btn-barra" id="btnRehacer" title="Rehacer (Ctrl+Y)" disabled>↷</button>
       <button class="btn-barra ancho" id="btnHistorial" title="Ver historial de cambios">Historial</button>
       <button class="btn-barra" id="btnTema" title="Cambiar entre tema claro y oscuro">◐</button>
+      <button class="btn-barra ancho" id="btnSalir" title="Cerrar sesión" hidden>Salir</button>
     </div>
+    <div class="quien" id="quien" hidden></div>
     <div class="estado-guardado" id="estadoGuardado" aria-live="polite"></div>
   </div>
 
@@ -315,6 +369,8 @@
 
 <div class="aviso" id="aviso" hidden></div>
 
+<script src="config.js"></script>
+<script src="datos.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

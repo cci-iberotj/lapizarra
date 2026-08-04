@@ -21,7 +21,16 @@ const CONFIG = {
     llave: 'sb_publishable_XTkkarWw-P3Ls31g5ZDTOA_ZghkWshN',
   },
 
-  /* 'local'    → servidor de Python en tu máquina
-     'supabase' → la nube, con las tres cuentas */
-  motor: 'local',
+  /* 'supabase' → la nube, con las tres cuentas. Es el modo bueno.
+
+     'local' → NO ESTÁ CONECTADO. Quedó a medias: el motor local
+     pide los datos registro por registro (/api/registros) y
+     servidor.py todavía manda la colección completa (/api/todo).
+     Cambiarlo a 'local' deja la aplicación sin datos. Si algún
+     día hace falta trabajar sin internet, hay que terminar esos
+     endpoints en servidor.py primero.
+
+     Ojo: servidor.py SÍ se sigue usando para abrir la página en
+     tu máquina. Lo que ya no hace es guardar. */
+  motor: 'supabase',
 };
