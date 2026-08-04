@@ -1,0 +1,54 @@
+# ══════════════════════════════════════════════════════════
+#  LA PIZARRA · Publicar
+#  IBERO Tijuana
+#
+#  Cada vez que algo entra a main, esto sube la carpeta web/
+#  a GitHub Pages. No hay que compilar nada: son cuatro
+#  archivos estáticos que el navegador entiende tal cual.
+#
+#  POR QUÉ ASÍ Y NO MOVIENDO LA CARPETA
+#  Pages sólo sabe servir desde la raíz o desde /docs. La app
+#  vive en web/ y ahí tiene sentido que viva. Esto publica esa
+#  carpeta sin obligarnos a reacomodar el proyecto.
+#
+#  Lo que NO se sube: datos/ y el token no están en el
+#  repositorio, así que no hay forma de que salgan por aquí.
+# ══════════════════════════════════════════════════════════
+
+name: Publicar
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:      # para publicar a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Si entran dos cambios seguidos, que gane el último y no se
+# encimen dos publicaciones.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      - name: Empaquetar la carpeta web
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - name: Publicar
+        id: despliegue
+        uses: actions/deploy-pages@v4
