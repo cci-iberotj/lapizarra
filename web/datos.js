@@ -419,14 +419,6 @@ const Almacen = {
     return permitidas.includes('*') || permitidas.includes(coleccion);
   },
 
-  /* Traduce "parrilla" a las colecciones reales que la componen,
-     y contesta si el rol puede tocar aunque sea una. */
-  puedeTocar(coleccion) {
-    const listas = Object.values(MAPA_COLECCIONES[coleccion] || {});
-    const ajustes = Object.values(AJUSTES[coleccion] || {});
-    const todas = listas.concat(ajustes);
-    return todas.length ? todas.some(c => this.puedeEscribir(c)) : true;
-  },
 
   /* ── Carga ───────────────────────────────────────────── */
 

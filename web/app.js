@@ -248,10 +248,6 @@ function fechaLegible(txt) {
   return DIAS[f.getDay()] + ' ' + f.getDate() + ' de ' + MESES[f.getMonth()];
 }
 
-function pesos(n) {
-  return '$' + (Number(n) || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 });
-}
-
 function catalogo(lista, valor) {
   const it = lista.find(x => x.id === valor);
   return it ? it.nombre : (valor || '—');
@@ -300,17 +296,67 @@ async function cargar() {
   }
 }
 
+/* OJO: hay que BORRAR la llave al terminar, no sólo llamar a
+   clearTimeout. El identificador del temporizador es un número y
+   se queda ahí aunque ya haya corrido, así que cualquiera que
+   pregunte "¿hay algo guardándose?" leería que sí para siempre.
+   Eso apagaba la sincronización: al primer guardado dejabas de
+   ver el trabajo de los demás y nada lo avisaba. */
 const guardarPendiente = {};
+let contadorGuardado = 0;
+
+/* Colecciones cuyo último guardado falló. Mientras haya algo aquí,
+   hay trabajo que sólo existe en esta pantalla. */
+const sinGuardar = new Set();
+
+function hayGuardadoEnVuelo() {
+  return Object.keys(guardarPendiente).length > 0;
+}
+
+/* Reintento con espera creciente: 5s, 10s, 20s, 40s, tope 60s. Si
+   se cayó el internet no sirve golpear cada segundo, y si volvió no
+   hay que esperar a que toques algo para recuperar el trabajo. */
+let esperaReintento = 5000;
+let relojReintento = null;
+
+function programarReintento() {
+  if (relojReintento || !sinGuardar.size) return;
+  relojReintento = setTimeout(() => {
+    relojReintento = null;
+    const pendientes = [...sinGuardar];
+    if (!pendientes.length) { esperaReintento = 5000; return; }
+    esperaReintento = Math.min(esperaReintento * 2, 60_000);
+    pendientes.forEach(guardar);
+  }, esperaReintento);
+}
+
+/* Última red antes de perder el trabajo. El navegador sólo permite
+   un aviso genérico; el texto exacto lo decide él. */
+window.addEventListener('beforeunload', ev => {
+  if (!sinGuardar.size) return;
+  ev.preventDefault();
+  ev.returnValue = '';
+});
 
 function guardar(coleccion) {
-  clearTimeout(guardarPendiente[coleccion]);
+  const enCurso = guardarPendiente[coleccion];
+  if (enCurso) clearTimeout(enCurso.reloj);
+
   marcarGuardado('Guardando…');
-  guardarPendiente[coleccion] = setTimeout(async () => {
+  const turno = ++contadorGuardado;
+
+  const reloj = setTimeout(async () => {
     try {
       const { tocados } = await Almacen.guardar(coleccion, datos);
+      sinGuardar.delete(coleccion);
+      if (!sinGuardar.size) esperaReintento = 5000;   // se recupera la red
       const hora = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
       marcarGuardado(tocados ? 'Guardado ' + hora : 'Sin cambios');
     } catch (e) {
+      // Se anota para que cerrar la pestaña avise, y para reintentar
+      // solo: sin esto el trabajo se queda esperando a que hagas otro
+      // cambio cualquiera, y si cierras antes se pierde.
+      if (!(e instanceof SinPermiso)) { sinGuardar.add(coleccion); programarReintento(); }
       marcarGuardado('No se pudo guardar');
       if (e instanceof SinSesion) {
         avisar('Tu sesión expiró. Vuelve a entrar.');
@@ -326,8 +372,21 @@ function guardar(coleccion) {
           ? 'Error al guardar. Revisa tu conexión; el cambio sigue en pantalla.'
           : 'Error al guardar. Revisa que el servidor siga abierto.');
       }
+    } finally {
+      // Se suelta al final, no al empezar: hasta aquí sigue habiendo
+      // escritura en vuelo y la sincronización no debe entrar a
+      // mezclar en medio.
+      // El turno evita que un guardado lento borre la marca de otro
+      // más nuevo que ya arrancó: sólo se limpia si sigue siendo el
+      // que le toca.
+      if (guardarPendiente[coleccion] &&
+          guardarPendiente[coleccion].turno === turno) {
+        delete guardarPendiente[coleccion];
+      }
     }
   }, 500);
+
+  guardarPendiente[coleccion] = { reloj, turno };
 }
 
 /* Repintar todo. Se usa cuando el estado cambió por debajo:
@@ -3318,7 +3377,7 @@ function arrancarSincronizacion() {
   if (!Almacen.enLaNube || latido) return;
   latido = setInterval(async () => {
     if (!$('#modalFondo').hidden) return;
-    if (Object.values(guardarPendiente).some(Boolean)) return;
+    if (hayGuardadoEnVuelo()) return;
     try {
       const { entraron } = await Almacen.sincronizar(datos);
       if (entraron) {
