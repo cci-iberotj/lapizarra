@@ -1,0 +1,143 @@
+/* ═══════════════════════════════════════════════════════════
+   LA PIZARRA · TIPOGRAFÍA
+   Departamento de Diseño y Medios · IBERO Tijuana
+
+   ESTE ARCHIVO ESTÁ LISTO PARA ALVERATA Y NO LA TRAE.
+
+   Alverata es la tipografía institucional. Es de Gerard Unger y la
+   vende Type Together: no es libre, y usarla en un sitio web
+   necesita una LICENCIA WEB, que es distinta de la de impresión.
+   Este repositorio además es público, así que cualquier archivo
+   que viva aquí queda descargable por cualquiera — meter una
+   fuente con licencia sería republicarla con el nombre de la
+   universidad encima.
+
+   Mientras llega la licencia, se usa la pila del sistema. No se
+   ve igual, pero se lee bien y no cuesta una sola descarga.
+
+   ── CÓMO ENCENDER ALVERATA CUANDO HAYA LICENCIA ──
+   1. Copiar los .woff2 a  web/tipos/
+   2. Descomentar el bloque de @font-face de abajo
+   3. Cambiar --fuente-marca a  "Alverata"
+   Eso es todo. Los pesos ya están declarados en la escala.
+   ═══════════════════════════════════════════════════════════ */
+
+
+/* ── 1. Las caras ──────────────────────────────────────────
+   Descomentar cuando existan los archivos. Los nombres siguen la
+   convención del kit de Type Together; ajustar si difieren.
+
+   font-display: swap  →  el texto se ve de inmediato con la
+   fuente del sistema y cambia cuando Alverata termina de bajar.
+   Sin esto la pantalla arranca en blanco.
+
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-light.woff2") format("woff2");
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-medium.woff2") format("woff2");
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-semibold.woff2") format("woff2");
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-bold.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-black.woff2") format("woff2");
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Alverata";
+  src: url("tipos/alverata-italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+
+   OJO: no declarar una cara que no exista. Si falta el peso 500 y
+   se declara igual, el navegador baja un archivo que da 404 y
+   luego SINTETIZA el peso deformando el 400 — se ve peor que no
+   haberlo puesto.
+*/
+
+
+/* ── 2. Las dos familias ───────────────────────────────────
+   Alverata para lo que se lee y se recuerda: títulos, cifras,
+   nombres de pieza. La pila del sistema para lo que se opera:
+   campos, tablas, metadatos. Es la división que usan las
+   herramientas que se sienten caras — carácter donde importa,
+   neutralidad donde estorbaría. */
+
+:root {
+  /* Cuando haya licencia: "Alverata", y luego la reserva. */
+  --fuente-marca: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+
+  /* Ésta no cambia: la interfaz operativa se queda en la del
+     sistema aunque llegue Alverata. */
+  --fuente-obra: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+
+  /* Cifras que no bailan al cambiar: en un contador que se
+     actualiza, las proporcionales hacen saltar todo el renglón. */
+  --cifras: tabular-nums;
+}
+
+
+/* ── 3. Dónde manda cada una ───────────────────────────────
+   Al encender Alverata, todo esto se transforma solo. */
+
+.marca-nombre,
+.puerta-marca .marca-nombre,
+h1, h2,
+.bloque-encabezado h3,
+.bloque-auditoria > h3,
+.progreso-titulo,
+.pieza-titulo,
+.modal-cabecera h3,
+.anillo-cifra,
+.racha-cifra,
+.marcador-cifra,
+.tarjeta-dato .cifra {
+  font-family: var(--fuente-marca);
+}
+
+/* Las cifras siempre tabulares: son datos, no texto. */
+.anillo-cifra, .racha-cifra, .marcador-cifra,
+.tarjeta-dato .cifra, .ficha-cuenta, .tabla td {
+  font-variant-numeric: var(--cifras);
+}
+
+
+/* ── 4. Los pesos, que es lo que se pidió ──────────────────
+   Con una sola cara no hay jerarquía posible: la pila del sistema
+   sólo tiene 400, 600 y 700 de verdad, y pedirle un 300 o un 500
+   hace que el navegador los invente deformando el 400.
+
+   Estos tres escalones son los que existen HOY. Cuando llegue
+   Alverata con sus seis pesos, aquí se abre a seis y la jerarquía
+   deja de depender sólo del tamaño y el color. */
+
+:root {
+  --peso-fino:   400;   /* → 300 con Alverata Light     */
+  --peso-normal: 400;
+  --peso-medio:  600;   /* → 500 con Alverata Medium    */
+  --peso-alto:   600;   /* → 600 con Alverata SemiBold  */
+  --peso-fuerte: 700;
+  --peso-maximo: 700;   /* → 800 con Alverata Black     */
+}
+
+/* Regla que no se rompe, haya o no Alverata: el peso NO cambia en
+   hover ni al seleccionar. Cambiar de 400 a 700 ensancha el texto
+   y mueve todo lo que está a su lado. Se cambia el color. */

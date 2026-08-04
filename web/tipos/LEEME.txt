@@ -1,0 +1,41 @@
+AQUI VAN LOS ARCHIVOS DE ALVERATA
+Departamento de Diseno y Medios - IBERO Tijuana
+
+Esta carpeta esta vacia a proposito.
+
+Alverata es de Gerard Unger y la vende Type Together. No es libre.
+Usarla en un sitio web necesita una LICENCIA WEB, que es distinta
+de la de impresion: tener la fuente instalada en tu computadora
+para hacer carteles NO autoriza servirla desde una pagina.
+
+Y este repositorio es PUBLICO. Cualquier archivo que viva aqui
+queda descargable por cualquier persona del mundo. Meter una
+fuente con licencia seria republicarla con el nombre de la
+universidad encima.
+
+QUE HACE FALTA
+  1. Licencia web de Alverata a nombre de la IBERO, del tramo de
+     visitas que corresponda (para tres personas, el mas chico).
+  2. Que el dominio declarado cubra  cci-iberotj.github.io
+  3. Los .woff2 de cada peso incluido. Si el kit trae .otf, se
+     convierten con fontTools:
+         pip install fonttools brotli
+         fonttools ttLib.woff2 compress alverata-regular.otf
+
+COMO ENCENDERLA
+  1. Copiar los .woff2 aqui, con estos nombres:
+         alverata-light.woff2      alverata-regular.woff2
+         alverata-medium.woff2     alverata-semibold.woff2
+         alverata-bold.woff2       alverata-black.woff2
+         alverata-italic.woff2
+  2. Descomentar el bloque @font-face en web/tipografia.css
+  3. Cambiar --fuente-marca a "Alverata"
+  4. Abrir los seis pesos en --peso-* del mismo archivo
+
+OJO: no declarar una cara que no exista. Si falta un peso y se
+declara igual, el navegador baja un 404 y luego SINTETIZA el peso
+deformando el regular. Se ve peor que no haberlo puesto.
+
+Lo que NO sirve: los .ttf de sitios como maisfontes, dafont o
+similares. Traen un solo peso, salen de kits web ajenos, y el
+propio archivo dice adentro "Unauthorised use prohibited".
