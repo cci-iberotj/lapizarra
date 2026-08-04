@@ -2438,3 +2438,89 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   }
   #vista-parrilla .riel-der { }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   TRES SILUETAS, TRES SIGNIFICADOS
+
+   El calendario mezcla cosas que no son iguales, y hasta ahora
+   todas se veían parecido. Ahora se distinguen sin leerlas:
+
+     LLENO de color   → pieza resuelta: programada o publicada
+     BLANCO con riel  → pieza en camino: todavía es bosquejo
+     PUNTEADO         → evento: no se publica, se cubre
+
+   El color deja de ser decoración y pasa a decir en qué punto
+   está cada cosa. Un mes con muchos huecos blancos se lee de
+   lejos como un mes a medio armar.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Pieza resuelta ────────────────────────────────────── */
+
+.cal-pieza.lista .cal-cuerpo,
+.cal-pieza.lista {
+  background: var(--pieza-tono, var(--linea-control));
+  border-color: transparent;
+}
+.cal-pieza.lista .cal-titulo,
+.cal-pieza.lista .cal-meta {
+  color: var(--texto-sobre-pilar);
+}
+.cal-pieza.lista .cal-meta { opacity: .82; }
+
+/* En la lista la tarjeta es grande: un bloque de color puro a ese
+   tamaño cansa. Se usa el mismo tono rebajado contra la capa, que
+   se lee igual de "lleno" sin gritar. */
+.pieza.lista {
+  background: color-mix(in oklab, var(--pieza-tono) 16%, var(--capa-1));
+  border-color: color-mix(in oklab, var(--pieza-tono) 38%, var(--linea-sutil));
+}
+.pieza.lista::before { width: 6px; }
+.pieza.lista:hover {
+  background: color-mix(in oklab, var(--pieza-tono) 22%, var(--capa-2));
+}
+
+/* Publicado ya es historia: sigue lleno, pero se apaga un poco
+   para que lo que exige atención sea lo programado. */
+.cal-pieza.lista.publicada { opacity: .78; }
+
+/* ── Pieza en camino ───────────────────────────────────── */
+/* Se queda como estaba —blanca con su riel de pilar— y eso ahora
+   SIGNIFICA algo: es lo que falta por resolver. */
+
+/* ── Evento ────────────────────────────────────────────── */
+
+.cal-evento {
+  grid-template-columns: auto auto 1fr;
+  background: transparent;
+  border: 1px dashed var(--evento-tono, var(--info));
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+.cal-evento .marca-evento {
+  color: var(--evento-tono, var(--info));
+  font-size: 8px;
+  line-height: 1;
+}
+.cal-evento:hover {
+  background: color-mix(in oklab, var(--evento-tono) 12%, var(--capa-2));
+}
+
+/* La leyenda del calendario: sin ella el código de color hay que
+   adivinarlo, y un código que se adivina no es un código. */
+.leyenda {
+  display: flex; flex-wrap: wrap; gap: var(--e-5);
+  align-items: center;
+  font-size: var(--t-sello);
+  color: var(--tinta-media);
+  padding: var(--e-3) 0 0;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  font-weight: var(--peso-medio);
+}
+.leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda i {
+  width: 13px; height: 13px; border-radius: 3px; display: inline-block;
+}
+.leyenda .lleno    { background: var(--marca-solida); }
+.leyenda .vacio-m  { background: var(--capa-1); border: 1px solid var(--linea-control); border-left: 3px solid var(--marca-solida); }
+.leyenda .evento-m { background: transparent; border: 1px dashed var(--info); border-left: 3px solid var(--info); }

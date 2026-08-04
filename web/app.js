@@ -161,6 +161,11 @@ const ESTADOS = [
   { id: 'publicado',  nombre: 'Publicado',          color: 'var(--estado-publicado)' },
 ];
 
+/* Lo que ya esta resuelto se pinta LLENO; lo que sigue en camino
+   se queda en blanco. Asi el calendario se lee de un vistazo: el
+   color es trabajo cerrado, el blanco es trabajo pendiente. */
+const LISTO_PARA_SALIR = ['programado', 'publicado'];
+
 const CATEGORIAS = [
   { id: 'camara',        nombre: 'Cámara' },
   { id: 'lente',         nombre: 'Lente' },
@@ -641,7 +646,7 @@ function pintarPiezas() {
         return c ? `<span class="chip chip-canal" style="background:${c.color}" title="${esc(c.nombre)}">${esc(c.corto)}</span>` : '';
       }).join('');
       return `
-        <div class="pieza" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
+        <div class="pieza${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
           <div class="pieza-cuerpo">
             <div class="pieza-titulo">${esc(p.titulo || 'Sin título')}</div>
             <div class="pieza-meta">
@@ -1486,14 +1491,27 @@ function mostrarClave(nombre, correo, clave) {
    áreas avisen por ahí y el evento caiga aquí solo.
    ══════════════════════════════════════════════════════════ */
 
+/* Se marcan varias. Antes era una sola opcion y existia "Foto y
+   video" como parche — que ya no hace falta y no cubria los casos
+   de tres cosas a la vez. */
 const QUE_SE_NECESITA = [
-  { id: 'foto',       nombre: 'Fotografía' },
-  { id: 'video',      nombre: 'Video' },
-  { id: 'ambos',      nombre: 'Foto y video' },
-  { id: 'transmision',nombre: 'Transmisión en vivo' },
-  { id: 'nota',       nombre: 'Nota escrita' },
-  { id: 'sin_definir',nombre: 'Todavía no se sabe' },
+  { id: 'foto',        nombre: 'Fotografía' },
+  { id: 'video',       nombre: 'Video' },
+  { id: 'transmision', nombre: 'Transmisión en vivo' },
+  { id: 'nota',        nombre: 'Nota escrita' },
+  { id: 'testimonios', nombre: 'Testimonios en cámara' },
+  { id: 'dron',        nombre: 'Tomas con dron' },
 ];
+
+/* Lo guardado puede venir del modelo viejo, donde 'necesita' era
+   una cadena. Se traduce al vuelo para no perder los eventos que
+   ya estan capturados. */
+function necesidadesDe(e) {
+  if (Array.isArray(e.necesita)) return e.necesita;
+  if (!e.necesita || e.necesita === 'sin_definir') return [];
+  if (e.necesita === 'ambos') return ['foto', 'video'];
+  return [e.necesita];
+}
 
 const ESTADOS_EVENTO = [
   { id: 'avisado',   nombre: 'Avisado',     color: 'var(--estado-idea)',       nota: 'Alguien lo reportó; falta confirmar' },
@@ -1573,11 +1591,16 @@ function abrirEvento(idEvento, prellenado) {
 
     <div class="fila-campos">
       <div class="grupo-campo">
-        <label for="e_necesita">Qué se necesita</label>
-        <select class="campo" id="e_necesita">
-          ${QUE_SE_NECESITA.map(q =>
-            `<option value="${q.id}"${q.id === e.necesita ? ' selected' : ''}>${esc(q.nombre)}</option>`).join('')}
-        </select>
+        <label>Qué se necesita</label>
+        <div class="opciones-canal" id="e_necesita">
+          ${QUE_SE_NECESITA.map(q => {
+            const marcado = necesidadesDe(e).includes(q.id);
+            return `<label class="opcion-canal${marcado ? ' marcado' : ''}">
+              <input type="checkbox" value="${q.id}"${marcado ? ' checked' : ''}>${esc(q.nombre)}
+            </label>`;
+          }).join('')}
+        </div>
+        <span class="ayuda">Marca todo lo que haga falta. Sirve para saber si alcanza con una salida de equipo o hay que dividirse.</span>
       </div>
       <div class="grupo-campo">
         <label for="e_estado">Cómo va</label>
@@ -1623,7 +1646,7 @@ function leerEvento() {
   e.hora     = $('#e_hora').value;
   e.lugar    = $('#e_lugar').value.trim();
   e.solicita = $('#e_solicita').value.trim();
-  e.necesita = $('#e_necesita').value;
+  e.necesita = $$('#e_necesita input:checked').map(x => x.value);
   e.estado   = $('#e_estado').value;
   e.notas    = $('#e_notas').value;
 
@@ -1644,8 +1667,13 @@ function leerEvento() {
    evento no puede publicarse antes del evento — ése fue el error
    que puso el reel de IGNITE dos días antes de IGNITE. */
 function coberturaDeEvento(e) {
-  const formato = e.necesita === 'video' ? 'Reel'
-                : e.necesita === 'nota'  ? 'Nota'
+  /* El formato sale de lo que se pidio, con un orden de prioridad:
+     si hay video se produce video, si solo hay nota es nota, y si
+     no, foto. Cuando hay varias cosas se crea la primera y de ahi
+     se derivan las demas. */
+  const n = necesidadesDe(e);
+  const formato = n.includes('video') || n.includes('transmision') || n.includes('testimonios') ? 'Reel'
+                : n.includes('nota') ? 'Nota'
                 : 'Foto';
   cerrarModal();
   abrirPieza(null, {
@@ -1685,7 +1713,9 @@ function pintarEventos() {
 
   cont.innerHTML = proximos.map(e => {
     const est = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
-    const q = QUE_SE_NECESITA.find(x => x.id === e.necesita);
+    const necesita = necesidadesDe(e)
+      .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
+      .filter(Boolean).join(' + ');
     const dias = Math.round((aFecha(e.fecha) - aFecha(hoy)) / 86400000);
     const cuando = dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : `En ${dias} días`;
     return `
@@ -1695,7 +1725,7 @@ function pintarEventos() {
           <div class="evento-titulo">${esc(e.titulo)}</div>
           <div class="evento-meta">
             ${esc(fechaLegible(e.fecha))} · ${esc(cuando)}${e.lugar ? ' · ' + esc(e.lugar) : ''}
-            ${q ? ' · ' + esc(q.nombre) : ''}${e.solicita ? ' · pide ' + esc(e.solicita) : ''}
+            ${necesita ? ' · ' + esc(necesita) : ''}${e.solicita ? ' · pide ' + esc(e.solicita) : ''}
           </div>
         </div>
         <span class="sello-tipo es-evento">${esc(est ? est.nombre : 'Evento')}</span>
@@ -1878,6 +1908,9 @@ function pintarCalendario() {
     const piezas = (porFecha[txt] || []).map(p => {
       const pil = PILARES.find(x => x.id === p.pilar);
       const color = pil ? pil.color : 'var(--borde-fuerte)';
+      // Para RELLENAR va la variante solida, no la de tinta: es la
+      // que esta medida contra el texto que se le pone encima.
+      const relleno = pil ? pil.solido : 'var(--linea-control)';
       const img = p.imagen
         ? `<img class="cal-miniatura" src="${esc(p.imagen)}" alt="" loading="lazy">`
         : '';
@@ -1885,7 +1918,7 @@ function pintarCalendario() {
       const rotulo = p.no_antes ? `Sólo a partir del ${fechaLegible(p.no_antes)}`
                    : p.no_despues ? `Sólo hasta el ${fechaLegible(p.no_despues)}` : '';
       return `
-        <div class="cal-pieza${p.imagen ? '' : ' sin-imagen'}" data-id="${esc(p.id)}"
+        <div class="cal-pieza${p.imagen ? '' : ' sin-imagen'}${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}" data-id="${esc(p.id)}" style="--pieza-tono:${relleno}"
              draggable="true" title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
@@ -1895,13 +1928,19 @@ function pintarCalendario() {
         </div>`;
     }).join('');
 
-    const eventos = eventosDe(txt).map(ev => `
+    const eventos = eventosDe(txt).map(ev => {
+      const q = necesidadesDe(ev)
+        .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
+        .filter(Boolean).join(' + ');
+      return `
       <div class="cal-evento" data-evento="${esc(ev.id)}"
            style="--evento-tono:${colorEvento(ev)}"
-           title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}">
+           title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}${q ? ' — ' + esc(q) : ''}">
+        <span class="marca-evento" aria-hidden="true">◆</span>
         <span class="hora">${esc(horaLegible(ev.hora) || '·')}</span>
         <span class="titulo">${esc(ev.titulo)}</span>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     const finde = dia.getDay() === 0 || dia.getDay() === 6;
     celdas.push(`
