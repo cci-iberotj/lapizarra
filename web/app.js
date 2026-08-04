@@ -1138,8 +1138,8 @@ async function pintarAjustes() {
         <table class="tabla" id="aj_tabla">
           <thead>
             <tr>
-              <th>Nombre</th><th>Correo</th><th>Rol</th>
-              <th>Última entrada</th><th></th>
+              <th scope="col">Nombre</th><th scope="col">Correo</th><th scope="col">Rol</th>
+              <th scope="col">Última entrada</th><th scope="col"></th>
             </tr>
           </thead>
           <tbody>
@@ -1202,7 +1202,7 @@ async function pintarAjustes() {
       <div class="bloque-encabezado"><h3>Qué puede hacer cada rol</h3></div>
       <div class="tabla-envoltorio">
         <table class="tabla">
-          <thead><tr><th>Rol</th><th>Alcance</th></tr></thead>
+          <thead><tr><th scope="col">Rol</th><th scope="col">Alcance</th></tr></thead>
           <tbody>
             ${ROLES_SISTEMA.map(r => `
               <tr><td><b>${esc(r.nombre)}</b></td><td class="tenue">${esc(r.que)}</td></tr>`).join('')}
@@ -3849,9 +3849,43 @@ function leerVuelo() {
 
 /* ── Modal: control común ──────────────────────────────── */
 
+/* Quien tenía el foco antes de abrir, para devolvérselo al cerrar. */
+let focoPrevio = null;
+
+function enfocablesDelModal() {
+  return $$('#modalFondo button, #modalFondo input, #modalFondo select, ' +
+            '#modalFondo textarea, #modalFondo [tabindex]')
+    .filter(el => !el.disabled && el.offsetParent !== null);
+}
+
+/* El modal decía aria-modal="true" pero el foco no estaba atrapado:
+   con el tabulador te salías a los cientos de controles de atrás,
+   que además siguen ahí y siguen siendo clicables. Para quien navega
+   con teclado, eso vuelve el modal inservible. */
+function atraparFoco(ev) {
+  if (ev.key !== 'Tab') return;
+  const lista = enfocablesDelModal();
+  if (!lista.length) return;
+  const primero = lista[0], ultimo = lista[lista.length - 1];
+  if (ev.shiftKey && document.activeElement === primero) {
+    ev.preventDefault(); ultimo.focus();
+  } else if (!ev.shiftKey && document.activeElement === ultimo) {
+    ev.preventDefault(); primero.focus();
+  }
+}
+
 function mostrarModal() {
+  focoPrevio = document.activeElement;
   $('#modalFondo').hidden = false;
   aplicarPermisosModal();
+
+  // El foco entra al primer campo, no se queda afuera: si no, hay
+  // que tabular por toda la página para llegar a la ficha.
+  const lista = enfocablesDelModal();
+  const primerCampo = lista.find(el => /INPUT|TEXTAREA|SELECT/.test(el.tagName)) || lista[0];
+  if (primerCampo) setTimeout(() => primerCampo.focus(), 30);
+
+  document.addEventListener('keydown', atraparFoco, true);
   // Huella de los campos al abrir: sirve para saber si hay trabajo sin guardar.
   if (modalCtx) modalCtx.huella = huellaFormulario();
 }
@@ -3879,6 +3913,14 @@ function intentarCerrarModal() {
 }
 
 function cerrarModal() {
+  document.removeEventListener('keydown', atraparFoco, true);
+  // El foco vuelve a donde estaba: perderlo manda al principio de la
+  // página y hay que rehacer todo el camino.
+  if (focoPrevio && document.contains(focoPrevio)) {
+    try { focoPrevio.focus(); } catch (e) { /* el nodo pudo desaparecer */ }
+  }
+  focoPrevio = null;
+
   // Ajustes esconde Guardar y renombra Cancelar; hay que devolver
   // el pie a su estado o la siguiente ficha abre sin boton de guardar.
   $('#modalGuardar').hidden = false;

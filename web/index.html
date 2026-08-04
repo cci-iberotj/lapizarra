@@ -146,13 +146,13 @@
       <button class="conmutador-op" data-modo="lista">Lista</button>
     </div>
     <div class="filtros">
-      <select id="filtroPilar" class="campo-mini">
+      <select id="filtroPilar" aria-label="Filtrar por pilar" class="campo-mini">
         <option value="">Todos los pilares</option>
       </select>
-      <select id="filtroCanal" class="campo-mini">
+      <select id="filtroCanal" aria-label="Filtrar por canal" class="campo-mini">
         <option value="">Todos los canales</option>
       </select>
-      <select id="filtroEstado" class="campo-mini">
+      <select id="filtroEstado" aria-label="Filtrar por estado" class="campo-mini">
         <option value="">Todos los estados</option>
       </select>
       <label class="check-inline" id="envolturaTodas">
@@ -235,13 +235,13 @@
   <section class="controles">
     <button class="btn-primario" id="nuevoEquipo">+ Registrar equipo</button>
     <div class="filtros">
-      <select id="filtroCategoria" class="campo-mini">
+      <select id="filtroCategoria" aria-label="Filtrar por categoría de equipo" class="campo-mini">
         <option value="">Todas las categorías</option>
       </select>
-      <select id="filtroEstadoEquipo" class="campo-mini">
+      <select id="filtroEstadoEquipo" aria-label="Filtrar por estado del equipo" class="campo-mini">
         <option value="">Todos los estados</option>
       </select>
-      <input type="search" id="buscarEquipo" class="campo-mini" placeholder="Buscar por nombre, marca o dónde está">
+      <input type="search" id="buscarEquipo" aria-label="Buscar equipo" class="campo-mini" placeholder="Buscar por nombre, marca o dónde está">
     </div>
   </section>
 
@@ -259,12 +259,12 @@
     <table class="tabla" id="tablaEquipos">
       <thead>
         <tr>
-          <th class="col-marca"><input type="checkbox" id="marcarTodos" title="Seleccionar todo lo visible"></th>
-          <th>Equipo</th>
-          <th>Categoría</th>
-          <th>Dónde está</th>
-          <th>Estado</th>
-          <th></th>
+          <th scope="col" class="col-marca"><input type="checkbox" id="marcarTodos" aria-label="Seleccionar todo el equipo de la lista" title="Seleccionar todo lo visible"></th>
+          <th scope="col">Equipo</th>
+          <th scope="col">Categoría</th>
+          <th scope="col">Dónde está</th>
+          <th scope="col">Estado</th>
+          <th scope="col"></th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -281,12 +281,12 @@
       <table class="tabla" id="tablaVuelos">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Piloto</th>
-            <th>Ubicación</th>
-            <th>Propósito</th>
-            <th>Duración</th>
-            <th></th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Piloto</th>
+            <th scope="col">Ubicación</th>
+            <th scope="col">Propósito</th>
+            <th scope="col">Duración</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -339,8 +339,8 @@
   <section class="controles">
     <button class="btn-primario" id="nuevoExperto">+ Registrar experto</button>
     <div class="filtros">
-      <input type="search" id="buscarExperto" class="campo-mini" placeholder="Buscar por tema, nombre o departamento">
-      <select id="filtroDisponibilidad" class="campo-mini">
+      <input type="search" id="buscarExperto" aria-label="Buscar experto" class="campo-mini" placeholder="Buscar por tema, nombre o departamento">
+      <select id="filtroDisponibilidad" aria-label="Filtrar por disponibilidad" class="campo-mini">
         <option value="">Toda disponibilidad</option>
         <option value="alta">Responde rápido</option>
         <option value="media">Con agenda</option>
@@ -363,7 +363,7 @@
       <h2>Diagnóstico del sistema</h2>
       <p class="tenue">Revisa la parrilla y el inventario contra las reglas del plan maestro y te dice qué corregir. Se recalcula solo con cada cambio.</p>
       <div class="controles" style="margin:14px 0 0">
-        <select id="periodoAuditoria" class="campo-mini">
+        <select id="periodoAuditoria" aria-label="Periodo que revisa la auditoría" class="campo-mini">
           <option value="mes">Este mes</option>
           <option value="proximo">Próximo mes</option>
           <option value="trimestre">Próximos 3 meses</option>
@@ -422,7 +422,9 @@
   </div>
 </div>
 
-<div class="aviso" id="aviso" hidden></div>
+<!-- role=status lo anuncia sin interrumpir lo que se esté leyendo.
+     Es el único canal de retroalimentación que tiene la aplicación. -->
+<div class="aviso" id="aviso" role="status" aria-live="polite" hidden></div>
 
 <script src="config.js?v=DEV"></script>
 <script src="datos.js?v=DEV"></script>
