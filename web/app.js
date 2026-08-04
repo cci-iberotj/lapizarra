@@ -2166,6 +2166,25 @@ function abrirPieza(idPieza, prellenado) {
         <button type="button" class="btn-plano" id="btnCambiarImagen">${p.imagen ? 'Cambiar' : 'Subir imagen'}</button>
         ${p.imagen ? '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>' : ''}
       </div>
+      <span class="ayuda">
+        Lo que se ve en el calendario es una miniatura de 480&nbsp;px. El
+        archivo original se guarda aparte y se baja completo desde aquí abajo.
+      </span>
+    </div>
+
+    <div class="grupo-campo">
+      <label>Archivo final</label>
+      ${p.archivo ? `
+        <div class="ficha-plana">
+          <b>⬇ ${esc(p.archivo.split('/').pop())}</b>
+          <button type="button" class="btn-plano" id="btnBajarArchivo">Descargar original</button>
+          <button type="button" class="btn-mini" id="btnQuitarArchivo">Quitar</button>
+        </div>`
+      : '<span class="ayuda">Todavía no hay archivo final. Sube el arte terminado para que el equipo lo pueda bajar en su calidad completa.</span>'}
+      <input type="file" id="f_archivo" hidden>
+      <div class="imagen-acciones">
+        <button type="button" class="btn-plano" id="btnSubirArchivo">${p.archivo ? 'Reemplazar archivo' : 'Subir archivo final'}</button>
+      </div>
     </div>
 
     <div class="grupo-campo">
@@ -2232,6 +2251,45 @@ function abrirPieza(idPieza, prellenado) {
   });
   $('#f_imagen').addEventListener('change', e => subirImagen(e.target.files[0]));
 
+  /* El archivo final. Sube el original tal cual -- sin reducir --
+     porque el punto de este bloque es justo lo que la miniatura no
+     puede dar. */
+  $('#f_archivo').addEventListener('change', async ev => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    if (f.size > 25 * 1024 * 1024) { avisar('El archivo pasa de 25 MB.'); return; }
+    if (modalCtx.esNuevo) {
+      avisar('Guarda la pieza primero: el archivo se cuelga de ella.');
+      return;
+    }
+    const b = $('#btnSubirArchivo');
+    b.disabled = true; b.textContent = 'Subiendo…';
+    try {
+      modalCtx.datos.archivo = await subirArchivo(modalCtx.datos.id, f);
+      avisar(`Archivo subido (${pesoLegible(f.size)}). Se guarda al guardar la pieza.`);
+      b.textContent = 'Reemplazar archivo';
+    } catch (e) {
+      avisar(e.message);
+      b.textContent = 'Subir archivo final';
+    } finally { b.disabled = false; }
+  });
+  $('#btnSubirArchivo').addEventListener('click', () => $('#f_archivo').click());
+
+  if ($('#btnBajarArchivo')) {
+    $('#btnBajarArchivo').addEventListener('click', async () => {
+      avisar('Bajando…');
+      try { await bajarArchivo(modalCtx.datos.archivo); }
+      catch (e) { avisar(e.message); }
+    });
+  }
+  if ($('#btnQuitarArchivo')) {
+    $('#btnQuitarArchivo').addEventListener('click', () => {
+      modalCtx.datos.archivo = '';
+      avisar('Archivo desligado de la pieza. Se guarda al guardar.');
+      $('#btnQuitarArchivo').closest('.ficha-plana').remove();
+    });
+  }
+
   $('#btnGuia').addEventListener('click', () => {
     const pasos = guiaDeProduccion($('#f_formato').value, $('#f_pilar').value);
     if (!pasos.length) { avisar('No tengo guía para ese formato.'); return; }
@@ -2243,6 +2301,85 @@ function abrirPieza(idPieza, prellenado) {
 
   mostrarModal();
 }
+
+/* ══════════════════════════════════════════════════════════
+   EL ARCHIVO DE VERDAD
+
+   La miniatura que se ve en el calendario mide 480px: sirve para
+   reconocer la pieza de un vistazo y para nada más. Quien la
+   descargara recibiría una vista previa, no el entregable.
+
+   El original vive en una cubeta aparte y se baja con la sesión de
+   quien entra. La cubeta NO es pública: sin sesión no se abre, ni
+   aunque alguien adivine la dirección.
+   ══════════════════════════════════════════════════════════ */
+
+const CUBETA = 'piezas';
+
+function nombreLimpio(nombre) {
+  // Sin acentos ni espacios: un nombre así rompe la petición hoy y
+  // rompe a alguien más dentro de seis meses.
+  const punto = nombre.lastIndexOf('.');
+  const ext = punto > 0 ? nombre.slice(punto).toLowerCase() : '';
+  const base = (punto > 0 ? nombre.slice(0, punto) : nombre)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+  return (base || 'archivo') + ext;
+}
+
+async function subirArchivo(idPieza, archivo) {
+  const token = await Almacen.motor._token();
+  const ruta = `${idPieza}/${nombreLimpio(archivo.name)}`;
+
+  const r = await fetch(
+    `${CONFIG.supabase.url}/storage/v1/object/${CUBETA}/${encodeURI(ruta)}`, {
+      method: 'POST',
+      headers: {
+        apikey: CONFIG.supabase.llave,
+        Authorization: 'Bearer ' + token,
+        'Content-Type': archivo.type || 'application/octet-stream',
+        'x-upsert': 'true',
+      },
+      body: archivo,
+    });
+
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    throw new Error(d.message || d.error || 'No se pudo subir el archivo.');
+  }
+  return ruta;
+}
+
+/* Se baja como blob y no como enlace directo: la cubeta es privada,
+   así que la petición tiene que llevar la sesión. Un <a href> no la
+   lleva. */
+async function bajarArchivo(ruta) {
+  const token = await Almacen.motor._token();
+  const r = await fetch(
+    `${CONFIG.supabase.url}/storage/v1/object/${CUBETA}/${encodeURI(ruta)}`, {
+      headers: { apikey: CONFIG.supabase.llave, Authorization: 'Bearer ' + token },
+    });
+  if (!r.ok) throw new Error('No se pudo bajar el archivo.');
+
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = ruta.split('/').pop();
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Se suelta después: revocarla en el mismo instante cancela la
+  // descarga en algunos navegadores.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function pesoLegible(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+}
+
 
 /* ── Imagen de referencia ──────────────────────────────────
    Antes se mandaba a /api/miniatura, un endpoint del servidor de
