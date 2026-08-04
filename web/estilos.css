@@ -1585,15 +1585,18 @@ body {
   font-size: var(--t-marcador);
   font-weight: var(--peso-fuerte);
   letter-spacing: -.022em;
-  color: var(--tinta) !important;
+  color: var(--tinta);
   font-variant-numeric: tabular-nums;
 }
+/* Sin !important: el JS manda el color del veredicto en linea
+   (verde / ocre / rojo) y el !important lo anulaba siempre, asi que
+   las tres etiquetas salian en gris. Esta regla ya gana por orden. */
 .marcador-etiqueta {
   font-size: var(--t-sello);
   letter-spacing: .1em;
   text-transform: uppercase;
   font-weight: var(--peso-fuerte);
-  color: var(--tinta-media) !important;
+  color: var(--tinta-media);
 }
 
 /* ══ MODAL ══ */

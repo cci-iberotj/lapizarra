@@ -449,9 +449,22 @@ const Almacen = {
     return destino;
   },
 
-  _tomarCopia(estado) {
-    this._copia = {};
+  /* OJO con el segundo parametro. Sin el, esta funcion rehacia la
+     copia de TODAS las colecciones despues de guardar UNA sola. Y
+     como Ctrl+Z dispara cuatro guardados a la vez, el primero que
+     terminaba borraba el diff pendiente de los otros tres.
+
+     El sintoma era distinto segun la latencia: con red instantanea
+     los cambios se perdian en silencio; con red normal viajaban
+     borrados que no debian. Que un cambio persistiera dependia del
+     tiempo de red, que es lo peor que puede pasarle a un guardado.
+
+     Sin argumento se rehace todo, que es lo correcto al cargar. */
+  _tomarCopia(estado, soloEsta) {
+    if (!soloEsta) this._copia = {};
+
     for (const [coleccion, listas] of Object.entries(MAPA_COLECCIONES)) {
+      if (soloEsta && coleccion !== soloEsta) continue;
       for (const [clave, nombreReal] of Object.entries(listas)) {
         const lista = (estado[coleccion] || {})[clave] || [];
         this._copia[nombreReal] = new Map(
@@ -459,6 +472,7 @@ const Almacen = {
       }
     }
     for (const [coleccion, ajustes] of Object.entries(AJUSTES)) {
+      if (soloEsta && coleccion !== soloEsta) continue;
       for (const [clave, nombreReal] of Object.entries(ajustes)) {
         const v = (estado[coleccion] || {})[clave];
         this._copia[nombreReal] = new Map(v ? [[nombreReal, JSON.stringify(v)]] : []);
@@ -510,7 +524,7 @@ const Almacen = {
     if (!tareas.length) return { tocados: 0 };
 
     await Promise.all(tareas);
-    this._tomarCopia(estado);
+    this._tomarCopia(estado, coleccion);   // SOLO esta, ver arriba
     return { tocados };
   },
 

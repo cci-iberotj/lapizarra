@@ -340,7 +340,12 @@ function programarReintento() {
 /* Última red antes de perder el trabajo. El navegador sólo permite
    un aviso genérico; el texto exacto lo decide él. */
 window.addEventListener('beforeunload', ev => {
-  if (!sinGuardar.size) return;
+  // Antes solo miraba los guardados que YA fallaron. El caso
+  // frecuente -- copy escrito a mano, sin pulsar Guardar -- no
+  // estaba cubierto, y la funcion que lo detecta ya existia.
+  const fichaLlena = typeof hayCambiosSinGuardar === 'function'
+    && !$('#modalFondo').hidden && hayCambiosSinGuardar();
+  if (!sinGuardar.size && !fichaLlena && !hayGuardadoEnVuelo()) return;
   ev.preventDefault();
   ev.returnValue = '';
 });
@@ -696,6 +701,9 @@ function pintarIdeas() {
   $$('#resumenIdeas .ficha-pilar').forEach(b => b.addEventListener('click', () => {
     filtroIdeas = (filtroIdeas === b.dataset.pilar) ? '' : b.dataset.pilar;
     pintarIdeas();
+    // Al reescribir el HTML se pierden los oyentes de arrastre, y
+    // filtrar es justo lo que se hace ANTES de arrastrar.
+    conectarArrastreDeIdeas();
   }));
 
   const visibles = filtroIdeas ? clasificadas.filter(c => c.s.pilar === filtroIdeas) : clasificadas;
@@ -751,6 +759,10 @@ function pintarIdeas() {
       guardar('parrilla');
       registrar(`Borró la idea «${corto}»`);
       pintarIdeas();
+      conectarArrastreDeIdeas();
+      // Era el unico borrado del producto que no decia nada, y esta
+      // a 30px del boton de programar.
+      avisar('Idea borrada. Ctrl+Z la devuelve.');
     } else {
       // La idea NO se retira aquí. Antes se borraba al abrir el modal y el
       // comentario prometía un paso de historial que nunca se creaba: si
@@ -761,6 +773,10 @@ function pintarIdeas() {
       const s = clasificarTexto(idea.texto);
       abrirPieza(null, {
         vieneDeIdea: idea.id,
+        // 'brief' y no 'idea': Mi escritorio excluye las que siguen
+        // siendo idea, asi que programarlas y no verlas ahi era
+        // exactamente lo contrario de lo que se espera.
+        estado: 'brief',
         titulo: s.titulo, pilar: s.pilar, formato: s.formato, canales: s.canales,
         notas: idea.texto, no_antes: s.no_antes, no_despues: s.no_despues,
         produccion: (idea.produccion && idea.produccion.length ? idea.produccion : s.produccion)
@@ -1668,6 +1684,7 @@ function conectarArrastreDeIdeas() {
 
       abrirPieza(null, {
         vieneDeIdea: idea.id,
+        estado: 'brief',
         titulo: c.titulo, pilar: c.pilar, formato: c.formato, canales: c.canales,
         fecha, notas: idea.texto, no_antes: c.no_antes, no_despues: c.no_despues,
         produccion: (idea.produccion && idea.produccion.length ? idea.produccion : c.produccion)
@@ -3636,6 +3653,14 @@ function prestarSeleccion() {
   const quien = prompt(`Vas a marcar ${sel.length} equipo(s) como prestados.\n\n¿A nombre de quién?`);
   if (!quien || !quien.trim()) return;
   const regreso = prompt('¿Qué día regresan? (AAAA-MM-DD, o déjalo vacío)', aTexto(sumarDias(new Date(), 2)));
+  // Cancelar aqui SI cancela. Antes 'regreso || ''' convertia el
+  // null de Cancelar en cadena vacia y el prestamo se ejecutaba
+  // igual sobre toda la seleccion.
+  if (regreso === null) return;
+  if (regreso && !/^\d{4}-\d{2}-\d{2}$/.test(regreso.trim())) {
+    avisar('Esa fecha no sirve. Va como 2026-08-20, o dejala vacia.');
+    return;
+  }
 
   sel.forEach(e => {
     e.estado = 'prestado';
@@ -4439,6 +4464,21 @@ function arrancarSincronizacion() {
       const { entraron } = await Almacen.sincronizar(datos);
       if (entraron) {
         refrescarTodo();
+
+        /* El historial guarda fotos COMPLETAS del estado. Las fotos
+           anteriores a esta sincronizacion no contienen el trabajo
+           que acaba de llegar, asi que restaurar una de ellas haria
+           que el guardado lo interpretara como borrado y lo
+           eliminara de la base PARA LOS TRES.
+
+           Por eso al traer trabajo ajeno el historial se cierra y
+           vuelve a arrancar aqui: se puede deshacer lo que hagas de
+           ahora en adelante, pero no se puede retroceder a un punto
+           donde el trabajo de tu companera todavia no existia. */
+        historial.pila = [];
+        historial.indice = -1;
+        registrar('Llegó trabajo del equipo');
+
         avisar(`Entraron ${entraron} cambio${entraron === 1 ? '' : 's'} de tu equipo.`);
       }
     } catch (e) {
