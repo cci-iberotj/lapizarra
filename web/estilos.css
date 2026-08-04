@@ -1088,3 +1088,103 @@ textarea.campo.alto { min-height: 132px; }
 .btn-primario:disabled, .btn-plano:disabled, .btn-auto:disabled {
   opacity: .45; cursor: not-allowed; filter: none; transform: none;
 }
+
+/* ══════════════════════════════════════════════════════════
+   PANTALLAS ANGOSTAS
+
+   La barra de arriba necesita 960px para caber en una linea:
+   marca 85 + pestañas 409 + controles 427, medido. Debajo de eso
+   era una fila rigida que no se doblaba, y la pagina entera se
+   desplazaba de lado -- 898px de ancho en un telefono de 390.
+
+   Se separa en dos cortes a proposito. El de 980 es geometria de
+   la barra; el de 700 es que hay un dedo y no un raton. Mezclarlos
+   apretaba las celdas del calendario en una laptop chica sin
+   ninguna razon.
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 980px) {
+  .barra {
+    height: auto; min-height: 56px;
+    flex-wrap: wrap;
+    padding: 9px 16px;
+    gap: 9px 14px;
+  }
+
+  /* Las pestañas al final, en su propio renglon completo. Se
+     deslizan de lado en vez de encimarse o cortarse. */
+  .tabs {
+    order: 5; flex: 1 0 100%;
+    overflow-x: auto; scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; }
+
+  .barra-derecha { margin-left: auto; gap: 12px; }
+  .estado-guardado { min-width: 0; }
+
+  /* Con la barra ya sin altura fija, el panel no puede colgar de
+     una medida inventada ni pasarse del ancho de la pantalla. */
+  .panel-historial {
+    position: fixed; top: auto; left: 10px; right: 10px;
+    width: auto; max-height: 70vh;
+  }
+
+  .calendario-barra { flex-wrap: wrap; gap: 9px; }
+  .calendario-barra h2 { min-width: 0; flex: 1 1 auto; }
+  .calendario-barra .espaciador { display: none; }
+}
+
+/* ── Ya no hay raton, hay un dedo ───────────────────────── */
+
+/* El ancho NO dice si hay un dedo: una tablet tactil mide 1024px
+   y un navegador angosto en escritorio mide 500. pointer: coarse
+   pregunta lo que de verdad importa. */
+@media (pointer: coarse) {
+  .btn-barra { width: 38px; height: 38px; }
+  .btn-barra.ancho { height: 38px; }
+
+  /* Las casillas del navegador miden 17px: debajo del piso de
+     24x24 que pide WCAG para objetivos tactiles. Con el dedo se
+     falla, y en el inventario fallar significa llevarse el equipo
+     equivocado a una salida. */
+  input[type="checkbox"] { width: 24px; height: 24px; }
+  .check-inline { padding: 5px 0; gap: 9px; }
+
+  .btn-icono, .conmutador-op { min-height: 38px; }
+}
+
+@media (max-width: 700px) {
+  #acomodarPendientes { flex: 1 0 100%; }
+  .modal { max-height: 92vh; }
+
+  /* El calendario del mes son siete columnas fijas. En 390px cada
+     dia quedaria en 50px: no se lee, se adivina. En vez de
+     apretarlo hasta que deje de servir, se le da un ancho minimo
+     comodo y se desliza de lado -- que es como se navega un mes
+     en un telefono. */
+  .calendario-carril {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+  }
+  .calendario-carril > .calendario,
+  .calendario-carril > .calendario-dias { min-width: 620px; }
+  .celda { min-height: 104px; }
+}
+
+/* ── Muy angosto ────────────────────────────────────────── */
+/* Un tablero de seis carriles en 360px no se lee, se adivina. */
+
+@media (max-width: 430px) {
+  .vista { padding: 16px 12px 70px; }
+  .tablero-notas { grid-template-columns: repeat(6, 78vw); }
+  .ideas { grid-template-columns: 1fr; }
+  .resumen { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
+  .fila-meta { grid-template-columns: 1fr; gap: 8px; }
+  .controles { gap: 10px; }
+  .btn-primario { width: 100%; }
+  .conmutador { width: 100%; }
+  .conmutador-op { flex: 1; }
+}

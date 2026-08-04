@@ -151,8 +151,12 @@
       <div class="espaciador"></div>
       <button class="btn-plano btn-auto" id="acomodarPendientes">◈ Acomodar pendientes</button>
     </div>
-    <div class="calendario-dias" id="calendarioEncabezado"></div>
-    <div class="calendario" id="calendarioMes"></div>
+    <!-- El carril sólo hace algo en pantallas chicas: ahí el mes
+         se desliza de lado en vez de apretarse hasta no leerse. -->
+    <div class="calendario-carril">
+      <div class="calendario-dias" id="calendarioEncabezado"></div>
+      <div class="calendario" id="calendarioMes"></div>
+    </div>
   </section>
 
   <section class="bloque-ideas">
