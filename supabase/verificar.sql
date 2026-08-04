@@ -35,8 +35,8 @@ begin
                        json_build_object('sub', u.id)::text, true);
 
     foreach c in array array['parrilla_piezas', 'parrilla_ideas',
-                             'inventario_equipos', 'redaccion_temas',
-                             'expertos_personas'] loop
+                             'parrilla_eventos', 'inventario_equipos',
+                             'redaccion_temas', 'expertos_personas'] loop
       persona   := u.nombre;
       rol       := u.rol;
       coleccion := c;

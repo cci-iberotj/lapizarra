@@ -2031,3 +2031,255 @@ h3 {
   .racha-cifra { font-size: 28px; }
   .bloque-encabezado h3, .bloque-auditoria > h3 { font-size: var(--t-guia); }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FORMULARIOS · descuadre corregido
+
+   .fila-campos es una rejilla de dos columnas, y cada .grupo-campo
+   es a su vez otra rejilla. Al igualarse la altura de la fila, el
+   grupo que NO lleva texto de ayuda abajo repartía el sobrante en
+   sus filas — y el sobrante se lo comía el campo, que crecía de 38
+   a 59px y quedaba 22px más abajo que el de al lado.
+
+   align-content: start deja que cada fila mida lo suyo y el
+   sobrante quede al final, donde no se ve.
+   ═══════════════════════════════════════════════════════════ */
+
+.fila-campos { align-items: start; gap: var(--e-5); }
+.grupo-campo { align-content: start; gap: 6px; }
+
+/* Altura idéntica en todo lo que se captura, venga de donde venga:
+   input, select y textarea tienen cajas distintas por omisión y
+   sin fijarla nunca coinciden. */
+.campo, .campo-mini {
+  min-height: 38px;
+  padding: 8px 11px;
+  border-radius: var(--r-sm);
+  border-color: var(--linea-control);
+  background: var(--capa-2);
+  transition: border-color var(--dur-instantanea), box-shadow var(--dur-instantanea);
+}
+select.campo, select.campo-mini { padding-right: 30px; }
+textarea.campo { min-height: 76px; padding-top: 9px; }
+
+.campo:focus, .campo-mini:focus {
+  border-color: var(--marca-tinta);
+  box-shadow: 0 0 0 3px var(--marca-velo);
+  outline: none;
+}
+
+.grupo-campo > label {
+  font-size: var(--t-sello);
+  font-weight: var(--peso-alto);
+  color: var(--tinta-media);
+  letter-spacing: .07em;
+}
+.grupo-campo .ayuda { line-height: 1.45; }
+
+@media (max-width: 620px) {
+  .fila-campos { grid-template-columns: 1fr; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   FIN DE SEMANA
+   Sábado y domingo no son días laborables, pero sí se publica en
+   ellos. Se distinguen con una capa hundida — no se apagan: apagar
+   diría "aquí no va nada", y sí va.
+   ═══════════════════════════════════════════════════════════ */
+
+.celda.finde {
+  background: var(--capa-hundida);
+  border-color: color-mix(in oklab, var(--linea-control) 30%, transparent);
+}
+.celda.finde:hover { background: var(--capa-1); }
+.celda.finde .celda-numero { color: var(--tinta-tenue); }
+.dia-nombre.finde { color: var(--tinta-tenue); }
+
+/* Hoy gana sobre el fin de semana: si hoy es sábado, importa más
+   que sea hoy. */
+.celda.hoy.finde { background: var(--capa-1); }
+
+
+/* ═══════════════════════════════════════════════════════════
+   EVENTOS
+   Un evento no es una publicación: es algo que va a ocurrir en el
+   mundo y que hay que cubrir. Distinto objeto, distinta forma —
+   si se vieran igual, el calendario mentiría.
+   ═══════════════════════════════════════════════════════════ */
+
+.cal-evento {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px;
+  background: var(--capa-2);
+  border: 1px solid var(--evento-tono, var(--info));
+  border-left: 3px solid var(--evento-tono, var(--info));
+  border-radius: var(--r-xs);
+  padding: 5px 7px;
+  font-size: var(--t-sello);
+  line-height: 1.25;
+  cursor: pointer;
+  transition: transform var(--dur-instantanea), box-shadow var(--dur-instantanea);
+}
+.cal-evento:hover { transform: translateY(-1px); box-shadow: var(--elev-1); }
+.cal-evento .hora {
+  font-weight: var(--peso-alto);
+  color: var(--evento-tono, var(--info));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cal-evento .titulo {
+  color: var(--tinta);
+  font-weight: var(--peso-medio);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* La etiqueta que dice qué es cada bloque. Sin esto el calendario
+   mezcla dos cosas distintas sin avisar. */
+.sello-tipo {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 9.5px; font-weight: var(--peso-alto);
+  letter-spacing: .09em; text-transform: uppercase;
+  padding: 2px 6px; border-radius: var(--r-pastilla);
+  line-height: 1.4;
+}
+/* Con prefijo propio: ".evento" a secas ya es la tarjeta de evento,
+   y el sello heredaba de ella rejilla, borde izquierdo y cursor. */
+.sello-tipo.es-post   { background: var(--marca-velo); color: var(--marca-tinta); }
+.sello-tipo.es-evento { background: var(--info-velo);  color: var(--info); }
+
+/* En la lista, el evento se lee como tarjeta con su hora al frente */
+.evento {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--e-4);
+  padding: var(--e-4) var(--e-5);
+  background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  border-left: 4px solid var(--evento-tono, var(--info));
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: transform var(--dur-instantanea), box-shadow var(--dur-rapida);
+}
+.evento:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-2); }
+.evento-hora {
+  font-size: var(--t-guia); font-weight: var(--peso-maximo);
+  color: var(--evento-tono, var(--info));
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+}
+.evento-titulo { font-size: var(--t-guia); font-weight: var(--peso-medio); color: var(--tinta); }
+.evento-meta { font-size: var(--t-meta); color: var(--tinta-tenue); margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════════════════
+   MI ESCRITORIO
+   Lo único de la aplicación que es distinto para cada quien.
+   ═══════════════════════════════════════════════════════════ */
+
+.escritorio-cabecera {
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: var(--e-6);
+  padding: var(--e-6);
+  border-radius: var(--r-xl);
+  background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-1);
+  margin-bottom: var(--e-6);
+}
+.escritorio-saludo {
+  font-size: var(--t-meta); color: var(--tinta-tenue);
+  text-transform: uppercase; letter-spacing: .08em;
+  font-weight: var(--peso-alto); margin-bottom: 5px;
+}
+.escritorio-titular {
+  font-size: var(--t-vista); font-weight: var(--peso-medio);
+  letter-spacing: -.022em; color: var(--tinta); line-height: 1.15;
+}
+/* El color del titular es la única alarma de la pantalla. Si todo
+   fuera rojo, el rojo no querría decir nada. */
+.escritorio-cabecera.urgente { border-color: color-mix(in oklab, var(--peligro) 45%, var(--linea-sutil)); }
+.escritorio-cabecera.urgente .escritorio-titular { color: var(--peligro); }
+.escritorio-cabecera.hoy     { border-color: color-mix(in oklab, var(--marca-tinta) 40%, var(--linea-sutil)); }
+.escritorio-cabecera.hoy .escritorio-titular { color: var(--marca-tinta); }
+
+.escritorio-proximo {
+  display: grid; gap: 2px; text-align: right; cursor: pointer;
+  padding: var(--e-4) var(--e-5);
+  border-left: 1px solid var(--linea-sutil);
+}
+.escritorio-proximo .rotulo {
+  font-size: var(--t-sello); color: var(--tinta-tenue);
+  text-transform: uppercase; letter-spacing: .08em; font-weight: var(--peso-alto);
+}
+.escritorio-proximo b { font-size: var(--t-guia); color: var(--tinta); font-weight: var(--peso-medio); }
+.escritorio-proximo span:last-child { font-size: var(--t-meta); color: var(--tinta-media); }
+.escritorio-proximo:hover b { color: var(--info); }
+
+.escritorio-rejilla {
+  display: grid; gap: var(--e-5);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+.escritorio-bloque {
+  background: var(--capa-1); border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-lg); padding: var(--e-5);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-1);
+  display: grid; gap: var(--e-3); align-content: start;
+}
+.escritorio-bloque h4 {
+  font-size: var(--t-sello); text-transform: uppercase;
+  letter-spacing: .09em; color: var(--tinta-media);
+  font-weight: var(--peso-alto); margin: 0;
+  display: flex; align-items: center; gap: var(--e-3);
+}
+.escritorio-bloque .cuenta {
+  background: var(--capa-hundida); color: var(--tinta);
+  border-radius: var(--r-pastilla); padding: 1px 8px;
+  font-size: var(--t-sello); font-variant-numeric: tabular-nums;
+}
+.escritorio-bloque .nota { margin: 0; }
+
+.mia {
+  padding: var(--e-3) var(--e-4);
+  border-radius: var(--r-sm);
+  background: var(--capa-2);
+  border: 1px solid var(--linea-sutil);
+  border-left: 3px solid var(--pieza-tono, var(--linea-control));
+  cursor: pointer;
+  transition: transform var(--dur-instantanea), border-color var(--dur-instantanea);
+}
+.mia:hover { transform: translateX(2px); border-color: var(--linea-control); }
+.mia-titulo { font-size: var(--t-cuerpo); font-weight: var(--peso-medio); color: var(--tinta); line-height: 1.3; }
+.mia-meta { font-size: var(--t-meta); color: var(--tinta-tenue); margin-top: 3px; }
+
+/* Ficha plana: una línea con nombre y etiqueta, para listas de
+   personas donde no hace falta una tarjeta entera. */
+.ficha-plana {
+  display: flex; align-items: center; gap: var(--e-3); flex-wrap: wrap;
+  padding: var(--e-3) var(--e-4);
+  background: var(--capa-hundida);
+  border-radius: var(--r-sm);
+  font-size: var(--t-cuerpo);
+}
+.lista-personas { display: grid; gap: 6px; }
+.eventos { display: grid; gap: var(--e-3); }
+
+@media (max-width: 700px) {
+  .escritorio-cabecera { grid-template-columns: 1fr; gap: var(--e-4); }
+  .escritorio-proximo { text-align: left; border-left: 0; border-top: 1px solid var(--linea-sutil); padding: var(--e-4) 0 0; }
+}
+
+/* El "+" de cada día quedaba en 3.05:1. Antes casi no se veía
+   porque el calendario era la vista secundaria; ahora es la
+   principal y es el gesto de captura más frecuente. */
+.celda-agregar {
+  color: var(--tinta-tenue);
+  opacity: 1;
+  font-size: var(--t-guia);
+  line-height: 1;
+  border-radius: var(--r-xs);
+  transition: color var(--dur-instantanea), background var(--dur-instantanea);
+}
+.celda-agregar:hover { color: var(--marca-tinta); background: var(--marca-velo); }
+.celda.finde .celda-agregar { color: var(--tinta-media); }

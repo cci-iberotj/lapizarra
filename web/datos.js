@@ -22,7 +22,8 @@
    La izquierda es como lo ve la aplicación; la derecha, como se
    guarda. */
 const MAPA_COLECCIONES = {
-  parrilla:   { piezas: 'parrilla_piezas', ideas: 'parrilla_ideas' },
+  parrilla:   { piezas: 'parrilla_piezas', ideas: 'parrilla_ideas',
+                eventos: 'parrilla_eventos' },
   inventario: {
     equipos: 'inventario_equipos',
     vuelos: 'inventario_vuelos',
@@ -115,12 +116,12 @@ class SinPermiso extends Error { constructor() { super('Tu rol no puede modifica
    devuelve error — nunca un permiso de más. */
 const PERMISOS_UI = {
   admin:       ['*'],
-  direccion:   ['parrilla_piezas', 'parrilla_ideas', 'redaccion_temas',
-                'expertos_personas', 'ajustes_equipo'],
+  direccion:   ['parrilla_piezas', 'parrilla_ideas', 'parrilla_eventos',
+                'redaccion_temas', 'expertos_personas', 'ajustes_equipo'],
   redaccion:   ['redaccion_temas', 'parrilla_piezas', 'parrilla_ideas',
-                'expertos_personas'],
-  publicacion: ['parrilla_piezas'],
-  produccion:  ['parrilla_piezas', 'parrilla_ideas'],
+                'parrilla_eventos', 'expertos_personas'],
+  publicacion: ['parrilla_piezas', 'parrilla_eventos'],
+  produccion:  ['parrilla_piezas', 'parrilla_ideas', 'parrilla_eventos'],
 };
 
 const LLAVE_SESION = 'la-pizarra-sesion';

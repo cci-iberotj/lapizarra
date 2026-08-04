@@ -191,7 +191,7 @@ const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto'
 /* ── Estado ────────────────────────────────────────────── */
 
 let datos = {
-  parrilla: { piezas: [], ideas: [] },
+  parrilla: { piezas: [], ideas: [], eventos: [] },
   inventario: { equipos: [], vuelos: [] },
   expertos: { personas: [] },
   redaccion: { temas: [], equipo: {} },
@@ -199,7 +199,9 @@ let datos = {
 let anclaSemana = inicioSemana(new Date());
 let anclaMes = new Date();
 let vistaActual = 'parrilla';
-let modoParrilla = 'lista';   // 'lista' | 'calendario'
+// El calendario es la vista principal: dice de un vistazo como va
+// la semana. La lista sirve para trabajar una pieza, no para ver.
+let modoParrilla = 'calendario';   // 'calendario' | 'lista'
 let filtroIdeas = '';         // pilar por el que se filtra el banco de ideas
 let modalCtx = null;
 
@@ -289,7 +291,7 @@ async function cargar() {
     await Almacen.cargar(datos);
     // Cada colección necesita su forma completa aunque venga vacía:
     // el resto del código da por hecho que las listas existen.
-    datos.parrilla   = Object.assign({ piezas: [], ideas: [] }, datos.parrilla);
+    datos.parrilla   = Object.assign({ piezas: [], ideas: [], eventos: [] }, datos.parrilla);
     datos.inventario = Object.assign({ equipos: [], vuelos: [], prestamos_historial: [] }, datos.inventario);
     datos.expertos   = Object.assign({ personas: [] }, datos.expertos);
     datos.redaccion  = Object.assign({ temas: [], equipo: {} }, datos.redaccion);
@@ -402,6 +404,7 @@ function refrescarTodo() {
   refrescarInventario();
   refrescarExpertos();
   pintarRedaccion();
+  pintarEscritorio();
   aplicarPermisos();
 }
 
@@ -642,6 +645,7 @@ function pintarPiezas() {
             </div>
           </div>
           <div class="pieza-meta">
+            <span class="sello-tipo es-post">Post</span>
             ${canales}
             ${pil ? `<span class="chip chip-pilar" style="background:${pil.solido || pil.color}">${esc(pil.nombre)}</span>` : ''}
             ${est ? `<span class="chip chip-estado" style="color:${est.color}">${esc(est.nombre)}</span>` : ''}
@@ -878,6 +882,505 @@ function pintarProgreso() {
 }
 
 
+/* ══════════════════════════════════════════════════════════
+   QUIÉN ES QUIÉN
+
+   La lista de responsables no puede ser sólo la de usuarios: la
+   agencia produce contenido y no tiene cuenta, y el fotógrafo que
+   contraten mañana tampoco la tendrá el primer día. Así que la
+   lista suma tres fuentes y deja escribir libremente encima.
+   ══════════════════════════════════════════════════════════ */
+
+/* Personas con cuenta en el sistema. Se llenan al entrar y se
+   guardan en memoria: la lista de perfiles la puede leer cualquiera
+   que haya entrado, pero no vale la pena pedirla en cada ficha. */
+let personasDelSistema = [];
+
+async function cargarPersonas() {
+  if (!Almacen.enLaNube || !Almacen.motor._rest) return;
+  try {
+    const filas = await Almacen.motor._rest('/perfiles?select=nombre,rol&order=nombre');
+    personasDelSistema = (filas || []).filter(p => p.nombre);
+  } catch (e) {
+    // Sin lista no se rompe nada: el campo sigue siendo de texto.
+    personasDelSistema = [];
+  }
+}
+
+function equipoConocido() {
+  const nombres = new Set();
+
+  // 1. Quien tiene cuenta
+  personasDelSistema.forEach(p => nombres.add(p.nombre));
+
+  // 2. Quien aparece en el reparto de la mesa de redacción
+  Object.values((datos.redaccion && datos.redaccion.equipo) || {})
+    .forEach(n => { if (n) nombres.add(n); });
+
+  // 3. Quien ya se anotó antes en alguna pieza — así la agencia y
+  //    los externos se quedan en la lista sin que nadie los dé de alta
+  (datos.parrilla.piezas || []).forEach(p => { if (p.responsable) nombres.add(p.responsable); });
+
+  return [...nombres].sort((a, b) => a.localeCompare(b, 'es'));
+}
+
+/* ══════════════════════════════════════════════════════════
+   TU ESCRITORIO
+
+   Lo primero que se ve al entrar, y lo único de la aplicación que
+   es distinto para cada quien. El resto del producto muestra el
+   trabajo del equipo; esto muestra el tuyo.
+
+   Criterio para decidir qué entra: sólo lo que exige una decisión
+   o una acción TUYA hoy. Un número que no cambia nada de lo que
+   vas a hacer no es información, es ruido — y el ruido en la
+   primera pantalla es lo que hace que la gente deje de abrirla.
+   ══════════════════════════════════════════════════════════ */
+
+function mias(lista) {
+  const yo = (Almacen.usuario && Almacen.usuario.nombre || '').toLowerCase();
+  if (!yo) return [];
+  return lista.filter(x => (x.responsable || '').toLowerCase() === yo);
+}
+
+/* Lo que está en tus manos AHORA. Una pieza publicada ya no es tuya
+   y una que todavía es idea tampoco: en medio está tu trabajo. */
+function loMio() {
+  const hoy = aTexto(new Date());
+  const piezas = datos.parrilla.piezas || [];
+
+  const enMisManos = mias(piezas).filter(p =>
+    p.estado !== 'publicado' && p.estado !== 'idea');
+
+  return {
+    vencidas: enMisManos.filter(p => p.fecha && p.fecha < hoy),
+    hoy:      enMisManos.filter(p => p.fecha === hoy),
+    semana:   enMisManos.filter(p => p.fecha > hoy && p.fecha <= aTexto(sumarDias(new Date(), 7))),
+    todas:    enMisManos,
+  };
+}
+
+/* Lo que le toca al equipo y nadie ha tomado. Esto es lo que
+   convierte el escritorio en algo útil para la jefa: no le dice
+   cuánto trabajó ella, le dice qué está sin dueño. */
+function sinDueno() {
+  const hoy = aTexto(new Date());
+  return (datos.parrilla.piezas || []).filter(p =>
+    !p.responsable && p.estado !== 'publicado' && p.fecha >= hoy);
+}
+
+function pintarEscritorio() {
+  const cont = $('#escritorio');
+  if (!cont || !Almacen.usuario) return;
+
+  const yo = Almacen.usuario;
+  const m = loMio();
+  const huerfanas = sinDueno();
+  const eventos = (datos.parrilla.eventos || [])
+    .filter(e => e.fecha >= aTexto(new Date()) && e.estado !== 'cancelado')
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const proximo = eventos[0];
+
+  const hora = new Date().getHours();
+  const saludo = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+
+  // El titular dice lo ÚNICO que importa saber al abrir.
+  let titular, tono;
+  if (m.vencidas.length) {
+    titular = `${m.vencidas.length} ${m.vencidas.length === 1 ? 'pieza tuya pasó' : 'piezas tuyas pasaron'} de fecha`;
+    tono = 'urgente';
+  } else if (m.hoy.length) {
+    titular = `${m.hoy.length} ${m.hoy.length === 1 ? 'pieza tuya sale' : 'piezas tuyas salen'} hoy`;
+    tono = 'hoy';
+  } else if (m.todas.length) {
+    titular = `${m.todas.length} ${m.todas.length === 1 ? 'pieza tuya' : 'piezas tuyas'} en camino`;
+    tono = 'calma';
+  } else {
+    titular = 'Nada pendiente de tu lado';
+    tono = 'calma';
+  }
+
+  const tarjeta = (p) => {
+    const est = ESTADOS.find(e => e.id === p.estado);
+    const pil = PILARES.find(x => x.id === p.pilar);
+    return `
+      <div class="mia" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
+        <div class="mia-titulo">${esc(p.titulo || 'Sin título')}</div>
+        <div class="mia-meta">
+          ${esc(fechaLegible(p.fecha))}${p.formato ? ' · ' + esc(p.formato) : ''}
+          ${est ? ` · <span style="color:${est.color}">${esc(est.nombre)}</span>` : ''}
+        </div>
+      </div>`;
+  };
+
+  const bloque = (titulo, lista, vacio) => `
+    <div class="escritorio-bloque">
+      <h4>${titulo}${lista.length ? ` <span class="cuenta">${lista.length}</span>` : ''}</h4>
+      ${lista.length ? lista.map(tarjeta).join('') : `<p class="tenue nota">${vacio}</p>`}
+    </div>`;
+
+  cont.innerHTML = `
+    <div class="escritorio-cabecera ${tono}">
+      <div>
+        <div class="escritorio-saludo">${saludo}, ${esc(yo.nombre)}</div>
+        <div class="escritorio-titular">${esc(titular)}</div>
+      </div>
+      ${proximo ? `
+      <div class="escritorio-proximo" data-evento="${esc(proximo.id)}">
+        <span class="rotulo">Lo próximo por cubrir</span>
+        <b>${esc(proximo.titulo)}</b>
+        <span>${esc(fechaLegible(proximo.fecha))}${proximo.hora ? ' · ' + esc(horaLegible(proximo.hora)) : ''}</span>
+      </div>` : ''}
+    </div>
+
+    <div class="escritorio-rejilla">
+      ${bloque('Pasadas de fecha', m.vencidas, 'Nada atrasado.')}
+      ${bloque('Hoy', m.hoy, 'Hoy no te toca nada.')}
+      ${bloque('Esta semana', m.semana, 'La semana viene despejada.')}
+      ${bloque('Sin responsable', huerfanas.slice(0, 6),
+               'Todo lo programado tiene quién lo haga.')}
+    </div>`;
+
+  $$('.mia', cont).forEach(el =>
+    el.addEventListener('click', () => abrirPieza(el.dataset.id)));
+  const px = $('.escritorio-proximo', cont);
+  if (px) px.addEventListener('click', () => abrirEvento(px.dataset.evento));
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   AJUSTES
+   Sólo lo que de verdad hay que poder cambiar sin tocar código.
+   ══════════════════════════════════════════════════════════ */
+
+function abrirAjustes() {
+  const yo = Almacen.usuario || {};
+  const esAdmin = yo.rol === 'admin';
+
+  modalCtx = { tipo: 'ajustes', datos: {}, esNuevo: false };
+  $('#modalTitulo').textContent = 'Ajustes';
+  $('#modalEliminar').hidden = true;
+  $('#modalGuardar').hidden = true;
+  $('#modalCancelar').textContent = 'Cerrar';
+
+  const eq = (datos.redaccion && datos.redaccion.equipo) || {};
+
+  $('#modalCuerpo').innerHTML = `
+    <div class="grupo-campo">
+      <label>Tu cuenta</label>
+      <div class="ficha-plana">
+        <b>${esc(yo.nombre || '—')}</b>
+        <span class="tenue">${esc(yo.correo || '')}</span>
+        <span class="sello-tipo es-post">${esc(yo.rol || '')}</span>
+      </div>
+    </div>
+
+    <div class="grupo-campo">
+      <label>Quién hace qué en la mesa de redacción</label>
+      <div class="fila-campos">
+        <div class="grupo-campo">
+          <label for="a_redaccion">Escribe las notas</label>
+          <input class="campo" id="a_redaccion" value="${esc(eq.redaccion || '')}" list="lista_responsables">
+        </div>
+        <div class="grupo-campo">
+          <label for="a_publicacion">Publica en el sitio</label>
+          <input class="campo" id="a_publicacion" value="${esc(eq.publicacion || '')}" list="lista_responsables">
+        </div>
+      </div>
+      <div class="grupo-campo">
+        <label for="a_difusion">Arma el post y el reel</label>
+        <input class="campo" id="a_difusion" value="${esc(eq.difusion || '')}" list="lista_responsables">
+      </div>
+      <datalist id="lista_responsables">
+        ${equipoConocido().map(n => `<option value="${esc(n)}"></option>`).join('')}
+      </datalist>
+      <span class="ayuda">Estos nombres salen en el encargo que le mandas a quien redacta. Si están vacíos, el encargo dice «quien escribe» y queda mal.</span>
+      <button type="button" class="btn-plano" id="a_guardarEquipo">Guardar nombres</button>
+    </div>
+
+    <div class="grupo-campo">
+      <label>Personas con cuenta</label>
+      <div class="lista-personas" id="a_personas">
+        ${personasDelSistema.length
+          ? personasDelSistema.map(p => `
+            <div class="ficha-plana">
+              <b>${esc(p.nombre)}</b>
+              <span class="sello-tipo es-post">${esc(p.rol)}</span>
+            </div>`).join('')
+          : '<p class="tenue nota">No se pudo leer la lista.</p>'}
+      </div>
+      ${esAdmin ? `
+      <span class="ayuda">
+        Las cuentas se crean en Supabase — <b>Authentication → Users → Add user</b>,
+        con «Auto Confirm» marcado. Al entrar por primera vez, la aplicación obliga
+        a cambiar la contraseña, así que la provisional que pongas deja de servir.
+        Para asignarle rol, corre <b>supabase/cuentas.sql</b>.
+      </span>` : '<span class="ayuda">Sólo quien administra puede dar de alta cuentas.</span>'}
+    </div>
+
+    <div class="grupo-campo">
+      <label>Aspecto</label>
+      <button type="button" class="btn-plano" id="a_tema">Cambiar entre claro y oscuro</button>
+    </div>
+  `;
+
+  $('#a_guardarEquipo').addEventListener('click', () => {
+    datos.redaccion = datos.redaccion || {};
+    datos.redaccion.equipo = {
+      redaccion:   $('#a_redaccion').value.trim(),
+      publicacion: $('#a_publicacion').value.trim(),
+      difusion:    $('#a_difusion').value.trim(),
+    };
+    guardar('redaccion');
+    registrar('Cambió quién hace qué en la mesa de redacción');
+    pintarRedaccion();
+    avisar('Nombres guardados.');
+  });
+
+  $('#a_tema').addEventListener('click', () => $('#btnTema').click());
+
+  mostrarModal();
+}
+
+/* ══════════════════════════════════════════════════════════
+   EVENTOS
+
+   Un evento NO es una publicación. Es algo que va a ocurrir en el
+   mundo y que hay que cubrir: una ceremonia, una conferencia, una
+   feria. De un evento pueden salir tres piezas o ninguna.
+
+   Se guardan aparte de las piezas a propósito. Comparten el
+   calendario y nada más: un evento tiene hora y lugar y no tiene
+   pilar ni canales; una pieza tiene canales y no tiene lugar.
+   Meterlos en la misma lista obligaría a que la mitad de los
+   campos estuvieran siempre vacíos.
+
+   Cualquiera puede anotar un evento — incluidos Marysol y Sergio.
+   La idea es que cuando exista la plataforma de solicitudes, las
+   áreas avisen por ahí y el evento caiga aquí solo.
+   ══════════════════════════════════════════════════════════ */
+
+const QUE_SE_NECESITA = [
+  { id: 'foto',       nombre: 'Fotografía' },
+  { id: 'video',      nombre: 'Video' },
+  { id: 'ambos',      nombre: 'Foto y video' },
+  { id: 'transmision',nombre: 'Transmisión en vivo' },
+  { id: 'nota',       nombre: 'Nota escrita' },
+  { id: 'sin_definir',nombre: 'Todavía no se sabe' },
+];
+
+const ESTADOS_EVENTO = [
+  { id: 'avisado',   nombre: 'Avisado',     color: 'var(--estado-idea)',       nota: 'Alguien lo reportó; falta confirmar' },
+  { id: 'confirmado',nombre: 'Confirmado',  color: 'var(--info)',              nota: 'Va, y sabemos qué se necesita' },
+  { id: 'cubierto',  nombre: 'Cubierto',    color: 'var(--estado-publicado)',  nota: 'Ya se grabó o fotografió' },
+  { id: 'cancelado', nombre: 'Cancelado',   color: 'var(--tinta-tenue)',       nota: 'No ocurrió' },
+];
+
+function eventosDe(fecha) {
+  return (datos.parrilla.eventos || [])
+    .filter(e => e.fecha === fecha && e.estado !== 'cancelado')
+    .sort((a, b) => (a.hora || '99:99').localeCompare(b.hora || '99:99'));
+}
+
+function colorEvento(e) {
+  const x = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
+  return x ? x.color : 'var(--info)';
+}
+
+/* La hora en formato de doce horas, que es como la dice la gente
+   aquí. 09:00 se lee "9:00 am", no "las nueve cero cero". */
+function horaLegible(h) {
+  if (!h) return '';
+  const [hh, mm] = h.split(':').map(Number);
+  const ampm = hh >= 12 ? 'pm' : 'am';
+  const doce = hh % 12 === 0 ? 12 : hh % 12;
+  return doce + (mm ? ':' + String(mm).padStart(2, '0') : '') + ' ' + ampm;
+}
+
+
+/* ── Ficha ─────────────────────────────────────────────── */
+
+function abrirEvento(idEvento, prellenado) {
+  datos.parrilla.eventos = datos.parrilla.eventos || [];
+  const existente = idEvento ? datos.parrilla.eventos.find(e => e.id === idEvento) : null;
+  const e = existente || Object.assign({
+    id: id(), titulo: '', fecha: '', hora: '', lugar: '',
+    solicita: '', necesita: 'sin_definir', estado: 'avisado', notas: '',
+  }, prellenado || {});
+
+  modalCtx = { tipo: 'evento', datos: e, esNuevo: !existente };
+  $('#modalTitulo').textContent = existente ? 'Editar evento' : 'Anotar evento por cubrir';
+  $('#modalEliminar').hidden = !existente;
+
+  $('#modalCuerpo').innerHTML = `
+    <div class="grupo-campo">
+      <label for="e_titulo">Qué es</label>
+      <input class="campo" id="e_titulo" value="${esc(e.titulo)}"
+             placeholder="IGNITE, Ceremonia de graduación, Feria de posgrados…">
+    </div>
+
+    <div class="fila-campos">
+      <div class="grupo-campo">
+        <label for="e_fecha">Cuándo</label>
+        <input type="date" class="campo" id="e_fecha" value="${esc(e.fecha)}">
+      </div>
+      <div class="grupo-campo">
+        <label for="e_hora">A qué hora</label>
+        <input type="time" class="campo" id="e_hora" value="${esc(e.hora)}">
+        <span class="ayuda">Sirve para ordenar el día y para saber si alcanza con una sola salida de equipo.</span>
+      </div>
+    </div>
+
+    <div class="fila-campos">
+      <div class="grupo-campo">
+        <label for="e_lugar">Dónde</label>
+        <input class="campo" id="e_lugar" value="${esc(e.lugar)}"
+               placeholder="Auditorio, Explanada, fuera del campus…">
+      </div>
+      <div class="grupo-campo">
+        <label for="e_solicita">Quién avisa</label>
+        <input class="campo" id="e_solicita" value="${esc(e.solicita)}"
+               placeholder="Área o persona que lo pidió">
+        <span class="ayuda">A futuro esto llegará solo desde la plataforma de solicitudes.</span>
+      </div>
+    </div>
+
+    <div class="fila-campos">
+      <div class="grupo-campo">
+        <label for="e_necesita">Qué se necesita</label>
+        <select class="campo" id="e_necesita">
+          ${QUE_SE_NECESITA.map(q =>
+            `<option value="${q.id}"${q.id === e.necesita ? ' selected' : ''}>${esc(q.nombre)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="grupo-campo">
+        <label for="e_estado">Cómo va</label>
+        <select class="campo" id="e_estado">
+          ${ESTADOS_EVENTO.map(s =>
+            `<option value="${s.id}"${s.id === (e.estado || 'avisado') ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}
+        </select>
+        <span class="ayuda">${esc((ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado')) || {}).nota || '')}</span>
+      </div>
+    </div>
+
+    <div class="grupo-campo">
+      <label for="e_notas">Detalles</label>
+      <textarea class="campo" id="e_notas" placeholder="Contacto, accesos, si hay que llegar antes, qué se espera de la cobertura…">${esc(e.notas)}</textarea>
+    </div>
+
+    ${existente ? `
+    <div class="grupo-campo">
+      <button type="button" class="btn-plano btn-auto ancho" id="e_cubrir">
+        ◈ Programar la cobertura de este evento
+      </button>
+      <span class="ayuda">Crea una pieza con la fecha ya acotada: nada de cobertura puede publicarse antes de que el evento ocurra.</span>
+    </div>` : ''}
+  `;
+
+  const sel = $('#e_estado');
+  if (sel) sel.addEventListener('change', () => {
+    const x = ESTADOS_EVENTO.find(s => s.id === sel.value);
+    const ayuda = sel.parentElement.querySelector('.ayuda');
+    if (ayuda && x) ayuda.textContent = x.nota;
+  });
+
+  const cubrir = $('#e_cubrir');
+  if (cubrir) cubrir.addEventListener('click', () => coberturaDeEvento(e));
+
+  mostrarModal();
+}
+
+function leerEvento() {
+  const e = modalCtx.datos;
+  e.titulo   = $('#e_titulo').value.trim();
+  e.fecha    = $('#e_fecha').value;
+  e.hora     = $('#e_hora').value;
+  e.lugar    = $('#e_lugar').value.trim();
+  e.solicita = $('#e_solicita').value.trim();
+  e.necesita = $('#e_necesita').value;
+  e.estado   = $('#e_estado').value;
+  e.notas    = $('#e_notas').value;
+
+  if (!e.titulo) { avisar('El evento necesita un nombre.'); return false; }
+  if (!e.fecha)  { avisar('Un evento sin fecha no se puede cubrir. ¿Cuándo es?'); return false; }
+
+  e.actualizado = ahora();
+  if (modalCtx.esNuevo) {
+    e.creado = ahora();
+    datos.parrilla.eventos = datos.parrilla.eventos || [];
+    datos.parrilla.eventos.push(e);
+  }
+  guardar('parrilla');
+  return true;
+}
+
+/* De evento a cobertura. La ventana se acota sola: una foto del
+   evento no puede publicarse antes del evento — ése fue el error
+   que puso el reel de IGNITE dos días antes de IGNITE. */
+function coberturaDeEvento(e) {
+  const formato = e.necesita === 'video' ? 'Reel'
+                : e.necesita === 'nota'  ? 'Nota'
+                : 'Foto';
+  cerrarModal();
+  abrirPieza(null, {
+    titulo: 'Cobertura · ' + e.titulo,
+    formato,
+    fecha: e.fecha,
+    no_antes: e.fecha,
+    notas: [e.titulo,
+            e.lugar ? 'Lugar: ' + e.lugar : '',
+            e.hora ? 'Hora: ' + horaLegible(e.hora) : '',
+            e.notas].filter(Boolean).join('\n'),
+    de_evento: e.id,
+  });
+}
+
+
+/* ── Lo que viene ──────────────────────────────────────── */
+
+function pintarEventos() {
+  const cont = $('#listaEventos');
+  if (!cont) return;
+
+  const hoy = aTexto(new Date());
+  const proximos = (datos.parrilla.eventos || [])
+    .filter(e => e.fecha >= hoy && e.estado !== 'cancelado')
+    .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')))
+    .slice(0, 8);
+
+  if (!proximos.length) {
+    cont.innerHTML = `<div class="vacio">
+      Nada por cubrir todavía.<br>
+      Anota aquí lo que te vayan avisando: ceremonias, conferencias, ferias.
+      Con la fecha puesta, la cobertura se programa sola sin caer antes del evento.
+    </div>`;
+    return;
+  }
+
+  cont.innerHTML = proximos.map(e => {
+    const est = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
+    const q = QUE_SE_NECESITA.find(x => x.id === e.necesita);
+    const dias = Math.round((aFecha(e.fecha) - aFecha(hoy)) / 86400000);
+    const cuando = dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : `En ${dias} días`;
+    return `
+      <div class="evento" data-id="${esc(e.id)}" style="--evento-tono:${colorEvento(e)}">
+        <div class="evento-hora">${esc(horaLegible(e.hora) || '—')}</div>
+        <div>
+          <div class="evento-titulo">${esc(e.titulo)}</div>
+          <div class="evento-meta">
+            ${esc(fechaLegible(e.fecha))} · ${esc(cuando)}${e.lugar ? ' · ' + esc(e.lugar) : ''}
+            ${q ? ' · ' + esc(q.nombre) : ''}${e.solicita ? ' · pide ' + esc(e.solicita) : ''}
+          </div>
+        </div>
+        <span class="sello-tipo es-evento">${esc(est ? est.nombre : 'Evento')}</span>
+      </div>`;
+  }).join('');
+
+  $$('.evento', cont).forEach(el =>
+    el.addEventListener('click', () => abrirEvento(el.dataset.id)));
+}
+
+
 function refrescarParrilla() {
   pintarSemana();
   pintarProgreso();
@@ -885,6 +1388,7 @@ function refrescarParrilla() {
   pintarPiezas();
   pintarCalendario();
   pintarEfemerides();
+  pintarEventos();
   pintarIdeas();
 }
 
@@ -947,7 +1451,8 @@ function pintarCalendario() {
 
   const enc = $('#calendarioEncabezado');
   if (!enc.childElementCount) {
-    enc.innerHTML = DIAS_CORTOS.map(d => `<span>${d}</span>`).join('');
+    enc.innerHTML = DIAS_CORTOS.map((d, i) =>
+      `<span class="dia-nombre${i >= 5 ? ' finde' : ''}">${d}</span>`).join('');
   }
 
   const anio = anclaMes.getFullYear();
@@ -997,6 +1502,14 @@ function pintarCalendario() {
         </div>`;
     }).join('');
 
+    const eventos = eventosDe(txt).map(ev => `
+      <div class="cal-evento" data-evento="${esc(ev.id)}"
+           style="--evento-tono:${colorEvento(ev)}"
+           title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}">
+        <span class="hora">${esc(horaLegible(ev.hora) || '·')}</span>
+        <span class="titulo">${esc(ev.titulo)}</span>
+      </div>`).join('');
+
     const finde = dia.getDay() === 0 || dia.getDay() === 6;
     celdas.push(`
       <div class="celda${fuera ? ' fuera' : ''}${txt === hoy ? ' hoy' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
@@ -1004,6 +1517,7 @@ function pintarCalendario() {
           <span>${dia.getDate()}</span>
           <button class="celda-agregar" data-fecha="${txt}" title="Agregar pieza este día">+</button>
         </div>
+        ${eventos}
         ${piezas}
       </div>`);
   }
@@ -1013,6 +1527,8 @@ function pintarCalendario() {
 
   $$('.cal-pieza', cont).forEach(el =>
     el.addEventListener('click', () => abrirPieza(el.dataset.id)));
+  $$('.cal-evento', cont).forEach(el =>
+    el.addEventListener('click', ev => { ev.stopPropagation(); abrirEvento(el.dataset.evento); }));
   $$('.celda-agregar', cont).forEach(b =>
     b.addEventListener('click', ev => { ev.stopPropagation(); abrirPieza(null, { fecha: b.dataset.fecha }); }));
 
@@ -1187,7 +1703,13 @@ function abrirPieza(idPieza, prellenado) {
     <div class="fila-campos">
       <div class="grupo-campo">
         <label for="f_responsable">Responsable</label>
-        <input class="campo" id="f_responsable" value="${esc(p.responsable)}" placeholder="Quién produce esta pieza">
+        <input class="campo" id="f_responsable" list="lista_responsables"
+               value="${esc(p.responsable)}" placeholder="Quién produce esta pieza"
+               autocomplete="off">
+        <datalist id="lista_responsables">
+          ${equipoConocido().map(n => `<option value="${esc(n)}"></option>`).join('')}
+        </datalist>
+        <span class="ayuda">Escribe o elige de la lista. Aparecen quienes tienen cuenta y quienes ya has anotado antes.</span>
       </div>
       <div class="grupo-campo">
         <label for="f_experto">Experto que participa</label>
@@ -3059,6 +3581,10 @@ function intentarCerrarModal() {
 }
 
 function cerrarModal() {
+  // Ajustes esconde Guardar y renombra Cancelar; hay que devolver
+  // el pie a su estado o la siguiente ficha abre sin boton de guardar.
+  $('#modalGuardar').hidden = false;
+  $('#modalCancelar').textContent = 'Cancelar';
   $('#modalFondo').hidden = true;
   modalCtx = null;
 }
@@ -3072,6 +3598,7 @@ function guardarModal() {
   if (tipo === 'vuelo')   ok = leerVuelo();
   if (tipo === 'experto') ok = leerExperto();
   if (tipo === 'tema')    ok = leerTema();
+  if (tipo === 'evento')  ok = leerEvento();
   if (!ok) return;
 
   // Si esta pieza nació de una idea del banco, la idea se va AHORA, que es
@@ -3137,7 +3664,8 @@ function eliminarModal() {
   if (!modalCtx || modalCtx.esNuevo) return;
   const t = modalCtx.tipo;
   const nombre = t === 'pieza' ? 'esta pieza' : t === 'equipo' ? 'este equipo'
-               : t === 'experto' ? 'a este experto del directorio' : 'este registro de vuelo';
+               : t === 'experto' ? 'a este experto del directorio'
+               : t === 'evento' ? 'este evento' : 'este registro de vuelo';
   if (!confirm('¿Eliminar ' + nombre + '? No se puede deshacer.')) return;
 
   const idBorrar = modalCtx.datos.id;
@@ -3154,6 +3682,9 @@ function eliminarModal() {
   } else if (t === 'tema') {
     datos.redaccion.temas = datos.redaccion.temas.filter(x => x.id !== idBorrar);
     guardar('redaccion');
+  } else if (t === 'evento') {
+    datos.parrilla.eventos = (datos.parrilla.eventos || []).filter(x => x.id !== idBorrar);
+    guardar('parrilla');
   } else {
     datos.inventario.vuelos = (datos.inventario.vuelos || []).filter(x => x.id !== idBorrar);
     guardar('inventario');
@@ -3194,6 +3725,7 @@ function conectarEventos() {
     if (vistaActual === 'auditoria') refrescarAuditoria();
     if (vistaActual === 'expertos') pintarExpertos();
     if (vistaActual === 'redaccion') pintarRedaccion();
+    if (vistaActual === 'escritorio') pintarEscritorio();
   }));
 
   $('#nuevoTema').addEventListener('click', () => abrirTema(null));
@@ -3252,6 +3784,8 @@ function conectarEventos() {
   });
 
   $('#nuevaPieza').addEventListener('click', () => abrirPieza(null));
+  $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));
+  $('#btnAjustes').addEventListener('click', abrirAjustes);
   $('#nuevoEquipo').addEventListener('click', () => abrirEquipo(null));
   $('#nuevoVuelo').addEventListener('click', () => abrirVuelo(null));
 
@@ -3346,6 +3880,7 @@ function conectarEventos() {
    y "copiar lista" se quedan vivos: en lectura siguen sirviendo. */
 const CONTROLES_QUE_EDITAN = {
   parrilla: {
+    nuevoEvento:        'parrilla_eventos',
     nuevaPieza:         'parrilla_piezas',
     acomodarPendientes: 'parrilla_piezas',
     ideaClasificada:    'parrilla_ideas',
@@ -3367,6 +3902,7 @@ const CONTROLES_QUE_EDITAN = {
 
 /* Qué colección escribe cada ficha del modal. */
 const COLECCION_DE_MODAL = {
+  evento:  'parrilla_eventos',
   pieza:   'parrilla_piezas',
   equipo:  'inventario_equipos',
   vuelo:   'inventario_vuelos',
@@ -3472,10 +4008,11 @@ function errorPuerta(texto) {
 
 function pintarQuien(u) {
   const el = $('#quien');
-  if (!u) { el.hidden = true; $('#btnSalir').hidden = true; return; }
+  if (!u) { el.hidden = true; $('#btnSalir').hidden = true; $('#btnAjustes').hidden = true; return; }
   el.innerHTML = `<b>${esc(u.nombre)}</b><span>${esc(u.rol)}</span>`;
   el.hidden = false;
   $('#btnSalir').hidden = false;
+  $('#btnAjustes').hidden = false;
 }
 
 /* Cerrar de este lado pase lo que pase. Quedarse dentro por un
@@ -3495,6 +4032,7 @@ async function pasarAdentro(usuario) {
   if (usuario.debe_cambiar_clave) { mostrarPuerta('clave'); return; }
 
   await cargar();
+  await cargarPersonas();
   $('#puerta').hidden = true;
   historial.pila = []; historial.indice = -1;
   registrar('Estado al abrir LA PIZARRA');

@@ -93,13 +93,17 @@ as $$
     when 'admin'       then true
     -- La jefatura toca todo lo editorial. El inventario no, porque no
     -- administra camaras: puede verlo, pero no tiene por que moverlo.
+    -- Los eventos los puede anotar CUALQUIERA. Si Sergio se entera
+    -- de una ceremonia, tiene que poder anotarla sin pedir permiso.
     when 'direccion'   then col in ('parrilla_piezas', 'parrilla_ideas',
-                                    'redaccion_temas', 'expertos_personas',
-                                    'ajustes_equipo')
+                                    'parrilla_eventos', 'redaccion_temas',
+                                    'expertos_personas', 'ajustes_equipo')
     when 'redaccion'   then col in ('redaccion_temas', 'parrilla_piezas',
-                                    'parrilla_ideas', 'expertos_personas')
-    when 'publicacion' then col = 'parrilla_piezas'
-    when 'produccion'  then col in ('parrilla_piezas', 'parrilla_ideas')
+                                    'parrilla_ideas', 'parrilla_eventos',
+                                    'expertos_personas')
+    when 'publicacion' then col in ('parrilla_piezas', 'parrilla_eventos')
+    when 'produccion'  then col in ('parrilla_piezas', 'parrilla_ideas',
+                                    'parrilla_eventos')
     else false
   end
 $$;

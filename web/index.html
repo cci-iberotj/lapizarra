@@ -72,7 +72,8 @@
     <span class="marca-sub">Diseño y Medios · IBERO Tijuana</span>
   </div>
   <nav class="tabs">
-    <button class="tab activo" data-vista="parrilla">Parrilla</button>
+    <button class="tab activo" data-vista="escritorio">Mi escritorio</button>
+    <button class="tab" data-vista="parrilla">Parrilla</button>
     <button class="tab" data-vista="inventario">Inventario</button>
     <button class="tab" data-vista="redaccion">Redacción</button>
     <button class="tab" data-vista="expertos">Expertos</button>
@@ -84,6 +85,7 @@
       <button class="btn-barra" id="btnRehacer" title="Rehacer (Ctrl+Y)" disabled>↷</button>
       <button class="btn-barra ancho" id="btnHistorial" title="Ver historial de cambios">Historial</button>
       <button class="btn-barra" id="btnTema" title="Cambiar entre tema claro y oscuro">◐</button>
+      <button class="btn-barra" id="btnAjustes" title="Ajustes" hidden>⚙</button>
       <button class="btn-barra ancho" id="btnSalir" title="Cerrar sesión" hidden>Salir</button>
     </div>
     <div class="quien" id="quien" hidden></div>
@@ -101,7 +103,13 @@
 </header>
 
 <!-- ══════════════════════ PARRILLA ══════════════════════ -->
-<main id="vista-parrilla" class="vista activo">
+<!-- ══════════════════════ MI ESCRITORIO ══════════════════════
+     Lo unico de la aplicacion que es distinto para cada quien. -->
+<main id="vista-escritorio" class="vista activo">
+  <section id="escritorio"></section>
+</main>
+
+<main id="vista-parrilla" class="vista">
 
   <section class="semana-cabecera">
     <div class="semana-nav">
@@ -131,9 +139,10 @@
 
   <section class="controles">
     <button class="btn-primario" id="nuevaPieza">+ Nueva pieza</button>
+    <button class="btn-plano" id="nuevoEvento">+ Evento por cubrir</button>
     <div class="conmutador" role="tablist">
-      <button class="conmutador-op activo" data-modo="lista">Lista</button>
-      <button class="conmutador-op" data-modo="calendario">Calendario</button>
+      <button class="conmutador-op activo" data-modo="calendario">Calendario</button>
+      <button class="conmutador-op" data-modo="lista">Lista</button>
     </div>
     <div class="filtros">
       <select id="filtroPilar" class="campo-mini">
@@ -151,9 +160,9 @@
     </div>
   </section>
 
-  <section class="tablero" id="tableroPiezas"></section>
+  <section class="tablero" id="tableroPiezas" hidden></section>
 
-  <section class="calendario-envoltorio" id="calendarioEnvoltorio" hidden>
+  <section class="calendario-envoltorio" id="calendarioEnvoltorio">
     <div class="calendario-barra">
       <button class="btn-icono" id="mesAnterior" title="Mes anterior">‹</button>
       <h2 id="mesTitulo">Mes</h2>
@@ -168,6 +177,14 @@
       <div class="calendario-dias" id="calendarioEncabezado"></div>
       <div class="calendario" id="calendarioMes"></div>
     </div>
+  </section>
+
+  <section class="bloque-ideas">
+    <div class="bloque-encabezado">
+      <h3>Lo que hay que cubrir</h3>
+    </div>
+    <p class="tenue nota">Eventos que ya sabemos que van a ocurrir. Cualquiera del equipo puede anotarlos; a futuro llegarán solos desde la plataforma de solicitudes.</p>
+    <div class="eventos" id="listaEventos"></div>
   </section>
 
   <section class="bloque-ideas">
