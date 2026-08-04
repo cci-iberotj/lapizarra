@@ -1804,3 +1804,230 @@ h3 {
   }
   .anillo { width: 76px; height: 76px; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CONTRALUZ · FORMA
+   Lo anterior cambió la paleta y dejó la forma intacta, porque el
+   puente de compatibilidad mantuvo vivas las reglas viejas de
+   relleno, borde y disposición. Esta capa sí las reemplaza.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Respiro ───────────────────────────────────────────────
+   El contenido se ceñía a 1220px con 28px de aire. Una
+   herramienta de trabajo se lee mejor con la caja más ancha y
+   los bloques más separados entre sí que por dentro. */
+
+.vista {
+  max-width: 1320px;
+  padding: var(--e-7) var(--e-6) var(--e-8);
+}
+.vista > section + section { margin-top: var(--e-7); }
+
+/* ── Encabezado de bloque ──────────────────────────────────
+   Antes los rótulos de sección eran versalitas de 10.5px que se
+   perdían. Ahora el bloque se anuncia con una línea de acento y
+   un tamaño que se ve desde lejos. */
+
+.bloque-encabezado {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--e-4); flex-wrap: wrap;
+  padding-bottom: var(--e-3);
+  margin-bottom: var(--e-4);
+  border-bottom: 1px solid var(--linea-sutil);
+}
+.bloque-encabezado h3, .bloque-auditoria > h3 {
+  font-size: var(--t-titulo);
+  text-transform: none;
+  letter-spacing: -.012em;
+  color: var(--tinta);
+  font-weight: var(--peso-medio);
+  position: relative;
+  padding-left: 14px;
+}
+.bloque-encabezado h3::before, .bloque-auditoria > h3::before {
+  content: ''; position: absolute; left: 0; top: .18em; bottom: .18em;
+  width: 3px; border-radius: 2px; background: var(--marca-solida);
+}
+
+/* ── Día ───────────────────────────────────────────────────
+   El encabezado de día se queda pegado al desplazarte: con
+   veinte piezas dejas de saber de qué día estás viendo. */
+
+.dia-titulo {
+  position: sticky; top: 68px; z-index: 4;
+  background: var(--capa-0);
+  padding: var(--e-3) 0 var(--e-2);
+  display: flex; align-items: baseline; gap: var(--e-3);
+  border-bottom: 1px solid var(--linea-sutil);
+  margin-bottom: var(--e-4);
+}
+.dia-titulo b {
+  font-size: var(--t-guia); color: var(--tinta);
+  font-weight: var(--peso-medio); letter-spacing: -.005em;
+  text-transform: capitalize;
+}
+.dia-titulo span { font-size: var(--t-meta); color: var(--tinta-tenue); }
+.dia-grupo + .dia-grupo { margin-top: var(--e-6); }
+
+/* ══ TARJETA DE PIEZA ══
+   Era una fila plana con una rayita de 4px a la izquierda. Ahora
+   es una tarjeta con presencia: el pilar entra como riel ancho
+   con degradado, el título manda, y los metadatos se ordenan
+   abajo en vez de pelearse por la derecha. */
+
+.tablero { display: grid; gap: var(--e-3); }
+
+.pieza {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--e-5);
+  padding: var(--e-5) var(--e-5) var(--e-5) var(--e-6);
+  border: 1px solid var(--linea-sutil);
+  border-left: 0;
+  border-radius: var(--r-lg);
+  background: var(--capa-1);
+  position: relative;
+  overflow: hidden;
+}
+/* El riel del pilar. Va de pseudoelemento para poder degradarlo:
+   un borde no se degrada. */
+.pieza::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg,
+    var(--pieza-tono, var(--linea-control)) 0%,
+    color-mix(in oklab, var(--pieza-tono, var(--linea-control)) 55%, transparent) 100%);
+}
+.pieza:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-2);
+  border-color: var(--linea-control);
+}
+.pieza:active { transform: translateY(0); }
+
+.pieza-titulo {
+  font-size: var(--t-guia);
+  font-weight: var(--peso-medio);
+  color: var(--tinta);
+  letter-spacing: -.005em;
+  line-height: 1.35;
+  margin-bottom: 5px;
+}
+.pieza-meta {
+  display: flex; align-items: center; gap: var(--e-2);
+  flex-wrap: wrap;
+  font-size: var(--t-meta);
+  color: var(--tinta-tenue);
+}
+
+/* ── Chips ─────────────────────────────────────────────── */
+
+.chip {
+  padding: 4px 10px;
+  border-radius: var(--r-pastilla);
+  font-size: var(--t-sello);
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+/* El estado va de contorno, no de relleno: si todo se rellena,
+   nada destaca. El pilar es el que manda el color. */
+.chip-estado {
+  background: transparent;
+  border: 1px solid currentColor;
+  font-weight: var(--peso-medio);
+}
+.chip-canal {
+  color: var(--texto-sobre-pilar);
+  font-weight: var(--peso-fuerte);
+  min-width: 34px; text-align: center;
+}
+
+/* ══ IDEAS ══
+   Rejilla de tarjetas con el pilar en el filo superior. */
+
+.ideas { gap: var(--e-4); }
+
+.idea {
+  border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-lg);
+  padding: var(--e-5);
+  background: var(--capa-1);
+  position: relative;
+  overflow: hidden;
+}
+.idea::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  background: var(--idea-tono, var(--linea-control));
+}
+.idea:hover { transform: translateY(-2px); border-color: var(--linea-control); }
+
+/* ══ EFEMÉRIDES ══ */
+
+.efemeride {
+  border-radius: var(--r-md);
+  padding: var(--e-4);
+  background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  transition: transform var(--dur-instantanea), border-color var(--dur-instantanea);
+}
+.efemeride:hover { transform: translateY(-2px); border-color: var(--marca-tinta); }
+
+/* ══ TARJETAS DE RESUMEN ══ */
+
+.resumen { gap: var(--e-4); }
+.tarjeta-dato {
+  padding: var(--e-5) var(--e-5) var(--e-4);
+  border-radius: var(--r-lg);
+  border-top-width: 1px;
+  border-top-color: var(--linea-sutil);
+  background: var(--capa-1);
+  position: relative; overflow: hidden;
+}
+.tarjeta-dato::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--dato-tono, var(--linea-control));
+}
+.tarjeta-dato.acento::before { background: var(--marca-solida); }
+.tarjeta-dato.aviso::before  { background: var(--alerta); }
+.tarjeta-dato .cifra { line-height: 1; margin-bottom: var(--e-3); }
+
+/* ══ TABLA ══ */
+
+.tabla-envoltorio { border-radius: var(--r-lg); }
+.tabla th {
+  padding: var(--e-3) var(--e-5);
+  font-size: var(--t-sello);
+  border-bottom: 1px solid var(--linea-sutil);
+}
+.tabla td { padding: var(--e-4) var(--e-5); }
+
+/* ══ MODAL ══ */
+
+.modal { border-radius: var(--r-xl); }
+.modal-cabecera { padding: var(--e-6) var(--e-6) var(--e-4); }
+.modal-cuerpo { padding: var(--e-5) var(--e-6); }
+.modal-pie { padding: var(--e-4) var(--e-6) var(--e-6); }
+
+/* ══ EL PROGRESO ES EL HÉROE ══
+   Es lo primero que se ve al abrir. Merece el tamaño. */
+
+.progreso { padding: var(--e-6); border-radius: var(--r-xl); gap: var(--e-6); }
+.anillo { width: 116px; height: 116px; }
+.anillo::after { inset: 11px; }
+.anillo-cifra { font-size: 34px; }
+.progreso-titulo { font-size: var(--t-titulo); letter-spacing: -.012em; }
+.progreso-detalle { font-size: var(--t-cuerpo); }
+.racha-cifra { font-size: 38px; }
+
+@media (max-width: 700px) {
+  .vista { padding: var(--e-5) var(--e-4) var(--e-7); }
+  .pieza { grid-template-columns: 1fr; gap: var(--e-3); padding: var(--e-4) var(--e-4) var(--e-4) var(--e-5); }
+  .dia-titulo { top: 106px; }
+  .progreso { padding: var(--e-5); }
+  .anillo { width: 88px; height: 88px; }
+  .anillo-cifra { font-size: 26px; }
+  .racha-cifra { font-size: 28px; }
+  .bloque-encabezado h3, .bloque-auditoria > h3 { font-size: var(--t-guia); }
+}

@@ -633,7 +633,7 @@ function pintarPiezas() {
         return c ? `<span class="chip chip-canal" style="background:${c.color}" title="${esc(c.nombre)}">${esc(c.corto)}</span>` : '';
       }).join('');
       return `
-        <div class="pieza" data-id="${esc(p.id)}" style="border-left-color:${pil ? pil.color : 'var(--borde-fuerte)'}">
+        <div class="pieza" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
           <div class="pieza-cuerpo">
             <div class="pieza-titulo">${esc(p.titulo || 'Sin título')}</div>
             <div class="pieza-meta">
@@ -719,7 +719,7 @@ function pintarIdeas() {
       </details>` : '';
 
     return `
-    <article class="idea" style="--tono:${pil.color}">
+    <article class="idea" style="--tono:${pil.color};--idea-tono:${pil.solido}">
       <header class="idea-cabecera">
         <span class="idea-pilar" style="background:${pil.color}">${esc(pil.nombre)}</span>
         <span class="idea-formato">${esc(s.formato)}</span>
