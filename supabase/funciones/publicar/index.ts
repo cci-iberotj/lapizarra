@@ -68,9 +68,16 @@ async function aMeta(url: string) {
   try { d = texto ? JSON.parse(texto) : null; } catch { d = texto; }
   if (!r.ok || d?.error) {
     const e = d?.error || {};
-    throw new Error(
-      [e.error_user_title, e.error_user_msg || e.message]
-        .filter(Boolean).join(': ') || `Meta respondió ${r.status}`);
+    /* Meta manda un titulo corto y un detalle, pensados para ir
+       juntos. Pero en los errores tecnicos los dos traen casi el
+       mismo texto, y pegarlos deja un parrafo que se repite a si
+       mismo. Se pega el titulo SOLO si es corto de verdad -- o sea,
+       si parece un rotulo y no otra copia del mensaje. */
+    const cuerpo = String(e.error_user_msg || e.message || '').trim();
+    const titulo = String(e.error_user_title || '').trim();
+    const texto = (cuerpo && titulo && titulo.length <= 60 && !cuerpo.startsWith(titulo))
+      ? `${titulo}: ${cuerpo}` : (cuerpo || titulo);
+    throw new Error(texto || `Meta respondió ${r.status}`);
   }
   return d;
 }
@@ -125,8 +132,10 @@ async function comprobar() {
     salida.facebook = { ok: false, porque: 'No hay META_TOKEN_FB en el servidor.' };
   } else {
     try {
-      const pg = await aMeta(`${FB}/me?fields=id,name,username&access_token=${TOKEN_FB}`);
-      salida.facebook = { ok: true, id: pg.id, usuario: pg.username || pg.name,
+      // Nada de 'username': Meta lo descontinuo hace anos y pedirlo
+      // tumba la consulta entera con un error que habla de v2.0.
+      const pg = await aMeta(`${FB}/me?fields=id,name&access_token=${TOKEN_FB}`);
+      salida.facebook = { ok: true, id: pg.id, usuario: pg.name,
                           nombre: pg.name, ...(await caducidad(FB, TOKEN_FB)) };
     } catch (e) {
       salida.facebook = { ok: false, porque: (e as Error).message };
