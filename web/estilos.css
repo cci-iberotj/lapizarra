@@ -2752,3 +2752,203 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 .pieza.con-cambios .pieza-titulo::after {
   content: '●'; margin-left: 8px; color: var(--alerta); font-size: .7em; vertical-align: .15em;
 }
+
+/* ═══ Collage: un carrusel tiene que leerse como carrusel ═══
+   Antes una pieza de ocho fotos se veia igual que un post suelto:
+   puro titulo. Tres fotos encimadas dicen "esto es un carrusel" y
+   "de esto es" sin que nadie abra nada. */
+
+.collage {
+  display: grid;
+  gap: 2px;
+  border-radius: var(--radio-chico, 6px) var(--radio-chico, 6px) 0 0;
+  overflow: hidden;
+  background: var(--capa-3, #e6e2dc);
+  position: relative;
+  aspect-ratio: 16 / 7;
+}
+.collage.n1 { grid-template-columns: 1fr; }
+.collage.n2 { grid-template-columns: 1fr 1fr; }
+.collage.n3 { grid-template-columns: 2fr 1fr 1fr; }
+
+.collage-foto {
+  display: block;
+  background: var(--capa-3, #e6e2dc) center / cover no-repeat;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.collage-foto.cargada { opacity: 1; }
+.collage-foto.rota::after {
+  content: '?';
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--tinta-3, #8b857d);
+  font-size: .78rem;
+}
+.collage-foto.rota { opacity: 1; }
+
+.collage-mas {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(20, 18, 16, .74);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  line-height: 1.5;
+}
+
+/* En el calendario la caja es angosta: mas alta y solo dos huecos
+   utiles, si no cada foto queda del tamano de una estampilla. */
+/* En el calendario la caja es angosta: un banderin de dos huecos. */
+.cal-pieza .collage { aspect-ratio: auto; height: 58px; }
+.cal-pieza .collage.n2 { grid-template-columns: 3fr 2fr; }
+
+/* La tarjeta de lista ocupa todo el ancho. Un banner estirado ahi
+   son tiras de 550 px por 90: no se ve nada. Va una tira de
+   miniaturas a la izquierda, con la proporcion de la foto intacta. */
+.pieza .collage {
+  aspect-ratio: auto;
+  display: flex;
+  height: 68px;
+  width: max-content;
+  max-width: 100%;
+  border-radius: var(--radio-chico, 6px);
+  margin-bottom: 2px;
+}
+.pieza .collage .collage-foto { flex: 0 0 85px; }
+.pieza .collage-mas {
+  position: static;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  border-radius: 0;
+  background: var(--capa-2, #efece7);
+  color: var(--tinta-2, #57514a);
+  padding: 0 10px;
+}
+
+
+/* ═══ Laminas: se arrastran, no se empujan con flechitas ═══ */
+
+.laminas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+.laminas:empty { display: none; }
+
+.lamina {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radio-chico, 6px);
+  overflow: hidden;
+  background: var(--capa-3, #e6e2dc);
+  border: 1px solid var(--borde-suave, #d8d2ca);
+  cursor: grab;
+  touch-action: none;          /* el dedo arrastra la lamina, no la pagina */
+  user-select: none;
+  transition: box-shadow .16s ease, transform .16s ease;
+}
+.lamina:focus-visible {
+  outline: 2px solid var(--marca, #8a1c2b);
+  outline-offset: 2px;
+}
+.lamina.quieta { cursor: default; }
+
+.lamina-foto {
+  position: absolute;
+  inset: 0;
+  background: var(--capa-3, #e6e2dc) center / cover no-repeat;
+  opacity: 0;
+  transition: opacity .22s ease;
+}
+.lamina-foto.cargada,
+.lamina-foto.rota { opacity: 1; }
+
+.lamina-n {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(20, 18, 16, .8);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+/* La portada es una decision, no un accidente del orden en que se
+   subieron. Que se note cual es. */
+.lamina:first-child .lamina-n {
+  background: var(--marca, #8a1c2b);
+}
+.lamina:first-child::after {
+  content: 'PORTADA';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 2px 0;
+  text-align: center;
+  background: var(--marca, #8a1c2b);
+  color: #fff;
+  font-size: .56rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  pointer-events: none;
+}
+
+.lamina-acciones {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity .16s ease;
+}
+.lamina:hover .lamina-acciones,
+.lamina:focus-within .lamina-acciones { opacity: 1; }
+/* En tactil no hay hover: si se esconden, no existen. */
+@media (hover: none) {
+  .lamina-acciones { opacity: 1; }
+}
+.lamina-acciones .btn-mini {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: rgba(20, 18, 16, .8);
+  color: #fff;
+  border: 0;
+  font-size: .7rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.lamina-acciones .btn-mini:hover { background: var(--marca, #8a1c2b); }
+
+.lamina.viajando {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: 0 10px 24px rgba(20, 18, 16, .28);
+  transform-origin: center;
+  opacity: .95;
+  transition: none;            /* que siga al dedo sin ir un paso atras */
+}
+.laminas.reordenando .lamina:not(.viajando) {
+  transition: transform .16s ease;
+}
+.laminas.reordenando { cursor: grabbing; }

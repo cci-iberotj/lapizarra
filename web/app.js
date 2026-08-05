@@ -655,6 +655,7 @@ function pintarPiezas() {
       }).join('');
       return `
         <div class="pieza${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
+          ${collageDe(p, 3)}
           <div class="pieza-cuerpo">
             <div class="pieza-titulo">${esc(p.titulo || 'Sin título')}</div>
             <div class="pieza-meta">
@@ -680,6 +681,7 @@ function pintarPiezas() {
   $$('.pieza', cont).forEach(el => {
     el.addEventListener('click', () => abrirPrevia(el.dataset.id));
   });
+  pintarMiniaturas(cont);
 }
 
 function pintarIdeas() {
@@ -1919,14 +1921,18 @@ function pintarCalendario() {
       // Para RELLENAR va la variante solida, no la de tinta: es la
       // que esta medida contra el texto que se le pone encima.
       const relleno = pil ? pil.solido : 'var(--linea-control)';
+      /* Dos y no tres: en la caja del calendario la tercera queda del
+   tamano de una estampilla, y el contador tiene que cuadrar con
+   lo que se ve. */
+      const collage = collageDe(p, 2);
       const img = p.imagen
         ? `<img class="cal-miniatura" src="${esc(p.imagen)}" alt="" loading="lazy">`
-        : '';
+        : collage;
       const acotada = p.no_antes || p.no_despues;
       const rotulo = p.no_antes ? `Sólo a partir del ${fechaLegible(p.no_antes)}`
                    : p.no_despues ? `Sólo hasta el ${fechaLegible(p.no_despues)}` : '';
       return `
-        <div class="cal-pieza${p.imagen ? '' : ' sin-imagen'}${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${relleno}"
+        <div class="cal-pieza${p.imagen || collage ? '' : ' sin-imagen'}${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${relleno}"
              draggable="true" title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
@@ -1973,7 +1979,119 @@ function pintarCalendario() {
     b.addEventListener('click', ev => { ev.stopPropagation(); abrirPieza(null, { fecha: b.dataset.fecha }); }));
 
   conectarArrastre(cont);
+  pintarMiniaturas(cont);
 }
+
+/* ── Reordenar las laminas de un carrusel ──────────────── */
+
+/* Las flechitas obligaban a contar posiciones en la cabeza: para
+   llevar la septima al frente eran seis clics y perder la cuenta.
+   Se arrastra, que es lo que la mano ya quiere hacer.
+
+   Con eventos de puntero y no con el drag-and-drop del navegador,
+   porque aquel no existe en pantalla tactil y esto se va a usar
+   desde el telefono. La captura va en el contenedor, no en la
+   lamina: la lamina se mueve de sitio a media maniobra y perderia
+   la captura. */
+function conectarArrastreLaminas(laminas, repintar) {
+  const caja = $('#listaLaminas');
+  if (!caja || caja.children.length < 2) return;
+  if (soloLectura('parrilla_piezas')) {
+    $$('.lamina', caja).forEach(t => t.classList.add('quieta'));
+    return;
+  }
+
+  let teja = null, px = 0, py = 0, viajando = false;
+
+  const aplicarOrden = () => {
+    const orden = $$('.lamina', caja).map(t => +t.dataset.lamina);
+    const l = laminas();
+    if (orden.length !== l.length || orden.some(i => isNaN(i) || !l[i])) return;
+    if (orden.every((v, i) => v === i)) return;      // no se movio nada
+    modalCtx.datos.archivos = orden.map(i => l[i]);
+    avisar('Orden nuevo. Se guarda al guardar la pieza.');
+    repintar();
+  };
+
+  const terminar = () => {
+    if (!teja) return;
+    teja.style.transform = '';
+    teja.classList.remove('viajando');
+    caja.classList.remove('reordenando');
+    const hubo = viajando;
+    teja = null; viajando = false;
+    if (hubo) aplicarOrden();
+  };
+
+  caja.addEventListener('pointerdown', ev => {
+    const t = ev.target.closest('.lamina');
+    if (!t || ev.target.closest('button')) return;
+    if (ev.button) return;                            // solo el boton principal
+    teja = t; px = ev.clientX; py = ev.clientY; viajando = false;
+    // Si la captura falla, el arrastre sigue sirviendo mientras el
+    // dedo no se salga de la caja. Peor eso que romperlo entero.
+    try { caja.setPointerCapture(ev.pointerId); } catch (e) {}
+  });
+
+  caja.addEventListener('pointermove', ev => {
+    if (!teja) return;
+    if (!viajando) {
+      // Un clic limpio sigue siendo un clic: no arrastra hasta que
+      // la mano se mueva de verdad.
+      if (Math.abs(ev.clientX - px) + Math.abs(ev.clientY - py) < 6) return;
+      viajando = true;
+      teja.classList.add('viajando');
+      caja.classList.add('reordenando');
+    }
+    teja.style.transform = `translate(${ev.clientX - px}px, ${ev.clientY - py}px)`;
+
+    // Donde caeria: la lamina cuyo centro queda mas cerca del dedo.
+    // La vertical pesa el triple porque las filas son fronteras: si
+    // se mide plano, al arrimarse al borde izquierdo la lamina de
+    // abajo le gana el hueco a la vecina de al lado y el orden pega
+    // brincos que nadie pidio.
+    let cerca = null, corta = Infinity;
+    $$('.lamina', caja).forEach(o => {
+      if (o === teja) return;
+      const r = o.getBoundingClientRect();
+      const d = Math.abs(ev.clientX - (r.left + r.width / 2))
+              + Math.abs(ev.clientY - (r.top + r.height / 2)) * 3;
+      if (d < corta) { corta = d; cerca = o; }
+    });
+    if (!cerca) return;
+
+    const r = cerca.getBoundingClientRect();
+    const despues = ev.clientX > r.left + r.width / 2;
+    const vecino = despues ? cerca.nextElementSibling : cerca;
+    if (vecino === teja || (despues && cerca === teja)) return;
+    caja.insertBefore(teja, vecino);
+    // El translate se mide desde donde estaba; al cambiarla de sitio
+    // hay que reanclar o pega un brinco del tamano de la teja.
+    px = ev.clientX; py = ev.clientY;
+    teja.style.transform = '';
+  });
+
+  caja.addEventListener('pointerup', terminar);
+  caja.addEventListener('pointercancel', terminar);
+
+  /* Arrastrar no le sirve a quien va por teclado, y aqui hay gente
+     que revisa sin mouse. Flechas sobre la lamina enfocada. */
+  caja.addEventListener('keydown', ev => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    const t = ev.target.closest('.lamina');
+    if (!t) return;
+    ev.preventDefault();
+    const i = +t.dataset.lamina, l = laminas();
+    const j = ev.key === 'ArrowLeft' ? i - 1 : i + 1;
+    if (j < 0 || j >= l.length) return;
+    [l[i], l[j]] = [l[j], l[i]];
+    modalCtx.datos.archivos = l;
+    repintar();
+    const nueva = $$('.lamina', $('#listaLaminas'))[j];
+    if (nueva) nueva.focus();
+  });
+}
+
 
 /* ── Arrastrar y soltar en el calendario ───────────────── */
 
@@ -2184,17 +2302,18 @@ function abrirPieza(idPieza, prellenado) {
       <label>Arte final${archivosDe(p).length > 1 ? ' · ' + archivosDe(p).length + ' láminas' : ''}</label>
       <div class="laminas" id="listaLaminas">
         ${archivosDe(p).map((a, i) => `
-          <div class="lamina" data-lamina="${i}">
+          <div class="lamina" data-lamina="${i}" tabindex="0"
+               title="${esc(a.nombre || a.ruta.split('/').pop())} — arrástrala para moverla">
+            <span class="lamina-foto" data-sello="${esc(selloDe(a))}"></span>
             <span class="lamina-n">${i + 1}</span>
-            <b>${esc(a.nombre || a.ruta.split('/').pop())}</b>
-            <button type="button" class="btn-mini" data-subir="${i}" title="Subir en el orden">↑</button>
-            <button type="button" class="btn-mini" data-bajar="${i}" title="Bajar en el orden">↓</button>
-            <button type="button" class="btn-mini" data-descargar="${i}" title="Descargar">⬇</button>
-            <button type="button" class="btn-mini" data-quitar="${i}" title="Quitar de la pieza">×</button>
+            <span class="lamina-acciones">
+              <button type="button" class="btn-mini" data-descargar="${i}" title="Descargar el original">⬇</button>
+              <button type="button" class="btn-mini" data-quitar="${i}" title="Quitar de la pieza">×</button>
+            </span>
           </div>`).join('')}
       </div>
       ${!archivosDe(p).length ? '<span class="ayuda">Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.</span>'
-        : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Se reordena con las flechas.</span>'}
+        : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina.</span>'}
       <input type="file" id="f_archivo" multiple hidden>
       <div class="imagen-acciones">
         <button type="button" class="btn-plano" id="btnSubirArchivo">${archivosDe(p).length ? '+ Agregar láminas' : 'Subir arte final'}</button>
@@ -2290,12 +2409,14 @@ function abrirPieza(idPieza, prellenado) {
         const f = elegidos[i];
         const lamina = { ruta: await subirArchivo(d.id, f),
                          nombre: f.name, peso: f.size, tipo: f.type };
-        const ligera = await versionLigera(f);
+        const raiz = f.name.replace(/\.[^.]+$/, '');
+        const ligera = await versionLigera(f, ANCHO_PREVIA, 0.82);
         if (ligera) {
-          lamina.previa = await subirArchivo(
-            d.id, ligera, 'previa-' + f.name.replace(/\.[^.]+$/, '') + '.jpg');
+          lamina.previa = await subirArchivo(d.id, ligera, 'previa-' + raiz + '.jpg');
           lamina.pesoPrevia = ligera.size;
         }
+        const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
+        if (sello) lamina.mini = await subirArchivo(d.id, sello, 'mini-' + raiz + '.jpg');
         d.archivos.push(lamina);
       }
       delete d.archivo;   // el campo viejo se retira al migrar
@@ -2310,14 +2431,9 @@ function abrirPieza(idPieza, prellenado) {
   const laminas = () => { const d = modalCtx.datos; d.archivos = archivosDe(d); return d.archivos; };
   const repintarLaminas = () => { delete modalCtx.datos.archivo; abrirPieza(modalCtx.datos.id); };
 
-  $$('[data-subir]').forEach(b => b.addEventListener('click', () => {
-    const i = +b.dataset.subir, l = laminas();
-    if (i > 0) { [l[i - 1], l[i]] = [l[i], l[i - 1]]; repintarLaminas(); }
-  }));
-  $$('[data-bajar]').forEach(b => b.addEventListener('click', () => {
-    const i = +b.dataset.bajar, l = laminas();
-    if (i < l.length - 1) { [l[i + 1], l[i]] = [l[i], l[i + 1]]; repintarLaminas(); }
-  }));
+  pintarMiniaturas($('#modalCuerpo'));
+  conectarArrastreLaminas(laminas, repintarLaminas);
+
   $$('[data-descargar]').forEach(b => b.addEventListener('click', async () => {
     avisar('Bajando…');
     try { await bajarArchivo(laminas()[+b.dataset.descargar].ruta); }
@@ -2372,15 +2488,17 @@ function nombreLimpio(nombre) {
    50 MB para MIRAR un post, y a ese precio nadie revisa nada. Se
    sube tambien una version de pantalla. El original no se toca --
    quien lo vaya a descargar lo baja completo. */
-const ANCHO_PREVIA = 1600;
+const ANCHO_PREVIA = 1600;   // para mirar el post
+const ANCHO_SELLO = 480;     // para el collage de la tarjeta
 
-async function versionLigera(archivo) {
+async function versionLigera(archivo, ancho, calidad) {
   if (!/^image\//.test(archivo.type)) return null;
   let bm;
   try { bm = await createImageBitmap(archivo); }
   catch (e) { return null; }          // formato que el navegador no abre
 
-  const escala = Math.min(1, ANCHO_PREVIA / Math.max(bm.width, bm.height));
+  ancho = ancho || ANCHO_PREVIA;
+  const escala = Math.min(1, ancho / Math.max(bm.width, bm.height));
   if (escala === 1 && archivo.size < 600 * 1024) { bm.close(); return null; }
 
   const l = document.createElement('canvas');
@@ -2389,8 +2507,44 @@ async function versionLigera(archivo) {
   l.getContext('2d').drawImage(bm, 0, 0, l.width, l.height);
   bm.close();
 
-  const blob = await new Promise(r => l.toBlob(r, 'image/jpeg', 0.82));
+  const blob = await new Promise(r => l.toBlob(r, 'image/jpeg', calidad || 0.82));
   return blob && blob.size < archivo.size ? blob : null;
+}
+
+/* Para MIRAR se pide la de pantalla; para el collage de la tarjeta,
+   el sello. Si la lamina es vieja y no los tiene, cae al original:
+   se ve lento, pero se ve. */
+function selloDe(a) { return a.mini || a.previa || a.ruta; }
+
+/* Un carrusel en la parrilla se leia igual que un post suelto: solo
+   el titulo. Con tres fotos encimadas se entiende de un vistazo que
+   es carrusel Y de que es, sin abrir nada. */
+function collageDe(pieza, cuantas) {
+  const todas = archivosDe(pieza);
+  if (!todas.length) return '';
+  const muestra = todas.slice(0, cuantas);
+  const resto = todas.length - muestra.length;
+  return `<div class="collage n${muestra.length}">
+    ${muestra.map(a => `<span class="collage-foto" data-sello="${esc(selloDe(a))}"></span>`).join('')}
+    ${resto > 0 ? `<span class="collage-mas">+${resto}</span>` : ''}
+  </div>`;
+}
+
+/* La cubeta es privada, asi que una <img src> pelada no trae nada:
+   hay que pedir cada foto con la sesion. Se pinta despues de armar
+   el HTML y se marca la que ya quedo, para que un repintado no
+   vuelva a pedir lo mismo. */
+function pintarMiniaturas(raiz) {
+  $$('[data-sello]', raiz || document).forEach(async el => {
+    if (el.dataset.puesto) return;
+    el.dataset.puesto = '1';
+    try {
+      el.style.backgroundImage = `url("${await urlDeArchivo(el.dataset.sello)}")`;
+      el.classList.add('cargada');
+    } catch (e) {
+      el.classList.add('rota');
+    }
+  });
 }
 
 async function subirArchivo(idPieza, archivo, nombre) {
