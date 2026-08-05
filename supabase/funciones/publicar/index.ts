@@ -158,10 +158,23 @@ async function comprobar() {
 function selloDeRevision(p: any) {
   const archivos = Array.isArray(p.archivos) ? p.archivos
                  : p.archivo ? [{ ruta: p.archivo }] : [];
+  /* El copy de Facebook se cuelga del de Instagram con un separador
+     invisible en vez de ser un elemento aparte. Asi una pieza que no
+     tenga copy propio de Facebook conserva EXACTAMENTE la huella que
+     ya tenia, y las aprobaciones viejas no se caducan de golpe por un
+     cambio de formato. */
   return JSON.stringify([
     archivos.map((a: any) => a.ruta),
-    p.copy || '', p.titulo || '', p.fecha || '', (p.canales || []).join(','),
+    (p.copy || '') + (p.copy_fb ? '\u0000' + p.copy_fb : ''),
+    p.titulo || '', p.fecha || '', (p.canales || []).join(','),
   ]);
+}
+
+/* El copy que le toca a cada red. Facebook hereda el de Instagram
+   si no tiene uno propio: obligarte a escribir dos veces lo mismo
+   solo lograria que el segundo se quedara viejo. */
+function copyDe(p: any, red: 'ig' | 'fb') {
+  return (red === 'fb' ? (p.copy_fb || p.copy) : p.copy) || '';
 }
 
 function archivosDe(p: any) {
@@ -227,18 +240,26 @@ function extension(ruta: string) {
   return punto < 0 ? '' : ruta.slice(punto).toLowerCase();
 }
 
+function esVideo(a: any) { return VIDEOS.includes(extension(a?.ruta || '')); }
+
+/* Una pieza es de video o es de fotos, no las dos. Un carrusel de
+   Instagram admite mezclar, pero aqui no hay forma de decir en que
+   orden ni cual es la portada, y publicar algo a medias entender no
+   es mejor que negarse. */
 function revisarArte(pieza: any, red: 'ig' | 'fb') {
   const archivos = archivosDe(pieza);
   const nombre = (a: any) => a.nombre || (a.ruta || '').split('/').pop();
+  const videos = archivos.filter(esVideo);
 
-  const videos = archivos.filter((a: any) => VIDEOS.includes(extension(a.ruta || '')));
-  if (videos.length) {
+  if (videos.length && videos.length !== archivos.length) {
     throw new Error(
-      `Todavía no publico video: «${nombre(videos[0])}». Los Reels y los ` +
-      `videos hay que subirlos a mano por ahora.`);
+      'Esta pieza mezcla video y fotos. Separa el video en su propia pieza.');
+  }
+  if (videos.length > 1) {
+    throw new Error(`Un solo video por pieza, y esta tiene ${videos.length}.`);
   }
 
-  if (red === 'ig') {
+  if (red === 'ig' && !videos.length) {
     // Instagram solo acepta JPEG. No es negociable ni convertible
     // desde aqui: el archivo se sube tal cual desde el navegador.
     const malos = archivos.filter((a: any) => {
@@ -271,18 +292,26 @@ async function aMetaPost(url: string, campos: Record<string, string>) {
 }
 
 /* Un contenedor recién creado puede tardar en estar listo. Para
-   fotos suele ser inmediato, pero si no se espera, publicar falla
-   con un error que no dice por qué. */
-async function esperarContenedor(id: string) {
-  for (let i = 0; i < 8; i++) {
-    const d = await aMeta(`${IG}/${id}?fields=status_code&access_token=${TOKEN_IG}`);
+   fotos suele ser inmediato; para VIDEO no -- Instagram lo transcodi-
+   fica y eso tarda minutos. Meta recomienda preguntar una vez por
+   minuto durante cinco. Se pregunta mas seguido pero durante el
+   mismo rato: si el video ya quedó, no tiene sentido esperar un
+   minuto entero para enterarse. */
+async function esperarContenedor(id: string, video = false) {
+  const cada = video ? 5000 : 1500;
+  const veces = video ? 60 : 8;          // 5 minutos / 12 segundos
+  const que = video ? 'el video' : 'la imagen';
+
+  for (let i = 0; i < veces; i++) {
+    const d = await aMeta(`${IG}/${id}?fields=status_code,status&access_token=${TOKEN_IG}`);
     if (d.status_code === 'FINISHED') return;
     if (d.status_code === 'ERROR' || d.status_code === 'EXPIRED') {
-      throw new Error('Instagram rechazó la imagen (' + d.status_code + ').');
+      // 'status' trae el motivo de verdad; 'status_code' solo dice ERROR.
+      throw new Error(`Instagram rechazó ${que}: ${d.status || d.status_code}`);
     }
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, cada));
   }
-  throw new Error('Instagram tardó demasiado en preparar la imagen.');
+  throw new Error(`Instagram tardó demasiado en preparar ${que}.`);
 }
 
 async function publicarEnInstagram(pieza: any) {
@@ -297,10 +326,24 @@ async function publicarEnInstagram(pieza: any) {
 
   const yo = await aMeta(`${IG}/me?fields=user_id&access_token=${TOKEN_IG}`);
   const idIG = yo.user_id || yo.id;
-  const copy = pieza.copy || '';
+  const copy = copyDe(pieza, 'ig');
   let contenedor: string;
+  const video = esVideo(archivos[0]);
 
-  if (archivos.length === 1) {
+  if (video) {
+    /* En Instagram todo video es Reel: el formato de video suelto ya
+       no existe. share_to_feed lo deja tambien en el perfil, que es
+       lo que espera cualquiera que lo suba desde el telefono. */
+    const d = await aMetaPost(`${IG}/${idIG}/media`, {
+      media_type: 'REELS',
+      video_url: await enlaceFirmado(archivos[0].ruta),
+      share_to_feed: 'true',
+      caption: copy,
+      access_token: TOKEN_IG,
+    });
+    contenedor = d.id;
+    await esperarContenedor(contenedor, true);
+  } else if (archivos.length === 1) {
     const d = await aMetaPost(`${IG}/${idIG}/media`, {
       image_url: await enlaceFirmado(paraPublicar(archivos[0])),
       caption: copy,
@@ -341,7 +384,7 @@ async function publicarEnInstagram(pieza: any) {
     enlace = m.permalink || null;
   } catch { /* el permalink es un extra: ya se publicó */ }
 
-  return { id: salida.id, enlace, laminas: archivos.length };
+  return { id: salida.id, enlace, laminas: archivos.length, video };
 }
 
 /* Facebook no tiene carrusel como Instagram. Varias fotos se suben
@@ -353,10 +396,18 @@ async function publicarEnFacebook(pieza: any) {
   const archivos = archivosDe(pieza);
   revisarArte(pieza, 'fb');
   const pagina = await aMeta(`${FB}/me?fields=id,name&access_token=${TOKEN_FB}`);
-  const copy = pieza.copy || '';
+  const copy = copyDe(pieza, 'fb');
   let idPost: string;
 
-  if (!archivos.length) {
+  if (archivos.length === 1 && esVideo(archivos[0])) {
+    /* El video de pagina va por su propio punto de entrada, y el
+       texto se llama 'description' y no 'message'. */
+    const d = await aMetaPost(`${FB}/${pagina.id}/videos`, {
+      file_url: await enlaceFirmado(archivos[0].ruta),
+      description: copy,
+      access_token: TOKEN_FB });
+    idPost = d.post_id || d.id;
+  } else if (!archivos.length) {
     const d = await aMetaPost(`${FB}/${pagina.id}/feed`, {
       message: copy, access_token: TOKEN_FB });
     idPost = d.id;

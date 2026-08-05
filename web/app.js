@@ -2495,6 +2495,13 @@ function abrirPieza(idPieza, prellenado) {
     <div class="grupo-campo">
       <label for="f_copy">Copy</label>
       <textarea class="campo" id="f_copy" placeholder="El texto que acompaña la publicación">${esc(p.copy)}</textarea>
+    </div>
+
+    <div class="grupo-campo">
+      <label for="f_copy_fb">Copy para Facebook <span class="tenue">· opcional</span></label>
+      <textarea class="campo" id="f_copy_fb" rows="3"
+        placeholder="Déjalo vacío y sale el mismo de arriba">${esc(p.copy_fb || '')}</textarea>
+      <span class="ayuda">En Instagram el copy va largo y con etiquetas al final; en Facebook las etiquetas estorban y se lee mejor corto. Si aquí no escribes nada, Facebook usa el de arriba.</span>
       <span class="ayuda">El copy se trabaja en sesión con Claude, donde puedes iterarlo. Aquí se guarda el resultado.</span>
     </div>
 
@@ -2555,8 +2562,14 @@ function abrirPieza(idPieza, prellenado) {
       avisar('Guarda la pieza primero: las laminas se cuelgan de ella.');
       return;
     }
-    const grandes = elegidos.filter(f => f.size > 25 * 1024 * 1024);
-    if (grandes.length) { avisar(`${grandes.length} archivo(s) pasan de 25 MB.`); return; }
+    // La cubeta topa en 50 MB. Un video de un minuto en vertical cabe;
+    // uno de tres, no. Mas vale decirlo aqui que a la mitad de la subida.
+    const grandes = elegidos.filter(f => f.size > 50 * 1024 * 1024);
+    if (grandes.length) {
+      fallo(new Error(`«${grandes[0].name}» pasa de 50 MB. Si es video, ` +
+                      `expórtalo más corto o con menos calidad.`));
+      return;
+    }
 
     const b = $('#btnSubirArchivo');
     b.disabled = true;
@@ -2629,7 +2642,10 @@ function abrirPieza(idPieza, prellenado) {
     aReemplazar = null;
     ev.target.value = '';
     if (!f || i === null) return;
-    if (f.size > 25 * 1024 * 1024) { fallo(new Error('El archivo pasa de 25 MB.')); return; }
+    if (f.size > 50 * 1024 * 1024) {
+      fallo(new Error(`«${f.name}» pasa de 50 MB. Si es video, expórtalo más corto o con menos calidad.`));
+      return;
+    }
 
     const teja = $$('.lamina', $('#listaLaminas'))[i];
     if (teja) teja.classList.add('cargando');
@@ -2993,6 +3009,7 @@ function leerPieza() {
   p.responsable = $('#f_responsable').value.trim();
   p.experto     = $('#f_experto').value;
   p.copy        = $('#f_copy').value;
+  p.copy_fb     = $('#f_copy_fb').value.trim();
   p.notas       = $('#f_notas').value;
   p.produccion  = $('#f_produccion').value;
   p.no_antes    = $('#f_no_antes').value;
@@ -4680,10 +4697,22 @@ const APROBACIONES = {
    portada no cambia el numero de laminas y es justo lo que se
    revisa. */
 function selloDeRevision(p) {
+  /* El copy de Facebook va colgado del de Instagram con un separador
+     invisible en vez de ser un elemento aparte: asi una pieza sin
+     copy propio de Facebook conserva la huella que ya tenia y no se
+     caducan de golpe las aprobaciones viejas. */
   return JSON.stringify([
     archivosDe(p).map(a => a.ruta),
-    p.copy || '', p.titulo || '', p.fecha || '', (p.canales || []).join(','),
+    (p.copy || '') + (p.copy_fb ? '\u0000' + p.copy_fb : ''),
+    p.titulo || '', p.fecha || '', (p.canales || []).join(','),
   ]);
+}
+
+/* Facebook hereda el copy de Instagram si no tiene uno propio.
+   Obligar a escribir dos veces lo mismo solo lograria que el segundo
+   se quedara viejo. */
+function copyDe(p, red) {
+  return (red === 'fb' ? (p.copy_fb || p.copy) : p.copy) || '';
 }
 
 /* "La pieza cambio" no le sirve a nadie: lo que hace falta saber es
