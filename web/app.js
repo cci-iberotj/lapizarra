@@ -2042,6 +2042,7 @@ function renumerarLaminas() {
     if (n) n.textContent = i + 1;
     const d = $('[data-descargar]', t); if (d) d.dataset.descargar = i;
     const q = $('[data-quitar]', t);    if (q) q.dataset.quitar = i;
+    const x = $('[data-reemplazar]', t); if (x) x.dataset.reemplazar = i;
   });
 }
 
@@ -2412,6 +2413,7 @@ function abrirPieza(idPieza, prellenado) {
       ${!archivosDe(p).length ? '<span class="ayuda">Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.</span>'
         : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.</span>'}
       <input type="file" id="f_archivo" multiple hidden>
+      <input type="file" id="f_reemplazo" hidden>
       <div class="imagen-acciones">
         <button type="button" class="btn-plano" id="btnSubirArchivo">${archivosDe(p).length ? '+ Agregar láminas' : 'Subir arte final'}</button>
       </div>
@@ -2504,17 +2506,7 @@ function abrirPieza(idPieza, prellenado) {
     try {
       for (let i = 0; i < elegidos.length; i++) {
         b.textContent = `Subiendo ${i + 1} de ${elegidos.length}…`;
-        const f = elegidos[i];
-        const lamina = { ruta: await subirArchivo(d.id, f),
-                         nombre: f.name, peso: f.size, tipo: f.type };
-        const raiz = f.name.replace(/\.[^.]+$/, '');
-        const ligera = await versionLigera(f, ANCHO_PREVIA, 0.82);
-        if (ligera) {
-          lamina.previa = await subirArchivo(d.id, ligera, 'previa-' + raiz + '.jpg');
-          lamina.pesoPrevia = ligera.size;
-        }
-        const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
-        if (sello) lamina.mini = await subirArchivo(d.id, sello, 'mini-' + raiz + '.jpg');
+        const lamina = await subirLamina(d.id, elegidos[i]);
         d.archivos.push(lamina);
         nuevas.push(lamina);
       }
@@ -2527,6 +2519,7 @@ function abrirPieza(idPieza, prellenado) {
         const teja = caja.lastElementChild;
         conectarQuitar($('[data-quitar]', teja));
         conectarDescargar($('[data-descargar]', teja));
+        conectarReemplazar($('[data-reemplazar]', teja));
       });
       renumerarLaminas();
       refrescarRotuloLaminas();
@@ -2534,10 +2527,77 @@ function abrirPieza(idPieza, prellenado) {
       conectarArrastreLaminas(laminas);
       asentarLaminas(`${elegidos.length} lámina(s) arriba.`);
     } catch (e) {
-      avisar(e.message);
-    } finally { b.disabled = false; }
+      fallo(e);
+    } finally {
+      b.disabled = false;
+      /* Sin esto, volver a elegir EL MISMO archivo no dispara nada:
+         el navegador no manda 'change' si el valor no cambio, asi que
+         el segundo intento no hace absolutamente nada y tampoco lo
+         dice. Parece que subiste algo y no subiste nada. */
+      ev.target.value = '';
+    }
   });
   $('#btnSubirArchivo').addEventListener('click', () => $('#f_archivo').click());
+
+  /* Un fallo al subir tiene que quedarse a la vista donde estabas
+     mirando. El aviso de arriba se va solo en unos segundos y este
+     es justo el que no te puedes perder. */
+  function fallo(e) {
+    const mensaje = (e && e.message) || 'No se pudo subir.';
+    avisar(mensaje);
+    const grupo = $('#listaLaminas') && $('#listaLaminas').closest('.grupo-campo');
+    if (!grupo) return;
+    let aviso = $('.lamina-error', grupo);
+    if (!aviso) {
+      aviso = document.createElement('p');
+      aviso.className = 'lamina-error';
+      aviso.setAttribute('role', 'alert');
+      grupo.insertBefore(aviso, $('.imagen-acciones', grupo));
+    }
+    aviso.textContent = '⚠ ' + mensaje;
+  }
+  const limpiarFallo = () => { const a = $('.lamina-error'); if (a) a.remove(); };
+
+  /* REEMPLAZAR, que es lo que la gente busca cuando corrige un arte.
+     Sin esto lo unico que habia era "+ Agregar", que deja la version
+     vieja dentro y obliga a borrarla a mano -- y en un post de una
+     sola imagen ni siquiera parece la opcion correcta. */
+  let aReemplazar = null;
+  $('#f_reemplazo').addEventListener('change', async ev => {
+    const f = ev.target.files[0];
+    const i = aReemplazar;
+    aReemplazar = null;
+    ev.target.value = '';
+    if (!f || i === null) return;
+    if (f.size > 25 * 1024 * 1024) { fallo(new Error('El archivo pasa de 25 MB.')); return; }
+
+    const teja = $$('.lamina', $('#listaLaminas'))[i];
+    if (teja) teja.classList.add('cargando');
+    limpiarFallo();
+    try {
+      const l = laminas();
+      l[i] = await subirLamina(modalCtx.datos.id, f);
+      if (teja) {
+        teja.outerHTML = dibujarLamina(l[i], i);
+        const nueva = $$('.lamina', $('#listaLaminas'))[i];
+        conectarQuitar($('[data-quitar]', nueva));
+        conectarDescargar($('[data-descargar]', nueva));
+        conectarReemplazar($('[data-reemplazar]', nueva));
+        pintarMiniaturas(nueva);
+      }
+      asentarLaminas(`Lámina ${i + 1} cambiada por «${f.name}».`);
+    } catch (e) {
+      fallo(e);
+      if (teja) teja.classList.remove('cargando');
+    }
+  });
+
+  const conectarReemplazar = b => b.addEventListener('click', () => {
+    aReemplazar = +b.dataset.reemplazar;
+    limpiarFallo();
+    $('#f_reemplazo').click();
+  });
+  $$('[data-reemplazar]').forEach(conectarReemplazar);
 
   const laminas = () => { const d = modalCtx.datos; d.archivos = archivosDe(d); return d.archivos; };
 
@@ -2668,6 +2728,7 @@ function dibujarLamina(a, i) {
     <span class="lamina-foto" data-sello="${esc(selloDe(a))}"></span>
     <span class="lamina-n">${i + 1}</span>
     <span class="lamina-acciones">
+      <button type="button" class="btn-mini" data-reemplazar="${i}" title="Cambiar esta lámina por otra">⇄</button>
       <button type="button" class="btn-mini" data-descargar="${i}" title="Descargar el original">⬇</button>
       <button type="button" class="btn-mini" data-quitar="${i}" title="Quitar de la pieza">×</button>
     </span>
@@ -2703,6 +2764,22 @@ function pintarMiniaturas(raiz) {
       el.classList.add('rota');
     }
   });
+}
+
+/* Una lamina son sus tres tamaños. Se sube en un solo sitio para
+   que agregar y reemplazar no acaben haciendo cosas distintas. */
+async function subirLamina(idPieza, f) {
+  const lamina = { ruta: await subirArchivo(idPieza, f),
+                   nombre: f.name, peso: f.size, tipo: f.type };
+  const raiz = f.name.replace(/\.[^.]+$/, '');
+  const ligera = await versionLigera(f, ANCHO_PREVIA, 0.82);
+  if (ligera) {
+    lamina.previa = await subirArchivo(idPieza, ligera, 'previa-' + raiz + '.jpg');
+    lamina.pesoPrevia = ligera.size;
+  }
+  const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
+  if (sello) lamina.mini = await subirArchivo(idPieza, sello, 'mini-' + raiz + '.jpg');
+  return lamina;
 }
 
 async function subirArchivo(idPieza, archivo, nombre) {

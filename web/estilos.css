@@ -3116,3 +3116,26 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 @media (max-width: 900px) {
   .panel-avisos { position: fixed; top: auto; left: 10px; right: 10px; width: auto; }
 }
+
+/* Tres botones ya no caben en una miniatura de 92 px sin taparla. */
+.lamina-acciones .btn-mini { width: 19px; height: 19px; font-size: .64rem; }
+
+.lamina.cargando { opacity: .45; pointer-events: none; }
+.lamina.cargando::before {
+  content: 'Subiendo…';
+  position: absolute; inset: auto 0 0 0; z-index: 2;
+  padding: 2px 0; text-align: center;
+  background: rgba(20, 18, 16, .8); color: #fff;
+  font-size: .56rem; letter-spacing: .06em;
+}
+
+/* Un fallo al subir se queda donde estabas mirando. El aviso de
+   arriba se va solo, y este es el que no te puedes perder. */
+.lamina-error {
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  border-left: 3px solid var(--marca);
+  background: var(--capa-2);
+  color: var(--texto);
+  font-size: .84rem;
+}
