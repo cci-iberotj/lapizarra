@@ -166,6 +166,14 @@ const ESTADOS = [
    color es trabajo cerrado, el blanco es trabajo pendiente. */
 const LISTO_PARA_SALIR = ['programado', 'publicado'];
 
+/* La aprobacion tiene que verse SIN abrir la pieza. Si hay que
+   entrar a cada una para saber cuales van, la revision no ocurre:
+   nadie abre veinte fichas para buscar las que faltan. */
+function marcaAprobacion(p) {
+  const e = p.aprobacion && p.aprobacion.estado;
+  return e === 'aprobado' ? ' aprobada' : e === 'cambios' ? ' con-cambios' : '';
+}
+
 const CATEGORIAS = [
   { id: 'camara',        nombre: 'Cámara' },
   { id: 'lente',         nombre: 'Lente' },
@@ -646,7 +654,7 @@ function pintarPiezas() {
         return c ? `<span class="chip chip-canal" style="background:${c.color}" title="${esc(c.nombre)}">${esc(c.corto)}</span>` : '';
       }).join('');
       return `
-        <div class="pieza${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
+        <div class="pieza${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
           <div class="pieza-cuerpo">
             <div class="pieza-titulo">${esc(p.titulo || 'Sin título')}</div>
             <div class="pieza-meta">
@@ -670,7 +678,7 @@ function pintarPiezas() {
   }).join('');
 
   $$('.pieza', cont).forEach(el => {
-    el.addEventListener('click', () => abrirPieza(el.dataset.id));
+    el.addEventListener('click', () => abrirPrevia(el.dataset.id));
   });
 }
 
@@ -1063,7 +1071,7 @@ function pintarEscritorio() {
     </div>`;
 
   $$('.mia', cont).forEach(el =>
-    el.addEventListener('click', () => abrirPieza(el.dataset.id)));
+    el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
   const px = $('.escritorio-proximo', cont);
   if (px) px.addEventListener('click', () => abrirEvento(px.dataset.evento));
 }
@@ -1918,7 +1926,7 @@ function pintarCalendario() {
       const rotulo = p.no_antes ? `Sólo a partir del ${fechaLegible(p.no_antes)}`
                    : p.no_despues ? `Sólo hasta el ${fechaLegible(p.no_despues)}` : '';
       return `
-        <div class="cal-pieza${p.imagen ? '' : ' sin-imagen'}${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}" data-id="${esc(p.id)}" style="--pieza-tono:${relleno}"
+        <div class="cal-pieza${p.imagen ? '' : ' sin-imagen'}${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${relleno}"
              draggable="true" title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
@@ -1958,7 +1966,7 @@ function pintarCalendario() {
   cont.innerHTML = celdas.join('');
 
   $$('.cal-pieza', cont).forEach(el =>
-    el.addEventListener('click', () => abrirPieza(el.dataset.id)));
+    el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
   $$('.cal-evento', cont).forEach(el =>
     el.addEventListener('click', ev => { ev.stopPropagation(); abrirEvento(el.dataset.evento); }));
   $$('.celda-agregar', cont).forEach(b =>
@@ -2173,17 +2181,23 @@ function abrirPieza(idPieza, prellenado) {
     </div>
 
     <div class="grupo-campo">
-      <label>Archivo final</label>
-      ${p.archivo ? `
-        <div class="ficha-plana">
-          <b>⬇ ${esc(p.archivo.split('/').pop())}</b>
-          <button type="button" class="btn-plano" id="btnBajarArchivo">Descargar original</button>
-          <button type="button" class="btn-mini" id="btnQuitarArchivo">Quitar</button>
-        </div>`
-      : '<span class="ayuda">Todavía no hay archivo final. Sube el arte terminado para que el equipo lo pueda bajar en su calidad completa.</span>'}
-      <input type="file" id="f_archivo" hidden>
+      <label>Arte final${archivosDe(p).length > 1 ? ' · ' + archivosDe(p).length + ' láminas' : ''}</label>
+      <div class="laminas" id="listaLaminas">
+        ${archivosDe(p).map((a, i) => `
+          <div class="lamina" data-lamina="${i}">
+            <span class="lamina-n">${i + 1}</span>
+            <b>${esc(a.nombre || a.ruta.split('/').pop())}</b>
+            <button type="button" class="btn-mini" data-subir="${i}" title="Subir en el orden">↑</button>
+            <button type="button" class="btn-mini" data-bajar="${i}" title="Bajar en el orden">↓</button>
+            <button type="button" class="btn-mini" data-descargar="${i}" title="Descargar">⬇</button>
+            <button type="button" class="btn-mini" data-quitar="${i}" title="Quitar de la pieza">×</button>
+          </div>`).join('')}
+      </div>
+      ${!archivosDe(p).length ? '<span class="ayuda">Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.</span>'
+        : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Se reordena con las flechas.</span>'}
+      <input type="file" id="f_archivo" multiple hidden>
       <div class="imagen-acciones">
-        <button type="button" class="btn-plano" id="btnSubirArchivo">${p.archivo ? 'Reemplazar archivo' : 'Subir archivo final'}</button>
+        <button type="button" class="btn-plano" id="btnSubirArchivo">${archivosDe(p).length ? '+ Agregar láminas' : 'Subir arte final'}</button>
       </div>
     </div>
 
@@ -2254,41 +2268,60 @@ function abrirPieza(idPieza, prellenado) {
   /* El archivo final. Sube el original tal cual -- sin reducir --
      porque el punto de este bloque es justo lo que la miniatura no
      puede dar. */
+  /* Varias laminas de una vez. Se suben en el orden en que se
+     eligieron, que es el que la gente espera. */
   $('#f_archivo').addEventListener('change', async ev => {
-    const f = ev.target.files[0];
-    if (!f) return;
-    if (f.size > 25 * 1024 * 1024) { avisar('El archivo pasa de 25 MB.'); return; }
+    const elegidos = [...ev.target.files];
+    if (!elegidos.length) return;
     if (modalCtx.esNuevo) {
-      avisar('Guarda la pieza primero: el archivo se cuelga de ella.');
+      avisar('Guarda la pieza primero: las laminas se cuelgan de ella.');
       return;
     }
+    const grandes = elegidos.filter(f => f.size > 25 * 1024 * 1024);
+    if (grandes.length) { avisar(`${grandes.length} archivo(s) pasan de 25 MB.`); return; }
+
     const b = $('#btnSubirArchivo');
-    b.disabled = true; b.textContent = 'Subiendo…';
+    b.disabled = true;
+    const d = modalCtx.datos;
+    d.archivos = archivosDe(d);
     try {
-      modalCtx.datos.archivo = await subirArchivo(modalCtx.datos.id, f);
-      avisar(`Archivo subido (${pesoLegible(f.size)}). Se guarda al guardar la pieza.`);
-      b.textContent = 'Reemplazar archivo';
+      for (let i = 0; i < elegidos.length; i++) {
+        b.textContent = `Subiendo ${i + 1} de ${elegidos.length}…`;
+        const f = elegidos[i];
+        const ruta = await subirArchivo(d.id, f);
+        d.archivos.push({ ruta, nombre: f.name, peso: f.size, tipo: f.type });
+      }
+      delete d.archivo;   // el campo viejo se retira al migrar
+      avisar(`${elegidos.length} lámina(s) arriba. Se guardan al guardar la pieza.`);
+      abrirPieza(d.id);   // repinta la lista
     } catch (e) {
       avisar(e.message);
-      b.textContent = 'Subir archivo final';
     } finally { b.disabled = false; }
   });
   $('#btnSubirArchivo').addEventListener('click', () => $('#f_archivo').click());
 
-  if ($('#btnBajarArchivo')) {
-    $('#btnBajarArchivo').addEventListener('click', async () => {
-      avisar('Bajando…');
-      try { await bajarArchivo(modalCtx.datos.archivo); }
-      catch (e) { avisar(e.message); }
-    });
-  }
-  if ($('#btnQuitarArchivo')) {
-    $('#btnQuitarArchivo').addEventListener('click', () => {
-      modalCtx.datos.archivo = '';
-      avisar('Archivo desligado de la pieza. Se guarda al guardar.');
-      $('#btnQuitarArchivo').closest('.ficha-plana').remove();
-    });
-  }
+  const laminas = () => { const d = modalCtx.datos; d.archivos = archivosDe(d); return d.archivos; };
+  const repintarLaminas = () => { delete modalCtx.datos.archivo; abrirPieza(modalCtx.datos.id); };
+
+  $$('[data-subir]').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.subir, l = laminas();
+    if (i > 0) { [l[i - 1], l[i]] = [l[i], l[i - 1]]; repintarLaminas(); }
+  }));
+  $$('[data-bajar]').forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.bajar, l = laminas();
+    if (i < l.length - 1) { [l[i + 1], l[i]] = [l[i], l[i + 1]]; repintarLaminas(); }
+  }));
+  $$('[data-descargar]').forEach(b => b.addEventListener('click', async () => {
+    avisar('Bajando…');
+    try { await bajarArchivo(laminas()[+b.dataset.descargar].ruta); }
+    catch (e) { avisar(e.message); }
+  }));
+  $$('[data-quitar]').forEach(b => b.addEventListener('click', () => {
+    const l = laminas();
+    const fuera = l.splice(+b.dataset.quitar, 1)[0];
+    avisar(`«esc» desligada. Se guarda al guardar.`.replace('esc', fuera.nombre || 'Lámina'));
+    repintarLaminas();
+  }));
 
   $('#btnGuia').addEventListener('click', () => {
     const pasos = guiaDeProduccion($('#f_formato').value, $('#f_pilar').value);
@@ -4126,6 +4159,293 @@ function leerVuelo() {
   return true;
 }
 
+/* ══════════════════════════════════════════════════════════
+   VISTA PREVIA Y APROBACIÓN
+
+   Antes, un clic en una pieza abría directo el formulario de
+   edición. Eso está bien para quien la produce y mal para todos los
+   demás: Marysol no entra a corregir campos, entra a VER cómo va a
+   quedar el post y a decir si va.
+
+   Ahora el clic abre una simulación de la publicación. Editar es un
+   botón dentro, no la puerta de entrada.
+
+   LO QUE CAMBIA EN EL MODELO
+   Una pieza guardaba UN archivo. Un carrusel son varios, en un
+   orden que importa: la primera lámina es la que detiene el pulgar.
+   Por eso ahora es una lista, y se puede reordenar.
+
+   QUIÉN APRUEBA
+   Sólo dirección y quien administra. Publicación sube al sitio lo
+   que ya se aprobó — no es quien decide.
+   ══════════════════════════════════════════════════════════ */
+
+const APROBACIONES = {
+  pendiente: { nombre: 'Sin revisar',     color: 'var(--tinta-tenue)' },
+  aprobado:  { nombre: 'Aprobado',        color: 'var(--ok)' },
+  cambios:   { nombre: 'Pide cambios',    color: 'var(--alerta)' },
+};
+
+function puedeAprobar() {
+  const rol = Almacen.usuario && Almacen.usuario.rol;
+  return !Almacen.enLaNube || rol === 'admin' || rol === 'direccion';
+}
+
+/* Los archivos de una pieza, siempre como lista. Lo capturado antes
+   traía un solo `archivo`; se traduce al vuelo para no perderlo. */
+function archivosDe(p) {
+  if (Array.isArray(p.archivos)) return p.archivos;
+  if (p.archivo) return [{ ruta: p.archivo, nombre: p.archivo.split('/').pop() }];
+  return [];
+}
+
+/* Las imágenes viven en una cubeta privada: no se pueden poner en un
+   src directo porque la petición tiene que llevar la sesión. Se bajan
+   una vez y se guardan como URL de objeto mientras dure la pestaña. */
+const cacheArchivos = new Map();
+
+async function urlDeArchivo(ruta) {
+  if (cacheArchivos.has(ruta)) return cacheArchivos.get(ruta);
+  const token = await Almacen.motor._token();
+  const r = await fetch(
+    `${CONFIG.supabase.url}/storage/v1/object/${CUBETA}/${encodeURI(ruta)}`, {
+      headers: { apikey: CONFIG.supabase.llave, Authorization: 'Bearer ' + token },
+    });
+  if (!r.ok) throw new Error('No se pudo abrir ' + ruta.split('/').pop());
+  const url = URL.createObjectURL(await r.blob());
+  cacheArchivos.set(ruta, url);
+  return url;
+}
+
+
+/* ── La ficha de vista previa ──────────────────────────── */
+
+let previaCtx = null;
+let laminaActual = 0;
+
+function abrirPrevia(idPieza) {
+  const p = datos.parrilla.piezas.find(x => x.id === idPieza);
+  if (!p) return;
+
+  previaCtx = { pieza: p };
+  laminaActual = 0;
+  $('#previa').hidden = false;
+  document.addEventListener('keydown', tecladoPrevia);
+  pintarPrevia();
+}
+
+function cerrarPrevia() {
+  $('#previa').hidden = true;
+  document.removeEventListener('keydown', tecladoPrevia);
+  previaCtx = null;
+}
+
+function tecladoPrevia(ev) {
+  if (!previaCtx) return;
+  if (ev.key === 'Escape') { cerrarPrevia(); return; }
+  const n = archivosDe(previaCtx.pieza).length;
+  if (n < 2) return;
+  if (ev.key === 'ArrowRight') { laminaActual = (laminaActual + 1) % n; pintarLaminas(); }
+  if (ev.key === 'ArrowLeft')  { laminaActual = (laminaActual - 1 + n) % n; pintarLaminas(); }
+}
+
+function pintarPrevia() {
+  const p = previaCtx.pieza;
+  const cuerpo = $('#previaCuerpo');
+  const pil = PILARES.find(x => x.id === p.pilar);
+  const est = ESTADOS.find(x => x.id === p.estado);
+  const ap = p.aprobacion || { estado: 'pendiente', comentarios: [] };
+  const marca = APROBACIONES[ap.estado] || APROBACIONES.pendiente;
+  const archivos = archivosDe(p);
+  const esCarrusel = archivos.length > 1 || p.formato === 'Carrusel';
+
+  const canales = (p.canales || [])
+    .map(id => CANALES.find(c => c.id === id)).filter(Boolean);
+  // La simulación se arma con el primer canal: un post de Instagram
+  // y uno de LinkedIn no se ven igual, y enseñar un promedio de los
+  // dos no le sirve a nadie.
+  const canal = canales[0] || CANALES[1];
+
+  cuerpo.innerHTML = `
+    <div class="previa-rejilla">
+
+      <div class="simulacion">
+        <div class="sim-marco sim-${esc(canal.id)}">
+          <div class="sim-cabecera">
+            <div class="sim-avatar" aria-hidden="true">IB</div>
+            <div>
+              <b>iberotijuana</b>
+              <span>${esc(canal.nombre)}</span>
+            </div>
+          </div>
+
+          <div class="sim-lienzo" id="simLienzo"></div>
+
+          ${esCarrusel ? '<div class="sim-puntos" id="simPuntos"></div>' : ''}
+
+          <div class="sim-copy">
+            <b>iberotijuana</b>
+            ${p.copy ? esc(p.copy).replace(/\n/g, '<br>')
+                     : '<i class="tenue">Sin copy todavía. Se escribe en Editar.</i>'}
+          </div>
+        </div>
+      </div>
+
+      <div class="previa-datos">
+        <div class="previa-titulo">${esc(p.titulo || 'Sin título')}</div>
+
+        <div class="previa-chips">
+          ${pil ? `<span class="chip chip-pilar" style="background:${pil.solido}">${esc(pil.nombre)}</span>` : ''}
+          ${p.formato ? `<span class="chip chip-estado" style="color:${est ? est.color : 'var(--tinta-media)'}">${esc(p.formato)}</span>` : ''}
+          ${canales.map(c => `<span class="chip chip-canal" style="background:${c.color}">${esc(c.corto)}</span>`).join('')}
+        </div>
+
+        <dl class="previa-lista">
+          <dt>Sale</dt><dd>${esc(fechaLegible(p.fecha) || 'sin fecha')}</dd>
+          <dt>Estado</dt><dd style="color:${est ? est.color : ''}">${esc(est ? est.nombre : '—')}</dd>
+          <dt>Responsable</dt><dd>${esc(p.responsable || 'sin asignar')}</dd>
+          ${archivos.length ? `<dt>Archivos</dt><dd>${archivos.length} ${archivos.length === 1 ? 'lámina' : 'láminas'}</dd>` : ''}
+        </dl>
+
+        ${p.notas ? `<div class="previa-notas"><b>Notas</b>${esc(p.notas).replace(/\n/g,'<br>')}</div>` : ''}
+
+        <div class="previa-aprobacion" style="--tono:${marca.color}">
+          <div class="ap-estado">
+            <span class="ap-punto"></span>
+            <b>${esc(marca.nombre)}</b>
+            ${ap.por ? `<span class="tenue">· ${esc(ap.por)}${ap.cuando ? ', ' + esc(fechaLegible(ap.cuando.slice(0,10))) : ''}</span>` : ''}
+          </div>
+
+          ${(ap.comentarios || []).length ? `
+            <div class="ap-hilo">
+              ${ap.comentarios.map(c => `
+                <div class="ap-comentario">
+                  <b>${esc(c.quien)}</b>
+                  <span class="tenue">${esc(fechaLegible((c.cuando||'').slice(0,10)))}</span>
+                  <p>${esc(c.texto).replace(/\n/g,'<br>')}</p>
+                </div>`).join('')}
+            </div>` : ''}
+
+          ${puedeAprobar() ? `
+            <div class="ap-acciones">
+              <button class="btn-primario" id="apAprobar">✓ Aprobar</button>
+              <button class="btn-plano" id="apCambios">Pedir cambios</button>
+            </div>` : ''}
+
+          <div class="ap-nuevo">
+            <label for="apTexto" class="sr-solo">Comentario</label>
+            <textarea class="campo" id="apTexto" rows="2"
+              placeholder="${puedeAprobar() ? 'Comentario (opcional al aprobar, necesario al pedir cambios)' : 'Deja un comentario'}"></textarea>
+            ${!puedeAprobar() ? '<button class="btn-plano" id="apComentar">Comentar</button>' : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  $('#previaTitulo').textContent = 'Vista previa';
+  pintarLaminas();
+  conectarPrevia();
+}
+
+async function pintarLaminas() {
+  const p = previaCtx.pieza;
+  const archivos = archivosDe(p);
+  const lienzo = $('#simLienzo');
+  if (!lienzo) return;
+
+  if (!archivos.length) {
+    lienzo.innerHTML = p.imagen
+      ? `<img src="${esc(p.imagen)}" alt="">
+         <div class="sim-aviso">Sólo hay miniatura. Sube el arte final en Editar.</div>`
+      : `<div class="sim-vacio">
+           Todavía no hay arte.<br>
+           <span class="tenue">Súbelo desde Editar y aquí se verá como va a salir.</span>
+         </div>`;
+    return;
+  }
+
+  const puntos = $('#simPuntos');
+  if (puntos) {
+    puntos.innerHTML = archivos.map((_, i) =>
+      `<button class="sim-punto${i === laminaActual ? ' activo' : ''}" data-lamina="${i}"
+         aria-label="Lámina ${i + 1} de ${archivos.length}"></button>`).join('');
+    $$('.sim-punto', puntos).forEach(b => b.addEventListener('click', () => {
+      laminaActual = +b.dataset.lamina; pintarLaminas();
+    }));
+  }
+
+  const a = archivos[laminaActual] || archivos[0];
+  lienzo.innerHTML = '<div class="sim-cargando">Cargando…</div>';
+  try {
+    const url = await urlDeArchivo(a.ruta);
+    const flechas = archivos.length > 1 ? `
+      <button class="sim-flecha izq" id="simAtras" aria-label="Lámina anterior">‹</button>
+      <button class="sim-flecha der" id="simAdelante" aria-label="Lámina siguiente">›</button>
+      <span class="sim-cuenta">${laminaActual + 1}/${archivos.length}</span>` : '';
+    lienzo.innerHTML = `<img src="${url}" alt="${esc(a.nombre || '')}">${flechas}`;
+
+    if (archivos.length > 1) {
+      $('#simAtras').addEventListener('click', () => {
+        laminaActual = (laminaActual - 1 + archivos.length) % archivos.length; pintarLaminas();
+      });
+      $('#simAdelante').addEventListener('click', () => {
+        laminaActual = (laminaActual + 1) % archivos.length; pintarLaminas();
+      });
+    }
+  } catch (e) {
+    lienzo.innerHTML = `<div class="sim-vacio">${esc(e.message)}</div>`;
+  }
+}
+
+function conectarPrevia() {
+  const p = previaCtx.pieza;
+
+  const registrarAprobacion = (estado) => {
+    const texto = ($('#apTexto').value || '').trim();
+    if (estado === 'cambios' && !texto) {
+      avisar('Escribe qué hay que cambiar: sin eso el aviso no sirve de nada.');
+      $('#apTexto').focus();
+      return;
+    }
+    p.aprobacion = p.aprobacion || { comentarios: [] };
+    p.aprobacion.estado = estado;
+    p.aprobacion.por = Almacen.usuario ? Almacen.usuario.nombre : '';
+    p.aprobacion.cuando = ahora();
+    if (texto) {
+      p.aprobacion.comentarios = p.aprobacion.comentarios || [];
+      p.aprobacion.comentarios.push({
+        quien: Almacen.usuario ? Almacen.usuario.nombre : '',
+        cuando: ahora(), texto,
+      });
+    }
+    p.actualizado = ahora();
+    guardar('parrilla');
+    registrar(`${estado === 'aprobado' ? 'Aprobó' : 'Pidió cambios en'} «${p.titulo}»`);
+    avisar(estado === 'aprobado' ? 'Aprobada.' : 'Se registró la petición de cambios.');
+    pintarPrevia();
+    refrescarParrilla();
+  };
+
+  if ($('#apAprobar')) $('#apAprobar').addEventListener('click', () => registrarAprobacion('aprobado'));
+  if ($('#apCambios')) $('#apCambios').addEventListener('click', () => registrarAprobacion('cambios'));
+
+  if ($('#apComentar')) $('#apComentar').addEventListener('click', () => {
+    const texto = ($('#apTexto').value || '').trim();
+    if (!texto) return;
+    p.aprobacion = p.aprobacion || { estado: 'pendiente', comentarios: [] };
+    p.aprobacion.comentarios = p.aprobacion.comentarios || [];
+    p.aprobacion.comentarios.push({
+      quien: Almacen.usuario ? Almacen.usuario.nombre : '',
+      cuando: ahora(), texto,
+    });
+    p.actualizado = ahora();
+    guardar('parrilla');
+    avisar('Comentario guardado.');
+    pintarPrevia();
+  });
+}
+
+
 /* ── Modal: control común ──────────────────────────────── */
 
 /* Quien tenía el foco antes de abrir, para devolvérselo al cerrar. */
@@ -4408,6 +4728,22 @@ function conectarEventos() {
 
   $('#nuevaPieza').addEventListener('click', () => abrirPieza(null));
   $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));
+
+  $('#previaCerrar').addEventListener('click', cerrarPrevia);
+  $('#previaEditar').addEventListener('click', () => {
+    const id = previaCtx && previaCtx.pieza.id;
+    cerrarPrevia();
+    if (id) abrirPieza(id);
+  });
+  // Cerrar al picar el fondo, con la misma guarda que el modal:
+  // el gesto tiene que empezar Y terminar fuera.
+  let origenPrevia = null;
+  $('#previa').addEventListener('mousedown', ev => { origenPrevia = ev.target; });
+  $('#previa').addEventListener('click', ev => {
+    const empezoFuera = origenPrevia && origenPrevia.id === 'previa';
+    origenPrevia = null;
+    if (ev.target.id === 'previa' && empezoFuera) cerrarPrevia();
+  });
   $('#btnAjustes').addEventListener('click', () => $('[data-vista="ajustes"]').click());
   $('#nuevoEquipo').addEventListener('click', () => abrirEquipo(null));
   $('#nuevoVuelo').addEventListener('click', () => abrirVuelo(null));
