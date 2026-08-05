@@ -170,8 +170,10 @@ const LISTO_PARA_SALIR = ['programado', 'publicado'];
    entrar a cada una para saber cuales van, la revision no ocurre:
    nadie abre veinte fichas para buscar las que faltan. */
 function marcaAprobacion(p) {
-  const e = p.aprobacion && p.aprobacion.estado;
-  return e === 'aprobado' ? ' aprobada' : e === 'cambios' ? ' con-cambios' : '';
+  const e = estadoRevision(p).estado;
+  return e === 'aprobado' ? ' aprobada'
+       : e === 'cambios'  ? ' con-cambios'
+       : e === 'revisar'  ? ' por-revisar' : '';
 }
 
 const CATEGORIAS = [
@@ -424,6 +426,7 @@ function refrescarTodo() {
   pintarRedaccion();
   pintarEscritorio();
   aplicarPermisos();
+  pintarContadorAvisos();
 }
 
 function marcarGuardado(txt) {
@@ -1044,6 +1047,29 @@ function pintarEscritorio() {
       </div>`;
   };
 
+  const avisos = avisosPara(yo);
+
+  /* Arriba del todo y antes de la rejilla: si hay que bajar para
+     verlo, no sirve. */
+  const bloqueAvisos = (lista) => !lista.length ? '' : `
+    <div class="avisos">
+      <div class="avisos-cabeza">
+        <h4>Para ti <span class="cuenta">${lista.filter(a => !a.visto).length || ''}</span></h4>
+        ${lista.some(a => !a.visto)
+          ? '<button class="btn-mini" id="avisosTodos">Marcar todo como visto</button>' : ''}
+      </div>
+      ${lista.map(a => `
+        <button class="aviso-fila ${a.visto ? 'visto' : ''} t-${a.tono}"
+                data-aviso="${esc(a.id)}" data-pieza="${esc(a.pieza)}">
+          <span class="aviso-punto"></span>
+          <span class="aviso-texto">
+            <b>${esc(a.titulo)}</b>
+            ${a.detalle ? `<span class="aviso-detalle">${esc(a.detalle)}</span>` : ''}
+            <span class="aviso-pie">${esc(a.pie)}</span>
+          </span>
+        </button>`).join('')}
+    </div>`;
+
   const bloque = (titulo, lista, vacio) => `
     <div class="escritorio-bloque">
       <h4>${titulo}${lista.length ? ` <span class="cuenta">${lista.length}</span>` : ''}</h4>
@@ -1064,6 +1090,8 @@ function pintarEscritorio() {
       </div>` : ''}
     </div>
 
+    ${bloqueAvisos(avisos)}
+
     <div class="escritorio-rejilla">
       ${bloque('Pasadas de fecha', m.vencidas, 'Nada atrasado.')}
       ${bloque('Hoy', m.hoy, 'Hoy no te toca nada.')}
@@ -1071,6 +1099,22 @@ function pintarEscritorio() {
       ${bloque('Sin responsable', huerfanas.slice(0, 6),
                'Todo lo programado tiene quién lo haga.')}
     </div>`;
+
+  $$('.aviso-fila', cont).forEach(el =>
+    el.addEventListener('click', () => {
+      marcarVisto(yo, el.dataset.aviso);
+      abrirPrevia(el.dataset.pieza);
+      pintarContadorAvisos();
+      el.classList.add('visto');
+    }));
+  const todos = $('#avisosTodos', cont);
+  if (todos) todos.addEventListener('click', () => {
+    marcarVisto(yo, ...avisos.map(a => a.id));
+    pintarEscritorio();
+    pintarContadorAvisos();
+  });
+
+  pintarContadorAvisos();
 
   $$('.mia', cont).forEach(el =>
     el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
@@ -4394,10 +4438,37 @@ function leerVuelo() {
    ══════════════════════════════════════════════════════════ */
 
 const APROBACIONES = {
-  pendiente: { nombre: 'Sin revisar',     color: 'var(--tinta-tenue)' },
-  aprobado:  { nombre: 'Aprobado',        color: 'var(--ok)' },
-  cambios:   { nombre: 'Pide cambios',    color: 'var(--alerta)' },
+  pendiente: { nombre: 'Sin revisar',          color: 'var(--tinta-tenue)' },
+  aprobado:  { nombre: 'Aprobado',             color: 'var(--ok)' },
+  cambios:   { nombre: 'Pide cambios',         color: 'var(--alerta)' },
+  revisar:   { nombre: 'Corregido, por ver',   color: 'var(--alerta)' },
 };
+
+/* HUELLA DE LO QUE SE REVISO
+
+   Una aprobacion que sobrevive al cambio del arte es una mentira, y
+   de las caras: alguien publica creyendo que lo aprobado es lo que
+   tiene enfrente. Se guarda una huella de lo que habia cuando se
+   reviso; si hoy no coincide, la aprobacion caduca sola.
+
+   Va la ruta de cada lamina EN ORDEN, no solo cuantas: cambiar la
+   portada no cambia el numero de laminas y es justo lo que se
+   revisa. */
+function selloDeRevision(p) {
+  return JSON.stringify([
+    archivosDe(p).map(a => a.ruta),
+    p.copy || '', p.titulo || '', p.fecha || '', (p.canales || []).join(','),
+  ]);
+}
+
+function estadoRevision(p) {
+  const ap = p.aprobacion || {};
+  const crudo = ap.estado || 'pendiente';
+  // Sin huella no se puede saber, y decir que caduco seria inventar.
+  const caducada = !!ap.sello && ap.sello !== selloDeRevision(p)
+                   && (crudo === 'aprobado' || crudo === 'revisar');
+  return { crudo, caducada, estado: caducada ? 'pendiente' : crudo };
+}
 
 function puedeAprobar() {
   const rol = Almacen.usuario && Almacen.usuario.rol;
@@ -4573,6 +4644,114 @@ async function bajarPostCompleto() {
 }
 
 
+/* ── Lo que a cada quien le concierne ──────────────────── */
+
+/* POR QUE ESTO EXISTE
+
+   Marysol dejo su primer comentario y Leo no se entero hasta que
+   alguien se lo dijo. Un comentario que hay que salir a buscar
+   pieza por pieza no es una revision: es una nota en un cajon.
+
+   Los avisos no se guardan en ningun lado -- se deducen del estado
+   de las piezas cada vez. Asi no hay una segunda verdad que se
+   pueda desincronizar de la primera: si la pieza ya se corrigio, el
+   aviso desaparece solo. */
+
+function vistosDe(usuario) {
+  try { return JSON.parse(localStorage.getItem('pizarra:vistos:' + usuario.id) || '{}'); }
+  catch (e) { return {}; }
+}
+
+function marcarVisto(usuario, ...ids) {
+  const v = vistosDe(usuario);
+  ids.forEach(i => { v[i] = 1; });
+  try { localStorage.setItem('pizarra:vistos:' + usuario.id, JSON.stringify(v)); }
+  catch (e) {}
+}
+
+function avisosPara(yo) {
+  if (!yo) return [];
+  const piezas = datos.parrilla.piezas || [];
+  const hoy = aTexto(new Date());
+  const cerca = aTexto(sumarDias(new Date(), 3));
+  const apruebo = puedeAprobar();
+  const edito = !soloLectura('parrilla_piezas');
+  const publico = yo.rol === 'publicacion' || yo.rol === 'admin';
+  const soyYo = n => (n || '').toLowerCase() === (yo.nombre || '').toLowerCase();
+
+  const lista = [];
+  const meter = (p, clave, tono, titulo, detalle, cuando) => lista.push({
+    id: p.id + ':' + clave + ':' + (cuando || ''), pieza: p.id,
+    tono, titulo, detalle: detalle || '', pie: p.titulo || 'Sin título',
+    cuando: cuando || p.actualizado || '',
+  });
+
+  piezas.forEach(p => {
+    if (p.estado === 'idea') return;
+    const ap = p.aprobacion || {};
+    const r = estadoRevision(p);
+    const ultimo = (ap.comentarios || []).slice(-1)[0];
+
+    /* A quien la hace: le pidieron cambios. Si la pieza tiene
+       responsable, es SUYO y de nadie mas -- un aviso que le llega a
+       los cuatro es un aviso que no es de ninguno. Sin responsable
+       sí va a todos: alguien tiene que levantarlo. */
+    const meToca = p.responsable ? soyYo(p.responsable) : edito;
+    if (r.crudo === 'cambios' && edito && meToca && !soyYo(ap.por)) {
+      meter(p, 'cambios', 'pide', `${ap.por || 'Dirección'} pidió cambios`,
+            ultimo ? ultimo.texto : '', ap.cuando);
+    }
+    // A quien revisa: ya lo corrigieron
+    if (r.crudo === 'revisar' && apruebo && !soyYo(ap.corrigio)) {
+      meter(p, 'revisar', 'revisa', `${ap.corrigio || 'El equipo'} lo corrigió`,
+            'Falta que lo revises.', ap.corregido);
+    }
+    // A quien revisa: aprobo algo que ya no es lo que hay
+    if (r.caducada && apruebo) {
+      meter(p, 'caduca', 'revisa', 'Cambió después de que la revisaste',
+            'La aprobación ya no aplica a lo que hay ahora.', p.actualizado);
+    }
+    // A quien revisa: sale pronto y nadie la ha visto
+    if (r.estado === 'pendiente' && !r.caducada && apruebo
+        && archivosDe(p).length && p.fecha && p.fecha <= cerca && p.fecha >= hoy) {
+      meter(p, 'sinver', 'revisa', 'Sale pronto y nadie la ha revisado',
+            `Sale ${fechaLegible(p.fecha)}.`, p.fecha);
+    }
+    // A quien publica: ya esta lista
+    if (r.estado === 'aprobado' && publico && p.estado !== 'publicado'
+        && archivosDe(p).length) {
+      meter(p, 'lista', 'lista', 'Aprobada, lista para publicar',
+            `Sale ${fechaLegible(p.fecha)}.`, ap.cuando);
+    }
+  });
+
+  const v = vistosDe(yo);
+  lista.forEach(a => { a.visto = !!v[a.id]; });
+  return lista.sort((a, b) => (b.cuando || '').localeCompare(a.cuando || ''));
+}
+
+function sinVer() {
+  return avisosPara(Almacen.usuario).filter(a => !a.visto).length;
+}
+
+/* El numero en la pestaña: sin el, los avisos solo los ve quien ya
+   fue a buscarlos, que son justo los que no los necesitan. */
+function pintarContadorAvisos() {
+  const tab = $('.tab[data-vista="escritorio"]');
+  if (!tab) return;
+  const n = sinVer();
+  let globo = $('.tab-globo', tab);
+  if (!n) { if (globo) globo.remove(); return; }
+  if (!globo) {
+    globo = document.createElement('span');
+    globo.className = 'tab-globo';
+    tab.appendChild(globo);
+  }
+  globo.textContent = n > 9 ? '9+' : n;
+  globo.title = `${n} ${n === 1 ? 'aviso sin ver' : 'avisos sin ver'}`;
+}
+
+
 /* ── La ficha de vista previa ──────────────────────────── */
 
 let previaCtx = null;
@@ -4612,7 +4791,8 @@ function pintarPrevia() {
   const pil = PILARES.find(x => x.id === p.pilar);
   const est = ESTADOS.find(x => x.id === p.estado);
   const ap = p.aprobacion || { estado: 'pendiente', comentarios: [] };
-  const marca = APROBACIONES[ap.estado] || APROBACIONES.pendiente;
+  const rev = estadoRevision(p);
+  const marca = APROBACIONES[rev.estado] || APROBACIONES.pendiente;
   const archivos = archivosDe(p);
   const esCarrusel = archivos.length > 1 || p.formato === 'Carrusel';
 
@@ -4683,17 +4863,25 @@ function pintarPrevia() {
                 </div>`).join('')}
             </div>` : ''}
 
-          ${puedeAprobar() ? `
-            <div class="ap-acciones">
-              <button class="btn-primario" id="apAprobar">✓ Aprobar</button>
-              <button class="btn-plano" id="apCambios">Pedir cambios</button>
+          ${rev.caducada ? `
+            <div class="ap-caducada">
+              La pieza cambió después de esta revisión, así que la
+              aprobación ya no aplica a lo que hay ahora.
             </div>` : ''}
+
+          <div class="ap-acciones">
+            ${puedeAprobar() ? `
+              <button class="btn-primario" id="apAprobar">✓ Aprobar</button>
+              <button class="btn-plano" id="apCambios">Pedir cambios</button>` : ''}
+            ${rev.crudo === 'cambios' && !soloLectura('parrilla_piezas') ? `
+              <button class="btn-primario" id="apCorregido">Ya lo corregí</button>` : ''}
+          </div>
 
           <div class="ap-nuevo">
             <label for="apTexto" class="sr-solo">Comentario</label>
             <textarea class="campo" id="apTexto" rows="2"
               placeholder="${puedeAprobar() ? 'Comentario (opcional al aprobar, necesario al pedir cambios)' : 'Deja un comentario'}"></textarea>
-            ${!puedeAprobar() ? '<button class="btn-plano" id="apComentar">Comentar</button>' : ''}
+            <button class="btn-plano" id="apComentar">Comentar sin decidir</button>
           </div>
         </div>
       </div>
@@ -4768,6 +4956,9 @@ function conectarPrevia() {
     p.aprobacion.estado = estado;
     p.aprobacion.por = Almacen.usuario ? Almacen.usuario.nombre : '';
     p.aprobacion.cuando = ahora();
+    // La huella de lo que se acaba de revisar, para saber despues
+    // si lo que hay sigue siendo esto.
+    p.aprobacion.sello = selloDeRevision(p);
     if (texto) {
       p.aprobacion.comentarios = p.aprobacion.comentarios || [];
       p.aprobacion.comentarios.push({
@@ -4786,6 +4977,32 @@ function conectarPrevia() {
   if ($('#apAprobar')) $('#apAprobar').addEventListener('click', () => registrarAprobacion('aprobado'));
   if ($('#apCambios')) $('#apCambios').addEventListener('click', () => registrarAprobacion('cambios'));
 
+  /* Sin esto el ciclo no cierra: ella pedia cambios, el los hacia, y
+     la pieza se quedaba en "pide cambios" para siempre porque nadie
+     tenia como decir "ya quedo, vuelvelo a ver". */
+  if ($('#apCorregido')) $('#apCorregido').addEventListener('click', () => {
+    const texto = ($('#apTexto').value || '').trim();
+    const quien = Almacen.usuario ? Almacen.usuario.nombre : '';
+    p.aprobacion = p.aprobacion || { comentarios: [] };
+    p.aprobacion.estado = 'revisar';
+    p.aprobacion.corrigio = quien;
+    p.aprobacion.corregido = ahora();
+    p.aprobacion.sello = selloDeRevision(p);
+    p.aprobacion.comentarios = p.aprobacion.comentarios || [];
+    p.aprobacion.comentarios.push({
+      quien, cuando: ahora(),
+      texto: texto || 'Corregido, listo para revisar otra vez.',
+    });
+    p.actualizado = ahora();
+    guardar('parrilla');
+    registrar(`Corrigió «${p.titulo}» y la mandó a revisión`);
+    avisar('Queda para revisión. Le va a aparecer a quien revisa.');
+    pintarPrevia();
+    refrescarParrilla();
+    pintarEscritorio();
+    pintarContadorAvisos();
+  });
+
   if ($('#apComentar')) $('#apComentar').addEventListener('click', () => {
     const texto = ($('#apTexto').value || '').trim();
     if (!texto) return;
@@ -4799,6 +5016,8 @@ function conectarPrevia() {
     guardar('parrilla');
     avisar('Comentario guardado.');
     pintarPrevia();
+    pintarEscritorio();
+    pintarContadorAvisos();
   });
 }
 

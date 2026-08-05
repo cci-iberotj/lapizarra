@@ -2952,3 +2952,141 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   transition: transform .16s ease;
 }
 .laminas.reordenando { cursor: grabbing; }
+
+/* ═══ Avisos: lo que a cada quien le concierne ═══
+   Marysol dejo su primer comentario y Leo no se entero hasta que
+   se lo dijeron. Un comentario que hay que salir a buscar pieza
+   por pieza no es una revision, es una nota en un cajon. */
+
+.avisos {
+  border: 1px solid var(--borde-suave, #d8d2ca);
+  border-radius: var(--radio, 10px);
+  background: var(--superficie, #fff);
+  padding: 12px 14px 8px;
+  margin-bottom: var(--e-3, 18px);
+}
+.avisos-cabeza {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.avisos-cabeza h4 {
+  margin: 0;
+  font-size: var(--t-micro, .72rem);
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--texto-tenue, #8b857d);
+  font-weight: 700;
+}
+.avisos-cabeza .cuenta:not(:empty) {
+  display: inline-grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--marca, #8a1c2b);
+  color: #fff;
+  font-size: .64rem;
+  letter-spacing: 0;
+}
+
+.aviso-fila {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 9px 4px;
+  border: 0;
+  border-top: 1px solid var(--borde-suave, #e6e2dc);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.aviso-fila:hover { background: var(--capa-2, #f6f4f1); }
+.aviso-fila:focus-visible {
+  outline: 2px solid var(--marca, #8a1c2b);
+  outline-offset: -2px;
+}
+
+.aviso-punto {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--tono, #8b857d);
+}
+.aviso-fila.t-pide  { --tono: var(--marca); }
+.aviso-fila.t-revisa { --tono: var(--alerta); }
+.aviso-fila.t-lista { --tono: var(--ok); }
+
+/* Visto no es lo mismo que resuelto: el aviso sigue ahi, solo deja
+   de gritar. Se va cuando la pieza deja de necesitarlo. */
+.aviso-fila.visto { opacity: .5; }
+.aviso-fila.visto .aviso-punto { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tono); }
+
+.aviso-texto { display: grid; gap: 1px; min-width: 0; }
+.aviso-texto b { font-size: .86rem; font-weight: 650; }
+.aviso-detalle {
+  font-size: .82rem;
+  color: var(--texto-medio, #57514a);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.aviso-pie {
+  font-size: var(--t-micro, .72rem);
+  color: var(--texto-tenue, #8b857d);
+}
+
+/* El numero en la pestaña. Sin el, los avisos solo los ve quien ya
+   fue a buscarlos -- justo los que no los necesitan. */
+.tab-globo {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--marca, #8a1c2b);
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
+}
+
+/* Una aprobacion que sobrevive al cambio del arte es una mentira.
+   Cuando caduca, hay que decirlo donde se toma la decision. */
+.ap-caducada {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--alerta);
+  background: var(--capa-2, #f6f4f1);
+  font-size: .84rem;
+  color: var(--texto-medio, #57514a);
+}
+
+/* Corregido y esperando. No lleva un color nuevo: lo dice la FORMA.
+   Relleno = aprobado; aro hueco = va para alla pero todavia no.
+   Un tercer color aqui solo competiria con los dos que ya
+   significan algo. */
+.cal-pieza.por-revisar::after {
+  content: '';
+  position: absolute; top: 5px; right: 5px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 0 2px var(--capa-1), inset 0 0 0 2.5px var(--ok);
+}
+.pieza.por-revisar .pieza-titulo::after {
+  content: '○'; margin-left: 8px; color: var(--ok);
+  font-weight: var(--peso-maximo);
+}
