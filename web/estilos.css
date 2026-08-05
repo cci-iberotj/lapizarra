@@ -3154,3 +3154,24 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 .red-estado.viva   { --tono: var(--ok); }
 .red-estado.muerta { --tono: var(--tinta-tenue); }
 .red-estado span { color: var(--texto-medio); }
+
+/* Confirmar antes de publicar. Sale a 5,700 personas y no se
+   deshace: un solo clic para eso es poco clic. */
+.ap-confirma {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--marca);
+  border-radius: var(--radio-chico, 6px);
+  background: var(--capa-2);
+}
+.ap-confirma p { margin: 0 0 10px; font-size: .88rem; line-height: 1.45; }
+.ap-confirma-botones { display: flex; gap: 8px; justify-content: flex-end; }
+
+.ap-publicada {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--ok);
+  background: var(--capa-2);
+  font-size: .84rem;
+}
+.ap-publicada a { margin-left: 6px; color: var(--marca); font-weight: 600; }

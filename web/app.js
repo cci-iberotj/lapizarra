@@ -4710,6 +4710,14 @@ function estadoRevision(p) {
   return { crudo, caducada, estado: caducada ? 'pendiente' : crudo };
 }
 
+/* Publicar no lo hace quien aprueba: lo hace quien publica. Son
+   dos manos distintas a proposito -- el mismo motivo por el que la
+   aprobacion existe. */
+function puedePublicar() {
+  const rol = Almacen.usuario && Almacen.usuario.rol;
+  return !Almacen.enLaNube || rol === 'admin' || rol === 'publicacion';
+}
+
 function puedeAprobar() {
   const rol = Almacen.usuario && Almacen.usuario.rol;
   return !Almacen.enLaNube || rol === 'admin' || rol === 'direccion';
@@ -5169,6 +5177,12 @@ function pintarPrevia() {
                 </div>`).join('')}
             </div>` : ''}
 
+          ${(p.publicaciones && p.publicaciones.ig && p.publicaciones.ig.enlace) ? `
+            <div class="ap-publicada">
+              Publicada en Instagram${p.publicaciones.ig.por ? ' por ' + esc(p.publicaciones.ig.por) : ''}.
+              <a href="${esc(p.publicaciones.ig.enlace)}" target="_blank" rel="noopener">Ver el post ↗</a>
+            </div>` : ''}
+
           ${rev.caducada ? (() => {
             const qs = queCambio(p);
             const lista = qs.length
@@ -5191,8 +5205,11 @@ function pintarPrevia() {
               <button class="btn-plano" id="apCambios">Pedir cambios</button>` : ''}
             ${rev.crudo === 'cambios' && !soloLectura('parrilla_piezas') ? `
               <button class="btn-primario" id="apCorregido">Ya lo corregí</button>` : ''}
+            ${rev.estado === 'aprobado' && p.estado !== 'publicado' && archivos.length
+              && (p.canales || []).includes('ig') && puedePublicar() ? `
+              <button class="btn-primario" id="apPublicar">Publicar en Instagram</button>` : ''}
             ${p.estado !== 'publicado' && archivos.length && !soloLectura('parrilla_piezas') ? `
-              <button class="btn-plano" id="apPublicado">✓ Ya lo publiqué</button>` : ''}
+              <button class="btn-plano" id="apPublicado">Ya lo publiqué a mano</button>` : ''}
           </div>
 
           <div class="ap-nuevo">
@@ -5303,6 +5320,58 @@ function conectarPrevia() {
      aqui era entrar a Editar y buscar el estado en un desplegable:
      nadie lo hace, y el aviso se queda dando lata hasta que estorba
      tanto que se ignoran todos. */
+  /* CONFIRMACION EN DOS PASOS, A PROPOSITO
+
+     Esto sale a 5,700 personas y no se deshace: borrar un post no
+     borra a quien ya lo vio. Un solo clic para eso es poco clic. La
+     confirmacion dice exactamente que va a salir y a donde, para
+     que no haya que acordarse. */
+  if ($('#apPublicar')) $('#apPublicar').addEventListener('click', () => {
+    const cuantas = archivosDe(p).length;
+    const caja = $('.ap-acciones');
+    const antes = caja.innerHTML;
+    caja.innerHTML = `
+      <div class="ap-confirma">
+        <p>Va a salir <b>ahora mismo</b> a Instagram
+           <b>@iberotijuana</b>${cuantas > 1
+             ? `, como carrusel de <b>${cuantas} láminas</b>` : ''}.
+           Esto no se puede deshacer.</p>
+        <div class="ap-confirma-botones">
+          <button class="btn-plano" id="apCancelarPub">Mejor no</button>
+          <button class="btn-primario" id="apVaya">Sí, publicar</button>
+        </div>
+      </div>`;
+
+    $('#apCancelarPub').addEventListener('click', () => { caja.innerHTML = antes; conectarPrevia(); });
+
+    $('#apVaya').addEventListener('click', async () => {
+      const b = $('#apVaya');
+      b.disabled = true;
+      $('#apCancelarPub').disabled = true;
+      b.textContent = 'Publicando…';
+      try {
+        const d = await llamarFuncion('publicar', { accion: 'publicar', pieza: p.id });
+        // El servidor ya la marco; se refleja aqui para no esperar
+        // a la siguiente sincronizacion.
+        p.estado = 'publicado';
+        p.publicado = ahora();
+        p.publicaciones = Object.assign({}, p.publicaciones, {
+          ig: { id: d.id, enlace: d.enlace, cuando: p.publicado,
+                por: Almacen.usuario ? Almacen.usuario.nombre : '' },
+        });
+        registrar(`Publicó «${p.titulo}» en Instagram`);
+        avisar('Publicada en Instagram.');
+        pintarPrevia();
+        refrescarParrilla();
+        pintarEscritorio();
+        pintarContadorAvisos();
+      } catch (e) {
+        caja.innerHTML = `<p class="lamina-error">⚠ ${esc(e.message)}</p>` + antes;
+        conectarPrevia();
+      }
+    });
+  });
+
   if ($('#apPublicado')) $('#apPublicado').addEventListener('click', () => {
     p.estado = 'publicado';
     p.publicado = ahora();
