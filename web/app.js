@@ -4713,6 +4713,18 @@ function estadoRevision(p) {
 /* Publicar no lo hace quien aprueba: lo hace quien publica. Son
    dos manos distintas a proposito -- el mismo motivo por el que la
    aprobacion existe. */
+/* Las redes a las que esta pieza puede salir sola. El resto de
+   canales -- sitio web, LinkedIn, YouTube -- siguen siendo trabajo
+   de manos, y decirlo aqui evita prometer lo que no se cumple. */
+const REDES_AUTOMATICAS = [
+  { id: 'ig', nombre: 'Instagram' },
+  { id: 'fb', nombre: 'Facebook' },
+];
+
+function redesDe(p) {
+  return REDES_AUTOMATICAS.filter(r => (p.canales || []).includes(r.id));
+}
+
 function puedePublicar() {
   const rol = Almacen.usuario && Almacen.usuario.rol;
   return !Almacen.enLaNube || rol === 'admin' || rol === 'publicacion';
@@ -5177,11 +5189,12 @@ function pintarPrevia() {
                 </div>`).join('')}
             </div>` : ''}
 
-          ${(p.publicaciones && p.publicaciones.ig && p.publicaciones.ig.enlace) ? `
-            <div class="ap-publicada">
-              Publicada en Instagram${p.publicaciones.ig.por ? ' por ' + esc(p.publicaciones.ig.por) : ''}.
-              <a href="${esc(p.publicaciones.ig.enlace)}" target="_blank" rel="noopener">Ver el post ↗</a>
-            </div>` : ''}
+          ${REDES_AUTOMATICAS.filter(r => p.publicaciones && p.publicaciones[r.id]).map(r => {
+            const s = p.publicaciones[r.id];
+            return `<div class="ap-publicada">
+              Publicada en ${esc(r.nombre)}${s.por ? ' por ' + esc(s.por) : ''}.
+              ${s.enlace ? `<a href="${esc(s.enlace)}" target="_blank" rel="noopener">Ver el post ↗</a>` : ''}
+            </div>`; }).join('')}
 
           ${rev.caducada ? (() => {
             const qs = queCambio(p);
@@ -5206,8 +5219,9 @@ function pintarPrevia() {
             ${rev.crudo === 'cambios' && !soloLectura('parrilla_piezas') ? `
               <button class="btn-primario" id="apCorregido">Ya lo corregí</button>` : ''}
             ${rev.estado === 'aprobado' && p.estado !== 'publicado' && archivos.length
-              && (p.canales || []).includes('ig') && puedePublicar() ? `
-              <button class="btn-primario" id="apPublicar">Publicar en Instagram</button>` : ''}
+              && redesDe(p).length && puedePublicar() ? `
+              <button class="btn-primario" id="apPublicar">Publicar en ${
+                esc(redesDe(p).map(r => r.nombre).join(' y '))}</button>` : ''}
             ${p.estado !== 'publicado' && archivos.length && !soloLectura('parrilla_piezas') ? `
               <button class="btn-plano" id="apPublicado">Ya lo publiqué a mano</button>` : ''}
           </div>
@@ -5328,13 +5342,13 @@ function conectarPrevia() {
      que no haya que acordarse. */
   if ($('#apPublicar')) $('#apPublicar').addEventListener('click', () => {
     const cuantas = archivosDe(p).length;
+    const redes = redesDe(p);
     const caja = $('.ap-acciones');
     const antes = caja.innerHTML;
     caja.innerHTML = `
       <div class="ap-confirma">
-        <p>Va a salir <b>ahora mismo</b> a Instagram
-           <b>@iberotijuana</b>${cuantas > 1
-             ? `, como carrusel de <b>${cuantas} láminas</b>` : ''}.
+        <p>Va a salir <b>ahora mismo</b> a <b>${esc(redes.map(r => r.nombre).join(' y '))}</b>${
+             cuantas > 1 ? `, con <b>${cuantas} láminas</b>` : ''}.
            Esto no se puede deshacer.</p>
         <div class="ap-confirma-botones">
           <button class="btn-plano" id="apCancelarPub">Mejor no</button>
@@ -5351,16 +5365,29 @@ function conectarPrevia() {
       b.textContent = 'Publicando…';
       try {
         const d = await llamarFuncion('publicar', { accion: 'publicar', pieza: p.id });
-        // El servidor ya la marco; se refleja aqui para no esperar
-        // a la siguiente sincronizacion.
+
+        // El servidor ya la marco; se refleja aqui para no esperar a
+        // la siguiente sincronizacion.
+        const quien = Almacen.usuario ? Almacen.usuario.nombre : '';
         p.estado = 'publicado';
         p.publicado = ahora();
-        p.publicaciones = Object.assign({}, p.publicaciones, {
-          ig: { id: d.id, enlace: d.enlace, cuando: p.publicado,
-                por: Almacen.usuario ? Almacen.usuario.nombre : '' },
+        p.publicaciones = Object.assign({}, p.publicaciones);
+        const salieron = Object.keys(d.salidas || {});
+        salieron.forEach(red => {
+          p.publicaciones[red] = { id: d.salidas[red].id, enlace: d.salidas[red].enlace,
+                                   cuando: p.publicado, por: quien };
         });
-        registrar(`Publicó «${p.titulo}» en Instagram`);
-        avisar('Publicada en Instagram.');
+
+        const nombra = ids => ids.map(x =>
+          (REDES_AUTOMATICAS.find(r => r.id === x) || {}).nombre || x).join(' y ');
+        registrar(`Publicó «${p.titulo}» en ${nombra(salieron)}`);
+
+        /* Si una red salio y otra no, decirlo. Callarlo dejaria a
+           alguien creyendo que ya esta en las dos. */
+        const fallaron = Object.keys(d.fallos || {});
+        avisar(fallaron.length
+          ? `Salió en ${nombra(salieron)}. En ${nombra(fallaron)} no: ${d.fallos[fallaron[0]]}`
+          : `Publicada en ${nombra(salieron)}.`);
         pintarPrevia();
         refrescarParrilla();
         pintarEscritorio();

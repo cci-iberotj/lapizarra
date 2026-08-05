@@ -20,6 +20,7 @@ const TOKEN_IG = Deno.env.get('META_TOKEN_IG') || '';
 const TOKEN_FB = Deno.env.get('META_TOKEN_FB') || '';
 
 const IG = 'https://graph.instagram.com';
+const FB = 'https://graph.facebook.com';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -103,9 +104,16 @@ async function comprobar() {
     }
   }
 
-  salida.facebook = TOKEN_FB
-    ? { ok: false, porque: 'Todavía no conectado (falta la segunda app).' }
-    : { ok: false, porque: 'No hay META_TOKEN_FB en el servidor.' };
+  if (!TOKEN_FB) {
+    salida.facebook = { ok: false, porque: 'No hay META_TOKEN_FB en el servidor.' };
+  } else {
+    try {
+      const pg = await aMeta(`${FB}/me?fields=id,name,username&access_token=${TOKEN_FB}`);
+      salida.facebook = { ok: true, id: pg.id, usuario: pg.username || pg.name, nombre: pg.name };
+    } catch (e) {
+      salida.facebook = { ok: false, porque: (e as Error).message };
+    }
+  }
 
   return salida;
 }
@@ -265,18 +273,63 @@ async function publicarEnInstagram(pieza: any) {
   return { id: salida.id, enlace, laminas: archivos.length };
 }
 
+/* Facebook no tiene carrusel como Instagram. Varias fotos se suben
+   sin publicar y despues se juntan en un solo post: asi salen como
+   una publicacion con galeria y no como cinco posts sueltos. */
+async function publicarEnFacebook(pieza: any) {
+  if (!TOKEN_FB) throw new Error('No hay llave de Facebook en el servidor.');
+
+  const archivos = archivosDe(pieza);
+  const pagina = await aMeta(`${FB}/me?fields=id,name&access_token=${TOKEN_FB}`);
+  const copy = pieza.copy || '';
+  let idPost: string;
+
+  if (!archivos.length) {
+    const d = await aMetaPost(`${FB}/${pagina.id}/feed`, {
+      message: copy, access_token: TOKEN_FB });
+    idPost = d.id;
+  } else if (archivos.length === 1) {
+    const d = await aMetaPost(`${FB}/${pagina.id}/photos`, {
+      url: await enlaceFirmado(paraPublicar(archivos[0])),
+      caption: copy, published: 'true', access_token: TOKEN_FB });
+    idPost = d.post_id || d.id;
+  } else {
+    const fotos: string[] = [];
+    for (const a of archivos) {
+      const d = await aMetaPost(`${FB}/${pagina.id}/photos`, {
+        url: await enlaceFirmado(paraPublicar(a)),
+        published: 'false', temporary: 'true', access_token: TOKEN_FB });
+      fotos.push(d.id);
+    }
+    const campos: Record<string, string> = { message: copy, access_token: TOKEN_FB };
+    fotos.forEach((id, i) => {
+      campos[`attached_media[${i}]`] = JSON.stringify({ media_fbid: id });
+    });
+    const d = await aMetaPost(`${FB}/${pagina.id}/feed`, campos);
+    idPost = d.id;
+  }
+
+  let enlace = null;
+  try {
+    const m = await aMeta(`${FB}/${idPost}?fields=permalink_url&access_token=${TOKEN_FB}`);
+    enlace = m.permalink_url || null;
+  } catch { /* el enlace es un extra: ya se publico */ }
+
+  return { id: idPost, enlace, laminas: archivos.length };
+}
+
 /* Se guarda con la llave de dueño: quien publica no necesariamente
    tiene permiso de escribir esa colección, y el registro de que ya
    salió no puede depender de eso. */
-async function marcarPublicada(id: string, pieza: any, resultado: any, quien: string) {
+async function marcarPublicada(id: string, pieza: any, salidas: any, quien: string) {
   const cuando = new Date().toISOString();
   pieza.estado = 'publicado';
   pieza.publicado = cuando;
   pieza.actualizado = cuando;
-  pieza.publicaciones = {
-    ...(pieza.publicaciones || {}),
-    ig: { id: resultado.id, enlace: resultado.enlace, cuando, por: quien },
-  };
+  pieza.publicaciones = { ...(pieza.publicaciones || {}) };
+  for (const [red, r] of Object.entries<any>(salidas)) {
+    pieza.publicaciones[red] = { id: r.id, enlace: r.enlace, cuando, por: quien };
+  }
 
   await fetch(
     `${URL_BASE}/rest/v1/registros?coleccion=eq.parrilla_piezas&id=eq.${encodeURIComponent(id)}`, {
@@ -323,13 +376,39 @@ Deno.serve(async (peticion) => {
       if (ap.sello && ap.sello !== selloDeRevision(pieza)) {
         return responder({ error: 'La pieza cambió después de aprobarse. Hay que revisarla otra vez.' }, 400);
       }
-      if (!(pieza.canales || []).includes('ig')) {
-        return responder({ error: 'Esta pieza no tiene Instagram entre sus canales.' }, 400);
+      /* A donde diga la pieza. Instagram y Facebook se publican por
+         separado a proposito: el crossposting de Meta refleja el
+         post tal cual, con el mismo recorte y el mismo copy, y lo
+         que funciona en una red no funciona igual en la otra. */
+      const canales = pieza.canales || [];
+      const pedidas = ['ig', 'fb'].filter((c) => canales.includes(c));
+      if (!pedidas.length) {
+        return responder({ error: 'Esta pieza no tiene Instagram ni Facebook entre sus canales.' }, 400);
       }
 
-      const resultado = await publicarEnInstagram(pieza);
-      await marcarPublicada(idPieza, pieza, resultado, quien.nombre);
-      return responder({ ok: true, ...resultado });
+      /* Si una red falla, la que ya salio NO se pierde: se registra
+         lo que si ocurrio y se dice claramente que falto. Deshacer
+         una publicacion no es posible, asi que fingir que no paso
+         seria peor que el fallo. */
+      const salidas: Record<string, any> = {};
+      const fallos: Record<string, string> = {};
+
+      for (const red of pedidas) {
+        try {
+          salidas[red] = red === 'ig'
+            ? await publicarEnInstagram(pieza)
+            : await publicarEnFacebook(pieza);
+        } catch (e) {
+          fallos[red] = (e as Error).message;
+        }
+      }
+
+      if (!Object.keys(salidas).length) {
+        return responder({ error: Object.values(fallos).join(' · ') }, 400);
+      }
+
+      await marcarPublicada(idPieza, pieza, salidas, quien.nombre);
+      return responder({ ok: true, salidas, fallos });
     }
 
     return responder({ error: 'Acción desconocida: ' + accion }, 400);
