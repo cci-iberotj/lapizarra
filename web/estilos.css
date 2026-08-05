@@ -3090,3 +3090,29 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   content: '○'; margin-left: 8px; color: var(--ok);
   font-weight: var(--peso-maximo);
 }
+
+/* ═══ La campana ═══
+   Asomarse sin salir de lo que estas haciendo. Es la MISMA lista
+   de Mi escritorio, no una segunda bandeja: dos sitios donde vive
+   la verdad se separan siempre. */
+
+.panel-avisos {
+  position: absolute; top: 68px; right: 28px; width: 400px; max-height: 66vh;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--r-lg); box-shadow: var(--sombra-alta);
+  padding: 18px 20px 14px; z-index: 60; display: flex; flex-direction: column;
+  color: var(--texto); overflow-y: auto;
+}
+.panel-avisos .aviso-fila:first-of-type { border-top: 0; }
+.panel-avisos .todos-vistos { align-self: flex-start; margin-top: 10px; }
+
+#btnAvisos { position: relative; }
+#btnAvisos .tab-globo {
+  position: absolute; top: -5px; right: -6px; margin: 0;
+  box-shadow: 0 0 0 2px var(--capa-1);
+}
+#btnAvisos.abierto { background: var(--capa-3); }
+
+@media (max-width: 900px) {
+  .panel-avisos { position: fixed; top: auto; left: 10px; right: 10px; width: auto; }
+}

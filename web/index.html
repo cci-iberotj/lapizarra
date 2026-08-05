@@ -84,6 +84,7 @@
     <div class="grupo-historial">
       <button class="btn-barra" id="btnDeshacer" title="Deshacer (Ctrl+Z)" disabled>↶</button>
       <button class="btn-barra" id="btnRehacer" title="Rehacer (Ctrl+Y)" disabled>↷</button>
+      <button class="btn-barra" id="btnAvisos" title="Lo que te toca" hidden>🔔</button>
       <button class="btn-barra ancho" id="btnHistorial" title="Ver historial de cambios">Historial</button>
       <button class="btn-barra" id="btnTema" title="Cambiar entre tema claro y oscuro">◐</button>
       <button class="btn-barra" id="btnAjustes" title="Ajustes" hidden>⚙</button>
@@ -100,6 +101,16 @@
     </div>
     <p class="tenue nota">Clic en cualquier punto para volver a ese momento. Se conservan los últimos 60 cambios de esta sesión.</p>
     <div class="lista-historial" id="listaHistorial"></div>
+  </div>
+
+  <!-- Asomarse sin salir de lo que estas haciendo. Es la MISMA
+       lista de Mi escritorio, no una segunda bandeja. -->
+  <div class="panel-avisos" id="panelAvisos" hidden>
+    <div class="panel-historial-cabecera">
+      <h3>Para ti</h3>
+      <button class="btn-icono" id="cerrarAvisos" title="Cerrar">×</button>
+    </div>
+    <div id="listaAvisos"></div>
   </div>
 </header>
 

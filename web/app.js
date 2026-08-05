@@ -1058,16 +1058,7 @@ function pintarEscritorio() {
         ${lista.some(a => !a.visto)
           ? '<button class="btn-mini" id="avisosTodos">Marcar todo como visto</button>' : ''}
       </div>
-      ${lista.map(a => `
-        <button class="aviso-fila ${a.visto ? 'visto' : ''} t-${a.tono}"
-                data-aviso="${esc(a.id)}" data-pieza="${esc(a.pieza)}">
-          <span class="aviso-punto"></span>
-          <span class="aviso-texto">
-            <b>${esc(a.titulo)}</b>
-            ${a.detalle ? `<span class="aviso-detalle">${esc(a.detalle)}</span>` : ''}
-            <span class="aviso-pie">${esc(a.pie)}</span>
-          </span>
-        </button>`).join('')}
+      ${lista.map(filaDeAviso).join('')}
     </div>`;
 
   const bloque = (titulo, lista, vacio) => `
@@ -1100,13 +1091,7 @@ function pintarEscritorio() {
                'Todo lo programado tiene quién lo haga.')}
     </div>`;
 
-  $$('.aviso-fila', cont).forEach(el =>
-    el.addEventListener('click', () => {
-      marcarVisto(yo, el.dataset.aviso);
-      abrirPrevia(el.dataset.pieza);
-      pintarContadorAvisos();
-      el.classList.add('visto');
-    }));
+  conectarFilasDeAviso(cont, yo);
   const todos = $('#avisosTodos', cont);
   if (todos) todos.addEventListener('click', () => {
     marcarVisto(yo, ...avisos.map(a => a.id));
@@ -4730,6 +4715,33 @@ function avisosPara(yo) {
   return lista.sort((a, b) => (b.cuando || '').localeCompare(a.cuando || ''));
 }
 
+/* La MISMA fila en el escritorio y en la campana. Si cada uno
+   armara la suya, en tres meses dirian cosas distintas. */
+function filaDeAviso(a) {
+  return `<button class="aviso-fila ${a.visto ? 'visto' : ''} t-${a.tono}"
+      data-aviso="${esc(a.id)}" data-pieza="${esc(a.pieza)}">
+    <span class="aviso-punto"></span>
+    <span class="aviso-texto">
+      <b>${esc(a.titulo)}</b>
+      ${a.detalle ? `<span class="aviso-detalle">${esc(a.detalle)}</span>` : ''}
+      <span class="aviso-pie">${esc(a.pie)}</span>
+    </span>
+  </button>`;
+}
+
+/* Un clic en un aviso hace siempre lo mismo: marcarlo visto y abrir
+   la pieza. Visto no es resuelto -- el aviso se va cuando la pieza
+   deja de necesitarlo, no cuando alguien lo silencia. */
+function conectarFilasDeAviso(raiz, yo, despues) {
+  $$('.aviso-fila', raiz).forEach(el => el.addEventListener('click', () => {
+    marcarVisto(yo, el.dataset.aviso);
+    el.classList.add('visto');
+    abrirPrevia(el.dataset.pieza);
+    pintarContadorAvisos();
+    if (despues) despues();
+  }));
+}
+
 function sinVer() {
   return avisosPara(Almacen.usuario).filter(a => !a.visto).length;
 }
@@ -4737,18 +4749,57 @@ function sinVer() {
 /* El numero en la pestaña: sin el, los avisos solo los ve quien ya
    fue a buscarlos, que son justo los que no los necesitan. */
 function pintarContadorAvisos() {
-  const tab = $('.tab[data-vista="escritorio"]');
-  if (!tab) return;
   const n = sinVer();
-  let globo = $('.tab-globo', tab);
-  if (!n) { if (globo) globo.remove(); return; }
-  if (!globo) {
-    globo = document.createElement('span');
-    globo.className = 'tab-globo';
-    tab.appendChild(globo);
+  const hay = avisosPara(Almacen.usuario).length;
+
+  const globoEn = (sitio, cuantos) => {
+    if (!sitio) return;
+    let g = $('.tab-globo', sitio);
+    if (!cuantos) { if (g) g.remove(); return; }
+    if (!g) { g = document.createElement('span'); g.className = 'tab-globo'; sitio.appendChild(g); }
+    g.textContent = cuantos > 9 ? '9+' : cuantos;
+    g.title = `${cuantos} ${cuantos === 1 ? 'aviso sin ver' : 'avisos sin ver'}`;
+  };
+
+  globoEn($('.tab[data-vista="escritorio"]'), n);
+
+  /* La campana aparece cuando hay algo y se va cuando no. Una
+     campana siempre presente y siempre vacia enseña a no mirarla. */
+  const btn = $('#btnAvisos');
+  if (btn) {
+    btn.hidden = !hay || !Almacen.usuario;
+    globoEn(btn, n);
+    if (btn.hidden && !$('#panelAvisos').hidden) alternarPanelAvisos(false);
   }
-  globo.textContent = n > 9 ? '9+' : n;
-  globo.title = `${n} ${n === 1 ? 'aviso sin ver' : 'avisos sin ver'}`;
+}
+
+function alternarPanelAvisos(forzar) {
+  const panel = $('#panelAvisos');
+  const abrir = forzar !== undefined ? forzar : panel.hidden;
+  panel.hidden = !abrir;
+  $('#btnAvisos').classList.toggle('abierto', abrir);
+  if (abrir) pintarPanelAvisos();
+}
+
+function pintarPanelAvisos() {
+  const yo = Almacen.usuario;
+  const caja = $('#listaAvisos');
+  if (!yo || !caja) return;
+  const lista = avisosPara(yo);
+  caja.innerHTML = lista.length
+    ? lista.map(filaDeAviso).join('') +
+      (lista.some(a => !a.visto)
+        ? '<button class="btn-mini todos-vistos" id="avisosTodosPanel">Marcar todo como visto</button>' : '')
+    : '<p class="tenue nota">Nada que te toque ahora mismo.</p>';
+
+  conectarFilasDeAviso(caja, yo, () => alternarPanelAvisos(false));
+  const todos = $('#avisosTodosPanel', caja);
+  if (todos) todos.addEventListener('click', () => {
+    marcarVisto(yo, ...lista.map(a => a.id));
+    pintarPanelAvisos();
+    pintarEscritorio();
+    pintarContadorAvisos();
+  });
 }
 
 
@@ -5356,6 +5407,8 @@ function conectarEventos() {
   $('#btnRehacer').addEventListener('click', rehacer);
   $('#btnHistorial').addEventListener('click', () => alternarPanelHistorial());
   $('#cerrarHistorial').addEventListener('click', () => alternarPanelHistorial(false));
+  $('#btnAvisos').addEventListener('click', () => alternarPanelAvisos());
+  $('#cerrarAvisos').addEventListener('click', () => alternarPanelAvisos(false));
   $('#btnTema').addEventListener('click', () =>
     aplicarTema(document.documentElement.dataset.tema === 'oscuro' ? 'claro' : 'oscuro'));
 
@@ -5372,6 +5425,7 @@ function conectarEventos() {
 
     if (ev.key === 'Escape') {
       if (modalAbierto) { intentarCerrarModal(); return; }
+      if (!$('#panelAvisos').hidden) { alternarPanelAvisos(false); return; }
       if (!$('#panelHistorial').hidden) { alternarPanelHistorial(false); return; }
     }
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && modalAbierto) { guardarModal(); return; }
@@ -5709,6 +5763,13 @@ function arrancarSincronizacion() {
   if (!Almacen.enLaNube || latido) return;
   latido = setInterval(async () => {
     if (!$('#modalFondo').hidden) return;
+    /* Ni con la vista previa abierta. Al sincronizar, el registro se
+       REEMPLAZA en la lista: quien esta mirando la previa se queda
+       con un objeto huerfano, y si desde ahi aprueba o pide cambios,
+       su decision se escribe en algo que ya no esta en la lista y se
+       pierde en silencio. Es el mismo agujero que tenia el acomodo
+       de las laminas. */
+    if (!$('#previa').hidden) return;
     if (hayGuardadoEnVuelo()) return;
     try {
       const { entraron } = await Almacen.sincronizar(datos);
