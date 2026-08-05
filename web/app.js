@@ -4626,6 +4626,25 @@ function selloDeRevision(p) {
   ]);
 }
 
+/* "La pieza cambio" no le sirve a nadie: lo que hace falta saber es
+   QUE cambio, para decidir si hay que volver a mirarla entera o si
+   basta con enterarse. Mover la fecha un dia y rehacer el arte
+   caducan igual la revision, pero no piden lo mismo. */
+const CAMPOS_DEL_SELLO = ['el arte', 'el copy', 'el título', 'la fecha de salida', 'los canales'];
+
+function queCambio(p) {
+  const ap = p.aprobacion || {};
+  if (!ap.sello) return [];
+  let antes;
+  try { antes = JSON.parse(ap.sello); } catch (e) { return []; }
+  const ahora = JSON.parse(selloDeRevision(p));
+  const cambios = [];
+  CAMPOS_DEL_SELLO.forEach((nombre, i) => {
+    if (JSON.stringify(antes[i]) !== JSON.stringify(ahora[i])) cambios.push(nombre);
+  });
+  return cambios;
+}
+
 function estadoRevision(p) {
   const ap = p.aprobacion || {};
   const crudo = ap.estado || 'pendiente';
@@ -5094,11 +5113,21 @@ function pintarPrevia() {
                 </div>`).join('')}
             </div>` : ''}
 
-          ${rev.caducada ? `
-            <div class="ap-caducada">
-              La pieza cambió después de esta revisión, así que la
-              aprobación ya no aplica a lo que hay ahora.
-            </div>` : ''}
+          ${rev.caducada ? (() => {
+            const qs = queCambio(p);
+            const lista = qs.length
+              ? qs.slice(0, -1).join(', ') + (qs.length > 1 ? ' y ' : '') + qs[qs.length - 1]
+              : '';
+            /* El texto tiene que decir la verdad del estado en que
+               esta: hablar de "la aprobacion" cuando todavia no hay
+               ninguna confunde mas de lo que avisa. */
+            return `<div class="ap-caducada">
+              ${rev.crudo === 'aprobado'
+                ? `Cambió ${lista || 'algo'} después de que ${esc(ap.por || 'la revisaron')} la aprobó,
+                   así que la aprobación ya no aplica a lo que hay ahora.`
+                : `Cambió ${lista || 'algo'} después de que ${esc(ap.corrigio || 'alguien')} la marcó
+                   como corregida, así que quien la revise va a ver algo distinto.`}
+            </div>`; })() : ''}
 
           <div class="ap-acciones">
             ${puedeAprobar() ? `
