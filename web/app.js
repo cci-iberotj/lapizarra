@@ -5135,6 +5135,8 @@ function pintarPrevia() {
               <button class="btn-plano" id="apCambios">Pedir cambios</button>` : ''}
             ${rev.crudo === 'cambios' && !soloLectura('parrilla_piezas') ? `
               <button class="btn-primario" id="apCorregido">Ya lo corregí</button>` : ''}
+            ${p.estado !== 'publicado' && archivos.length && !soloLectura('parrilla_piezas') ? `
+              <button class="btn-plano" id="apPublicado">✓ Ya lo publiqué</button>` : ''}
           </div>
 
           <div class="ap-nuevo">
@@ -5240,6 +5242,24 @@ function conectarPrevia() {
   /* Sin esto el ciclo no cierra: ella pedia cambios, el los hacia, y
      la pieza se quedaba en "pide cambios" para siempre porque nadie
      tenia como decir "ya quedo, vuelvelo a ver". */
+  /* Sin esto, el aviso de "lista para publicar" no se apaga nunca.
+     Sergio la publicaba en Instagram y la unica forma de decirlo
+     aqui era entrar a Editar y buscar el estado en un desplegable:
+     nadie lo hace, y el aviso se queda dando lata hasta que estorba
+     tanto que se ignoran todos. */
+  if ($('#apPublicado')) $('#apPublicado').addEventListener('click', () => {
+    p.estado = 'publicado';
+    p.publicado = ahora();
+    p.actualizado = ahora();
+    guardar('parrilla');
+    registrar(`Publicó «${p.titulo}»`);
+    avisar('Marcada como publicada.');
+    pintarPrevia();
+    refrescarParrilla();
+    pintarEscritorio();
+    pintarContadorAvisos();
+  });
+
   if ($('#apCorregido')) $('#apCorregido').addEventListener('click', () => {
     const texto = ($('#apTexto').value || '').trim();
     const quien = Almacen.usuario ? Almacen.usuario.nombre : '';
