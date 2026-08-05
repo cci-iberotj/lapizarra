@@ -2288,8 +2288,15 @@ function abrirPieza(idPieza, prellenado) {
       for (let i = 0; i < elegidos.length; i++) {
         b.textContent = `Subiendo ${i + 1} de ${elegidos.length}…`;
         const f = elegidos[i];
-        const ruta = await subirArchivo(d.id, f);
-        d.archivos.push({ ruta, nombre: f.name, peso: f.size, tipo: f.type });
+        const lamina = { ruta: await subirArchivo(d.id, f),
+                         nombre: f.name, peso: f.size, tipo: f.type };
+        const ligera = await versionLigera(f);
+        if (ligera) {
+          lamina.previa = await subirArchivo(
+            d.id, ligera, 'previa-' + f.name.replace(/\.[^.]+$/, '') + '.jpg');
+          lamina.pesoPrevia = ligera.size;
+        }
+        d.archivos.push(lamina);
       }
       delete d.archivo;   // el campo viejo se retira al migrar
       avisar(`${elegidos.length} lámina(s) arriba. Se guardan al guardar la pieza.`);
@@ -2360,9 +2367,35 @@ function nombreLimpio(nombre) {
   return (base || 'archivo') + ext;
 }
 
-async function subirArchivo(idPieza, archivo) {
+/* La previa se ve casi siempre en el telefono, muchas veces con
+   datos. Un JPG de camara son 7 MB por lamina: ocho laminas serian
+   50 MB para MIRAR un post, y a ese precio nadie revisa nada. Se
+   sube tambien una version de pantalla. El original no se toca --
+   quien lo vaya a descargar lo baja completo. */
+const ANCHO_PREVIA = 1600;
+
+async function versionLigera(archivo) {
+  if (!/^image\//.test(archivo.type)) return null;
+  let bm;
+  try { bm = await createImageBitmap(archivo); }
+  catch (e) { return null; }          // formato que el navegador no abre
+
+  const escala = Math.min(1, ANCHO_PREVIA / Math.max(bm.width, bm.height));
+  if (escala === 1 && archivo.size < 600 * 1024) { bm.close(); return null; }
+
+  const l = document.createElement('canvas');
+  l.width = Math.round(bm.width * escala);
+  l.height = Math.round(bm.height * escala);
+  l.getContext('2d').drawImage(bm, 0, 0, l.width, l.height);
+  bm.close();
+
+  const blob = await new Promise(r => l.toBlob(r, 'image/jpeg', 0.82));
+  return blob && blob.size < archivo.size ? blob : null;
+}
+
+async function subirArchivo(idPieza, archivo, nombre) {
   const token = await Almacen.motor._token();
-  const ruta = `${idPieza}/${nombreLimpio(archivo.name)}`;
+  const ruta = `${idPieza}/${nombreLimpio(nombre || archivo.name)}`;
 
   const r = await fetch(
     `${CONFIG.supabase.url}/storage/v1/object/${CUBETA}/${encodeURI(ruta)}`, {
@@ -4377,7 +4410,7 @@ async function pintarLaminas() {
   const a = archivos[laminaActual] || archivos[0];
   lienzo.innerHTML = '<div class="sim-cargando">Cargando…</div>';
   try {
-    const url = await urlDeArchivo(a.ruta);
+    const url = await urlDeArchivo(a.previa || a.ruta);
     const flechas = archivos.length > 1 ? `
       <button class="sim-flecha izq" id="simAtras" aria-label="Lámina anterior">‹</button>
       <button class="sim-flecha der" id="simAdelante" aria-label="Lámina siguiente">›</button>
