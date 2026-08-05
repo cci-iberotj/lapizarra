@@ -1380,7 +1380,7 @@ async function pintarAjustes() {
         <div class="red-estado ${r.ok ? 'viva' : 'muerta'}">
           <b>${esc(red)}</b>
           ${r.ok
-            ? `<span>Conectada a <b>@${esc(r.usuario || '?')}</b>${
+            ? `<span>Conectada a <b>${red === 'Instagram' ? '@' : ''}${esc(r.usuario || '?')}</b>${
                  r.publicadasHoy != null ? ' · ' + r.publicadasHoy + ' publicaciones hoy' : ''}${
                  r.dias != null
                    ? ` · <b class="${r.dias <= 10 ? 'caduca-pronto' : ''}">caduca en ${r.dias} día${
