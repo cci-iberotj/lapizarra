@@ -75,6 +75,22 @@ async function aMeta(url: string) {
   return d;
 }
 
+/* Cuanto le queda de vida a una llave. Los tokens de Meta caducan
+   y el dia que dejen de servir no queremos enterarnos con un post a
+   medio publicar. Si Meta no lo dice, se calla en vez de inventar. */
+async function caducidad(host: string, token: string) {
+  try {
+    const d = await aMeta(
+      `${host}/debug_token?input_token=${token}&access_token=${token}`);
+    const cuando = d?.data?.expires_at;
+    if (!cuando) return { caduca: null, dias: null };   // 0 = no caduca
+    const dias = Math.round((cuando * 1000 - Date.now()) / 86400000);
+    return { caduca: new Date(cuando * 1000).toISOString().slice(0, 10), dias };
+  } catch {
+    return { caduca: null, dias: null };
+  }
+}
+
 /* ── Comprobar que el token sirve ──────────────────────────
    Antes de colgarle un botón a esto, hay que saber que la llave
    abre. Devuelve a qué cuenta apunta y cuánto le queda de cuota,
@@ -98,6 +114,7 @@ async function comprobar() {
       salida.instagram = {
         ok: true, id: idIG, usuario: yo.username,
         tipo: yo.account_type, nombre: yo.name, publicadasHoy: cuota,
+        ...(await caducidad(IG, TOKEN_IG)),
       };
     } catch (e) {
       salida.instagram = { ok: false, porque: (e as Error).message };
@@ -109,7 +126,8 @@ async function comprobar() {
   } else {
     try {
       const pg = await aMeta(`${FB}/me?fields=id,name,username&access_token=${TOKEN_FB}`);
-      salida.facebook = { ok: true, id: pg.id, usuario: pg.username || pg.name, nombre: pg.name };
+      salida.facebook = { ok: true, id: pg.id, usuario: pg.username || pg.name,
+                          nombre: pg.name, ...(await caducidad(FB, TOKEN_FB)) };
     } catch (e) {
       salida.facebook = { ok: false, porque: (e as Error).message };
     }

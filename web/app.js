@@ -1380,8 +1380,12 @@ async function pintarAjustes() {
         <div class="red-estado ${r.ok ? 'viva' : 'muerta'}">
           <b>${esc(red)}</b>
           ${r.ok
-            ? `<span>Conectada a <b>@${esc(r.usuario || '?')}</b>${r.tipo ? ' · ' + esc(r.tipo) : ''}${
-                 r.publicadasHoy != null ? ' · ' + r.publicadasHoy + ' publicaciones hoy' : ''}</span>`
+            ? `<span>Conectada a <b>@${esc(r.usuario || '?')}</b>${
+                 r.publicadasHoy != null ? ' · ' + r.publicadasHoy + ' publicaciones hoy' : ''}${
+                 r.dias != null
+                   ? ` · <b class="${r.dias <= 10 ? 'caduca-pronto' : ''}">caduca en ${r.dias} día${
+                       r.dias === 1 ? '' : 's'}</b>`
+                   : ''}</span>`
             : `<span>${esc(r.porque || 'Sin conexión')}</span>`}
         </div>`;
       salida.innerHTML = fila('Instagram', d.instagram || {}) + fila('Facebook', d.facebook || {});

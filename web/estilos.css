@@ -3175,3 +3175,6 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   font-size: .84rem;
 }
 .ap-publicada a { margin-left: 6px; color: var(--marca); font-weight: 600; }
+
+/* Una llave a punto de morir tiene que verse distinta de una sana. */
+.red-estado .caduca-pronto { color: var(--marca); }
