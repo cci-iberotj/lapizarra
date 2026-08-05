@@ -3178,3 +3178,13 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 
 /* Una llave a punto de morir tiene que verse distinta de una sana. */
 .red-estado .caduca-pronto { color: var(--marca); }
+
+/* Ya se publico antes en esa red. No es un error -- se puede querer
+   rehacer un post borrado -- pero nunca por descuido. */
+.ap-repetida {
+  margin-top: 8px !important;
+  padding: 7px 9px;
+  border-left: 3px solid var(--alerta);
+  background: var(--capa-1);
+  font-size: .84rem;
+}

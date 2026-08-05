@@ -5376,6 +5376,9 @@ function conectarPrevia() {
   if ($('#apPublicar')) $('#apPublicar').addEventListener('click', () => {
     const cuantas = archivosDe(p).length;
     const redes = redesDe(p);
+    /* Si ya salio antes en esa red, decirlo. Se puede querer -- se
+       borro el post y se rehace -- pero nunca por descuido. */
+    const repetidas = redes.filter(r => p.publicaciones && p.publicaciones[r.id]);
     const caja = $('.ap-acciones');
     const antes = caja.innerHTML;
     caja.innerHTML = `
@@ -5383,6 +5386,9 @@ function conectarPrevia() {
         <p>Va a salir <b>ahora mismo</b> a <b>${esc(redes.map(r => r.nombre).join(' y '))}</b>${
              cuantas > 1 ? `, con <b>${cuantas} láminas</b>` : ''}.
            Esto no se puede deshacer.</p>
+        ${repetidas.length ? `<p class="ap-repetida">
+           Ojo: esta pieza <b>ya se publicó</b> en ${esc(repetidas.map(r => r.nombre).join(' y '))}.
+           Si vuelves a darle, saldrá otra vez.</p>` : ''}
         <div class="ap-confirma-botones">
           <button class="btn-plano" id="apCancelarPub">Mejor no</button>
           <button class="btn-primario" id="apVaya">Sí, publicar</button>

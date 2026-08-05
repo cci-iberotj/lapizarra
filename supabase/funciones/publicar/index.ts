@@ -411,12 +411,20 @@ async function publicarEnFacebook(pieza: any) {
     const d = await aMetaPost(`${FB}/${pagina.id}/feed`, {
       message: copy, access_token: TOKEN_FB });
     idPost = d.id;
-  } else if (archivos.length === 1) {
-    const d = await aMetaPost(`${FB}/${pagina.id}/photos`, {
-      url: await enlaceFirmado(paraPublicar(archivos[0])),
-      caption: copy, published: 'true', access_token: TOKEN_FB });
-    idPost = d.post_id || d.id;
   } else {
+    /* UNA FOTO O DIEZ, EL MISMO CAMINO
+
+       Publicar por /photos deja la foto en el album de la pagina y
+       Facebook genera una historia de "foto anadida" -- aparece en
+       Fotos y no como publicacion del muro. Se ve distinto de lo que
+       cualquiera espera al programar un post.
+
+       El camino bueno es subirlas SIN publicar y colgarlas de una
+       publicacion de /feed. Eso da un post normal, con su texto y su
+       foto. 'temporary' evita ademas que se amontonen en el album.
+
+       Esto valia para varias fotos desde el principio; la de una
+       sola era la que estaba mal. */
     const fotos: string[] = [];
     for (const a of archivos) {
       const d = await aMetaPost(`${FB}/${pagina.id}/photos`, {
