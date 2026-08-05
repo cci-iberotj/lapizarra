@@ -2630,7 +2630,35 @@ async function versionLigera(archivo, ancho, calidad) {
 /* Para MIRAR se pide la de pantalla; para el collage de la tarjeta,
    el sello. Si la lamina es vieja y no los tiene, cae al original:
    se ve lento, pero se ve. */
-function selloDe(a) { return a.mini || a.previa || a.ruta; }
+/* LOS TAMAÑOS SE DERIVAN, NO SE CONFIAN
+
+   Una lamina guarda tres punteros a la MISMA foto: el original, la
+   de 1600 para mirar y el sello de 480 para las tarjetas. Si uno se
+   ensucia, dos vistas de la aplicacion enseñan fotos distintas de
+   la misma lamina y las dos parecen tener razon.
+
+   Paso: escribi los sellos en la base por indice (archivos,0,mini)
+   mientras el navegador tenia el arreglo entero en memoria; el
+   siguiente guardado lo sobrescribio y quedaron cruzados los de dos
+   fotos. La ficha enseñaba una y la vista previa otra.
+
+   Los nombres son deterministas -- previa-<base>.jpg y
+   mini-<base>.jpg junto al original -- asi que se comprueban. Si un
+   puntero no corresponde a su ruta, se ignora y se cae al original:
+   mas vale una foto pesada que la foto equivocada. */
+function varianteDe(a, prefijo) {
+  const ruta = a && a.ruta;
+  if (!ruta) return '';
+  const guardado = a[prefijo];
+  if (!guardado) return ruta;
+  const barra = ruta.lastIndexOf('/');
+  const base = ruta.slice(barra + 1).replace(/\.[^.]+$/, '');
+  const debeSer = ruta.slice(0, barra + 1) + prefijo + '-' + base + '.jpg';
+  return guardado === debeSer ? guardado : ruta;
+}
+
+function selloDe(a) { return varianteDe(a, 'mini') !== a.ruta ? varianteDe(a, 'mini')
+                           : varianteDe(a, 'previa'); }
 
 /* Una lamina se dibuja en un solo sitio. Se usa al abrir la ficha y
    al agregar mas sin reconstruirla. */
@@ -5048,7 +5076,7 @@ async function pintarLaminas() {
   const a = archivos[laminaActual] || archivos[0];
   lienzo.innerHTML = '<div class="sim-cargando">Cargando…</div>';
   try {
-    const url = await urlDeArchivo(a.previa || a.ruta);
+    const url = await urlDeArchivo(varianteDe(a, 'previa'));
     const flechas = archivos.length > 1 ? `
       <button class="sim-flecha izq" id="simAtras" aria-label="Lámina anterior">‹</button>
       <button class="sim-flecha der" id="simAdelante" aria-label="Lámina siguiente">›</button>
