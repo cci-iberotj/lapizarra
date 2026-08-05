@@ -124,7 +124,17 @@ def main():
         tareas = ', '.join(p.get('tasks') or []) or 'sin tareas'
         print('     %d) %s  [%s]' % (i, p['name'], tareas.lower()))
 
-    if len(paginas) == 1:
+    # Se puede decir por nombre para no tener que estar presente:
+    #     python supabase/token_facebook.py "Ibero Tijuana"
+    pedida = sys.argv[1].strip().lower() if len(sys.argv) > 1 else ''
+    coinciden = [x for x in paginas if x['name'].strip().lower() == pedida]
+
+    if coinciden:
+        elegida = coinciden[0]
+        print('\n     Elegida por nombre: %s' % elegida['name'])
+    elif pedida:
+        sys.exit('\n  No administras ninguna página que se llame «%s».\n' % sys.argv[1])
+    elif len(paginas) == 1:
         elegida = paginas[0]
     else:
         # No adivinar cual: publicar en la pagina equivocada no se
