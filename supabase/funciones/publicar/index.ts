@@ -210,6 +210,49 @@ function paraPublicar(a: any) {
   return a.previa === debeSer ? a.previa : ruta;
 }
 
+/* REVISAR EL ARTE ANTES DE MANDARLO
+
+   Meta rechaza lo que no le sirve con errores que hablan de su API
+   y no del problema: "Only photo or video can be accepted as media
+   type" no le dice a nadie que subio un PNG. Mas vale negarse aqui
+   y decir que pasa y como se arregla.
+
+   Video todavia no: un Reel se sube por otro camino, con su propio
+   tipo de contenedor y su propia espera. Negarlo claramente es
+   mejor que intentarlo y fallar a medias. */
+const VIDEOS = ['.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v'];
+
+function extension(ruta: string) {
+  const punto = ruta.lastIndexOf('.');
+  return punto < 0 ? '' : ruta.slice(punto).toLowerCase();
+}
+
+function revisarArte(pieza: any, red: 'ig' | 'fb') {
+  const archivos = archivosDe(pieza);
+  const nombre = (a: any) => a.nombre || (a.ruta || '').split('/').pop();
+
+  const videos = archivos.filter((a: any) => VIDEOS.includes(extension(a.ruta || '')));
+  if (videos.length) {
+    throw new Error(
+      `Todavía no publico video: «${nombre(videos[0])}». Los Reels y los ` +
+      `videos hay que subirlos a mano por ahora.`);
+  }
+
+  if (red === 'ig') {
+    // Instagram solo acepta JPEG. No es negociable ni convertible
+    // desde aqui: el archivo se sube tal cual desde el navegador.
+    const malos = archivos.filter((a: any) => {
+      const e = extension(paraPublicar(a));
+      return e !== '.jpg' && e !== '.jpeg';
+    });
+    if (malos.length) {
+      throw new Error(
+        `Instagram solo acepta JPEG y «${nombre(malos[0])}» no lo es. ` +
+        `Vuelve a exportarla como JPG y reemplázala en la pieza.`);
+    }
+  }
+}
+
 async function aMetaPost(url: string, campos: Record<string, string>) {
   const r = await fetch(url, {
     method: 'POST',
@@ -250,6 +293,7 @@ async function publicarEnInstagram(pieza: any) {
   if (archivos.length > 10) {
     throw new Error(`Instagram admite 10 láminas y esta tiene ${archivos.length}.`);
   }
+  revisarArte(pieza, 'ig');
 
   const yo = await aMeta(`${IG}/me?fields=user_id&access_token=${TOKEN_IG}`);
   const idIG = yo.user_id || yo.id;
@@ -307,6 +351,7 @@ async function publicarEnFacebook(pieza: any) {
   if (!TOKEN_FB) throw new Error('No hay llave de Facebook en el servidor.');
 
   const archivos = archivosDe(pieza);
+  revisarArte(pieza, 'fb');
   const pagina = await aMeta(`${FB}/me?fields=id,name&access_token=${TOKEN_FB}`);
   const copy = pieza.copy || '';
   let idPost: string;
