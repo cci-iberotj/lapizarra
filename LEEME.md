@@ -472,3 +472,49 @@ diseño — lo que protege los datos son los permisos de la base.
   el diseñador nuevo necesita generar copy sin pasar por Leo.
 - Cada registro tiene identificador único, para que el día que se integre con el
   CRM de Sergio la migración sea directa.
+
+## Publicar en redes
+
+Dos apps de Meta, una por red, porque una sola app no puede usar los dos
+tipos de inicio de sesión a la vez:
+
+- **La Pizarra · IBERO Tijuana** — Instagram, con *inicio de sesión de
+  Instagram*. Ése es el camino que **no** exige vincular la cuenta con una
+  página de Facebook, que es lo que en Tijuana no se puede hacer porque el
+  portafolio vive en CDMX.
+- **La Pizarra Páginas · IBERO Tijuana** — Facebook, con token de página.
+
+Los tokens viven en los secretos de Supabase (`META_TOKEN_IG`,
+`META_TOKEN_FB`), nunca en el navegador: la página es pública y cualquiera
+leería su código. Se suben con `PEGAR TOKEN.bat`.
+
+### Las dos apps tienen que estar en MODO ACTIVO
+
+Esto costó una tarde y no es obvio. Una app en **modo de desarrollo**
+publica de verdad —el post existe, la API responde bien, el enlace
+funciona— pero **sólo lo ven las personas que tienen un rol en la app**.
+Para todos los demás, incluidos los seguidores, la publicación no aparece
+en el muro.
+
+El síntoma es engañoso: quien administra la app ve el post normal y jura
+que todo salió bien; los demás ven una foto suelta en la pestaña de Fotos,
+o nada.
+
+Se cambia en el panel de cada app, menú izquierdo → **Publicar**. Para
+poder activarlo hay que llenar antes, en *Configuración de la app →
+Básica*, la **URL de la política de privacidad** (sirve el aviso de
+privacidad de IBERO) y la **categoría**.
+
+Al pasar a modo activo, lo ya publicado durante el modo de desarrollo se
+vuelve visible solo: no hay que republicar nada.
+
+### El token de Facebook cuelga de una persona
+
+El de Instagram lo autoriza la cuenta, así que sobrevive a cambios de
+contraseña. El de Facebook sale del rol de Leo sobre la página: si deja de
+ser publicador, Facebook deja de funcionar e Instagram sigue.
+
+Se arregla el día que CDMX conceda *acceso de socio* al portafolio de
+Tijuana: con eso se puede crear un usuario del sistema y el token deja de
+depender de nadie. `TOKEN FACEBOOK.bat` convierte un token corto en uno
+permanente y comprueba con Meta que de verdad no caduque.
