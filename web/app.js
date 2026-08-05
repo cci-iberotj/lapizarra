@@ -2026,6 +2026,47 @@ function pintarCalendario() {
    Aparte, arrastrar en esta aplicacion ya significa "queda asi":
    mover una pieza en el calendario guarda al soltar. Que aqui no
    lo hiciera era la incoherencia, no lo contrario. */
+/* Volver a numerar SIN reconstruir la ficha.
+
+   Repintarla entera despues de cada arrastre tiraba el scroll al
+   principio: acomodabas la septima lamina y la pagina se te iba
+   hasta arriba, a buscarla otra vez. Y encima sobraba -- el nodo ya
+   quedo donde lo soltaste; lo unico que hay que corregir son los
+   numeros y los indices de los botones. */
+function renumerarLaminas() {
+  const caja = $('#listaLaminas');
+  if (!caja) return;
+  $$('.lamina', caja).forEach((t, i) => {
+    t.dataset.lamina = i;
+    const n = $('.lamina-n', t);
+    if (n) n.textContent = i + 1;
+    const d = $('[data-descargar]', t); if (d) d.dataset.descargar = i;
+    const q = $('[data-quitar]', t);    if (q) q.dataset.quitar = i;
+  });
+}
+
+/* Cuando SI hay que reconstruir -- al subir o al quitar, que cambian
+   cuantas hay -- por lo menos no perder el sitio donde estabas. */
+/* Cuantas hay y el texto de ayuda, al vuelo. Reconstruir la ficha
+   entera para cambiar dos frases costaba el scroll Y lo que
+   estuvieras escribiendo sin guardar. */
+function refrescarRotuloLaminas() {
+  const caja = $('#listaLaminas');
+  if (!caja) return;
+  const n = $$('.lamina', caja).length;
+  const grupo = caja.closest('.grupo-campo');
+  const rotulo = grupo && $('label', grupo);
+  if (rotulo) rotulo.textContent = 'Arte final' + (n > 1 ? ` · ${n} láminas` : '');
+  const ayuda = grupo && $('.ayuda', grupo);
+  if (ayuda) {
+    ayuda.textContent = n
+      ? 'El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.'
+      : 'Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.';
+  }
+  const btn = $('#btnSubirArchivo');
+  if (btn && !btn.disabled) btn.textContent = n ? '+ Agregar láminas' : 'Subir arte final';
+}
+
 function asentarLaminas(mensaje) {
   const d = modalCtx && modalCtx.datos;
   if (!d) return;
@@ -2036,6 +2077,10 @@ function asentarLaminas(mensaje) {
   }
   d.actualizado = ahora();
   guardar('parrilla');
+  /* Sin esto el calendario se queda con el collage viejo: la ficha
+     decia una cosa y la tarjeta de atras otra, y las dos con razon
+     desde su punto de vista. */
+  refrescarParrilla();
   avisar(mensaje);
 }
 
@@ -2048,7 +2093,7 @@ function asentarLaminas(mensaje) {
    desde el telefono. La captura va en el contenedor, no en la
    lamina: la lamina se mueve de sitio a media maniobra y perderia
    la captura. */
-function conectarArrastreLaminas(laminas, repintar) {
+function conectarArrastreLaminas(laminas) {
   const caja = $('#listaLaminas');
   if (!caja || caja.children.length < 2) return;
   if (soloLectura('parrilla_piezas')) {
@@ -2064,8 +2109,8 @@ function conectarArrastreLaminas(laminas, repintar) {
     if (orden.length !== l.length || orden.some(i => isNaN(i) || !l[i])) return;
     if (orden.every((v, i) => v === i)) return;      // no se movio nada
     modalCtx.datos.archivos = orden.map(i => l[i]);
+    renumerarLaminas();          // el nodo ya esta en su sitio
     asentarLaminas('Orden nuevo, ya guardado.');
-    repintar();
   };
 
   const terminar = () => {
@@ -2140,10 +2185,15 @@ function conectarArrastreLaminas(laminas, repintar) {
     const j = ev.key === 'ArrowLeft' ? i - 1 : i + 1;
     if (j < 0 || j >= l.length) return;
     [l[i], l[j]] = [l[j], l[i]];
+    // Con teclado el nodo NO se movio solo: hay que moverlo.
+    const caja2 = $('#listaLaminas');
+    const tejas = $$('.lamina', caja2);
+    if (j > i) caja2.insertBefore(tejas[i], tejas[j].nextElementSibling);
+    else caja2.insertBefore(tejas[i], tejas[j]);
     modalCtx.datos.archivos = l;
+    renumerarLaminas();
     asentarLaminas('Orden nuevo, ya guardado.');
-    repintar();
-    const nueva = $$('.lamina', $('#listaLaminas'))[j];
+    const nueva = $$('.lamina', caja2)[j];
     if (nueva) nueva.focus();
   });
 }
@@ -2357,16 +2407,7 @@ function abrirPieza(idPieza, prellenado) {
     <div class="grupo-campo">
       <label>Arte final${archivosDe(p).length > 1 ? ' · ' + archivosDe(p).length + ' láminas' : ''}</label>
       <div class="laminas" id="listaLaminas">
-        ${archivosDe(p).map((a, i) => `
-          <div class="lamina" data-lamina="${i}" tabindex="0"
-               title="${esc(a.nombre || a.ruta.split('/').pop())} — arrástrala para moverla">
-            <span class="lamina-foto" data-sello="${esc(selloDe(a))}"></span>
-            <span class="lamina-n">${i + 1}</span>
-            <span class="lamina-acciones">
-              <button type="button" class="btn-mini" data-descargar="${i}" title="Descargar el original">⬇</button>
-              <button type="button" class="btn-mini" data-quitar="${i}" title="Quitar de la pieza">×</button>
-            </span>
-          </div>`).join('')}
+        ${archivosDe(p).map(dibujarLamina).join('')}
       </div>
       ${!archivosDe(p).length ? '<span class="ayuda">Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.</span>'
         : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.</span>'}
@@ -2459,6 +2500,7 @@ function abrirPieza(idPieza, prellenado) {
     b.disabled = true;
     const d = modalCtx.datos;
     d.archivos = archivosDe(d);
+    const nuevas = [];
     try {
       for (let i = 0; i < elegidos.length; i++) {
         b.textContent = `Subiendo ${i + 1} de ${elegidos.length}…`;
@@ -2474,9 +2516,23 @@ function abrirPieza(idPieza, prellenado) {
         const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
         if (sello) lamina.mini = await subirArchivo(d.id, sello, 'mini-' + raiz + '.jpg');
         d.archivos.push(lamina);
+        nuevas.push(lamina);
       }
+      /* Se agregan al final, que es donde quedaron en el array.
+         Reconstruir la ficha aqui borraria lo que hayas escrito en
+         los campos y todavia no guardes. */
+      const caja = $('#listaLaminas');
+      nuevas.forEach((a, k) => {
+        caja.insertAdjacentHTML('beforeend', dibujarLamina(a, d.archivos.length - nuevas.length + k));
+        const teja = caja.lastElementChild;
+        conectarQuitar($('[data-quitar]', teja));
+        conectarDescargar($('[data-descargar]', teja));
+      });
+      renumerarLaminas();
+      refrescarRotuloLaminas();
+      pintarMiniaturas(caja);
+      conectarArrastreLaminas(laminas);
       asentarLaminas(`${elegidos.length} lámina(s) arriba.`);
-      abrirPieza(d.id);   // repinta la lista
     } catch (e) {
       avisar(e.message);
     } finally { b.disabled = false; }
@@ -2484,22 +2540,27 @@ function abrirPieza(idPieza, prellenado) {
   $('#btnSubirArchivo').addEventListener('click', () => $('#f_archivo').click());
 
   const laminas = () => { const d = modalCtx.datos; d.archivos = archivosDe(d); return d.archivos; };
-  const repintarLaminas = () => { delete modalCtx.datos.archivo; abrirPieza(modalCtx.datos.id); };
+
 
   pintarMiniaturas($('#modalCuerpo'));
-  conectarArrastreLaminas(laminas, repintarLaminas);
+  conectarArrastreLaminas(laminas);
 
-  $$('[data-descargar]').forEach(b => b.addEventListener('click', async () => {
+  const conectarDescargar = b => b.addEventListener('click', async () => {
     avisar('Bajando…');
     try { await bajarArchivo(laminas()[+b.dataset.descargar].ruta); }
     catch (e) { avisar(e.message); }
-  }));
-  $$('[data-quitar]').forEach(b => b.addEventListener('click', () => {
+  });
+  $$('[data-descargar]').forEach(conectarDescargar);
+  const conectarQuitar = b => b.addEventListener('click', () => {
     const l = laminas();
     const fuera = l.splice(+b.dataset.quitar, 1)[0];
+    const teja = b.closest('.lamina');
+    if (teja) teja.remove();
+    renumerarLaminas();
+    refrescarRotuloLaminas();
     asentarLaminas(`«${fuera.nombre || 'Lámina'}» fuera del post.`);
-    repintarLaminas();
-  }));
+  });
+  $$('[data-quitar]').forEach(conectarQuitar);
 
   $('#btnGuia').addEventListener('click', () => {
     const pasos = guiaDeProduccion($('#f_formato').value, $('#f_pilar').value);
@@ -2570,6 +2631,20 @@ async function versionLigera(archivo, ancho, calidad) {
    el sello. Si la lamina es vieja y no los tiene, cae al original:
    se ve lento, pero se ve. */
 function selloDe(a) { return a.mini || a.previa || a.ruta; }
+
+/* Una lamina se dibuja en un solo sitio. Se usa al abrir la ficha y
+   al agregar mas sin reconstruirla. */
+function dibujarLamina(a, i) {
+  return `<div class="lamina" data-lamina="${i}" tabindex="0"
+       title="${esc(a.nombre || a.ruta.split('/').pop())} — arrástrala para moverla">
+    <span class="lamina-foto" data-sello="${esc(selloDe(a))}"></span>
+    <span class="lamina-n">${i + 1}</span>
+    <span class="lamina-acciones">
+      <button type="button" class="btn-mini" data-descargar="${i}" title="Descargar el original">⬇</button>
+      <button type="button" class="btn-mini" data-quitar="${i}" title="Quitar de la pieza">×</button>
+    </span>
+  </div>`;
+}
 
 /* Un carrusel en la parrilla se leia igual que un post suelto: solo
    el titulo. Con tres fotos encimadas se entiende de un vistazo que
@@ -5101,16 +5176,24 @@ function atraparFoco(ev) {
 }
 
 function mostrarModal() {
-  focoPrevio = document.activeElement;
+  const yaEstaba = !$('#modalFondo').hidden;
+  if (!yaEstaba) focoPrevio = document.activeElement;
   $('#modalFondo').hidden = false;
   aplicarPermisosModal();
 
-  // El foco entra al primer campo, no se queda afuera: si no, hay
-  // que tabular por toda la página para llegar a la ficha.
-  const lista = enfocablesDelModal();
-  const primerCampo = lista.find(el => /INPUT|TEXTAREA|SELECT/.test(el.tagName)) || lista[0];
-  if (primerCampo) setTimeout(() => primerCampo.focus(), 30);
+  /* El foco entra al primer campo, no se queda afuera: si no, hay
+     que tabular por toda la página para llegar a la ficha.
 
+     Solo al ABRIR. Si la ficha se vuelve a pintar con el modal ya
+     abierto, mandar el foco arriba te arrastra el scroll hasta el
+     principio -- justo lo que pasaba al acomodar una lamina. */
+  if (!yaEstaba) {
+    const lista = enfocablesDelModal();
+    const primerCampo = lista.find(el => /INPUT|TEXTAREA|SELECT/.test(el.tagName)) || lista[0];
+    if (primerCampo) setTimeout(() => primerCampo.focus(), 30);
+  }
+
+  document.removeEventListener('keydown', atraparFoco, true);
   document.addEventListener('keydown', atraparFoco, true);
   // Huella de los campos al abrir: sirve para saber si hay trabajo sin guardar.
   if (modalCtx) modalCtx.huella = huellaFormulario();
