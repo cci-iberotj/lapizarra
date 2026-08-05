@@ -1984,6 +1984,32 @@ function pintarCalendario() {
 
 /* ── Reordenar las laminas de un carrusel ──────────────── */
 
+/* POR QUE ESTO GUARDA SOLO Y NO ESPERA AL BOTON DE GUARDAR
+
+   Porque si no, el acomodo se pierde sin avisar. Al sincronizar,
+   los registros que cambiaron se REEMPLAZAN en la lista
+   (lista[i] = registro), asi que el objeto que la ficha abierta
+   trae en la mano se queda huerfano: seguir escribiendole no le
+   llega a nadie, y ademas la sincronizacion vuelve a tomar la
+   copia base, asi que ya ni se puede recuperar. Una sincronizacion
+   entre el acomodo y el boton se lo llevaba entero.
+
+   Aparte, arrastrar en esta aplicacion ya significa "queda asi":
+   mover una pieza en el calendario guarda al soltar. Que aqui no
+   lo hiciera era la incoherencia, no lo contrario. */
+function asentarLaminas(mensaje) {
+  const d = modalCtx && modalCtx.datos;
+  if (!d) return;
+  delete d.archivo;                 // el campo viejo se retira al migrar
+  if (modalCtx.esNuevo) {           // todavia no existe: viaja al crearla
+    avisar(mensaje.replace(', ya guardado', ''));
+    return;
+  }
+  d.actualizado = ahora();
+  guardar('parrilla');
+  avisar(mensaje);
+}
+
 /* Las flechitas obligaban a contar posiciones en la cabeza: para
    llevar la septima al frente eran seis clics y perder la cuenta.
    Se arrastra, que es lo que la mano ya quiere hacer.
@@ -2009,7 +2035,7 @@ function conectarArrastreLaminas(laminas, repintar) {
     if (orden.length !== l.length || orden.some(i => isNaN(i) || !l[i])) return;
     if (orden.every((v, i) => v === i)) return;      // no se movio nada
     modalCtx.datos.archivos = orden.map(i => l[i]);
-    avisar('Orden nuevo. Se guarda al guardar la pieza.');
+    asentarLaminas('Orden nuevo, ya guardado.');
     repintar();
   };
 
@@ -2086,6 +2112,7 @@ function conectarArrastreLaminas(laminas, repintar) {
     if (j < 0 || j >= l.length) return;
     [l[i], l[j]] = [l[j], l[i]];
     modalCtx.datos.archivos = l;
+    asentarLaminas('Orden nuevo, ya guardado.');
     repintar();
     const nueva = $$('.lamina', $('#listaLaminas'))[j];
     if (nueva) nueva.focus();
@@ -2313,7 +2340,7 @@ function abrirPieza(idPieza, prellenado) {
           </div>`).join('')}
       </div>
       ${!archivosDe(p).length ? '<span class="ayuda">Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.</span>'
-        : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina.</span>'}
+        : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.</span>'}
       <input type="file" id="f_archivo" multiple hidden>
       <div class="imagen-acciones">
         <button type="button" class="btn-plano" id="btnSubirArchivo">${archivosDe(p).length ? '+ Agregar láminas' : 'Subir arte final'}</button>
@@ -2419,8 +2446,7 @@ function abrirPieza(idPieza, prellenado) {
         if (sello) lamina.mini = await subirArchivo(d.id, sello, 'mini-' + raiz + '.jpg');
         d.archivos.push(lamina);
       }
-      delete d.archivo;   // el campo viejo se retira al migrar
-      avisar(`${elegidos.length} lámina(s) arriba. Se guardan al guardar la pieza.`);
+      asentarLaminas(`${elegidos.length} lámina(s) arriba.`);
       abrirPieza(d.id);   // repinta la lista
     } catch (e) {
       avisar(e.message);
@@ -2442,7 +2468,7 @@ function abrirPieza(idPieza, prellenado) {
   $$('[data-quitar]').forEach(b => b.addEventListener('click', () => {
     const l = laminas();
     const fuera = l.splice(+b.dataset.quitar, 1)[0];
-    avisar(`«esc» desligada. Se guarda al guardar.`.replace('esc', fuera.nombre || 'Lámina'));
+    asentarLaminas(`«${fuera.nombre || 'Lámina'}» fuera del post.`);
     repintarLaminas();
   }));
 
@@ -4405,6 +4431,148 @@ async function urlDeArchivo(ruta) {
 }
 
 
+/* ── Llevarse el post completo ─────────────────────────── */
+
+/* Quien publica no viene a leer la ficha: viene por el material.
+   Bajar ocho fotos de una en una, acordandose del orden, es donde
+   se rompe la cadena -- y el orden es justo lo que costo decidir.
+
+   El ZIP se arma a mano, sin comprimir. Son sesenta lineas y evita
+   meter una libreria entera: los JPG ya vienen comprimidos, asi que
+   volver a comprimir no ahorraria nada que valga la pena. */
+const TABLA_CRC = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = TABLA_CRC[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function armarZip(entradas) {
+  const cod = new TextEncoder();
+  const u16 = n => [n & 255, (n >> 8) & 255];
+  const u32 = n => [n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255];
+  const BANDERA = 0x0800;    // los nombres van en UTF-8
+
+  const cuerpo = [], central = [];
+  let offset = 0, largoCentral = 0;
+
+  entradas.forEach(e => {
+    const nombre = cod.encode(e.nombre);
+    const crc = crc32(e.bytes), tam = e.bytes.length;
+    const cab = new Uint8Array([
+      ...u32(0x04034b50), ...u16(20), ...u16(BANDERA), ...u16(0),
+      ...u16(0), ...u16(0),                       // hora y fecha: cero
+      ...u32(crc), ...u32(tam), ...u32(tam),
+      ...u16(nombre.length), ...u16(0),
+    ]);
+    cuerpo.push(cab, nombre, e.bytes);
+
+    const ent = new Uint8Array([
+      ...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(BANDERA), ...u16(0),
+      ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(tam), ...u32(tam),
+      ...u16(nombre.length), ...u16(0), ...u16(0),
+      ...u16(0), ...u16(0), ...u32(0), ...u32(offset),
+    ]);
+    central.push(ent, nombre);
+    largoCentral += ent.length + nombre.length;
+    offset += cab.length + nombre.length + tam;
+  });
+
+  const fin = new Uint8Array([
+    ...u32(0x06054b50), ...u16(0), ...u16(0),
+    ...u16(entradas.length), ...u16(entradas.length),
+    ...u32(largoCentral), ...u32(offset), ...u16(0),
+  ]);
+  return new Blob([...cuerpo, ...central, fin], { type: 'application/zip' });
+}
+
+/* Sin pasar por el cache de miniaturas: son los originales, y
+   guardarse cincuenta megas en la pestana no le sirve a nadie. */
+async function bytesDeArchivo(ruta) {
+  const token = await Almacen.motor._token();
+  const r = await fetch(
+    `${CONFIG.supabase.url}/storage/v1/object/${CUBETA}/${encodeURI(ruta)}`, {
+      headers: { apikey: CONFIG.supabase.llave, Authorization: 'Bearer ' + token },
+    });
+  if (!r.ok) throw new Error('No se pudo bajar ' + ruta.split('/').pop());
+  return new Uint8Array(await r.arrayBuffer());
+}
+
+/* El texto va adentro del ZIP y no aparte: quien publica necesita
+   el copy tanto como las fotos, y un archivo suelto se pierde. */
+function textoDelPost(p) {
+  const lineas = [
+    p.titulo || 'Sin título',
+    ''.padEnd((p.titulo || 'Sin título').length, '='),
+    '',
+    `Sale:        ${p.fecha ? fechaLegible(p.fecha) : 'sin fecha'}${p.hora ? ' · ' + p.hora : ''}`,
+    `Canales:     ${(p.canales || []).map(c => catalogo(CANALES, c)).join(', ') || '—'}`,
+    `Formato:     ${p.formato || '—'}`,
+    `Pilar:       ${catalogo(PILARES, p.pilar) || '—'}`,
+    `Responsable: ${p.responsable || '—'}`,
+    `Láminas:     ${archivosDe(p).length} (van en el orden del número)`,
+    '',
+    '── COPY ──────────────────────────────────',
+    '',
+    p.copy || '(sin copy todavía)',
+  ];
+  if (p.notas) lineas.push('', '── NOTAS ─────────────────────────────────', '', p.notas);
+  return new TextEncoder().encode(lineas.join('\r\n'));   // \r\n: se abre bien en Windows
+}
+
+async function bajarPostCompleto() {
+  const p = previaCtx && previaCtx.pieza;
+  const b = $('#previaBajarTodo');
+  if (!p || !b || b.disabled) return;
+
+  const archivos = archivosDe(p);
+  const original = b.textContent;
+  b.disabled = true;
+
+  try {
+    const entradas = [];
+    for (let i = 0; i < archivos.length; i++) {
+      b.textContent = `Bajando ${i + 1} de ${archivos.length}…`;
+      const a = archivos[i];
+      const suelto = (a.nombre || a.ruta.split('/').pop());
+      entradas.push({
+        nombre: String(i + 1).padStart(2, '0') + '-' + nombreLimpio(suelto),
+        bytes: await bytesDeArchivo(a.ruta),
+      });
+    }
+    entradas.push({ nombre: 'texto-del-post.txt', bytes: textoDelPost(p) });
+
+    b.textContent = 'Armando el archivo…';
+    const zip = armarZip(entradas);
+    const url = URL.createObjectURL(zip);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${nombreLimpio((p.titulo || 'post') + '.zip')}`.replace(
+      /\.zip$/, `-${p.fecha || ''}.zip`).replace('--', '-');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    avisar(`${archivos.length} lámina(s) y el copy, en un solo archivo.`);
+  } catch (e) {
+    avisar(e.message || 'No se pudo armar la descarga.');
+  } finally {
+    b.disabled = false;
+    b.textContent = original;
+  }
+}
+
+
 /* ── La ficha de vista previa ──────────────────────────── */
 
 let previaCtx = null;
@@ -4415,6 +4583,8 @@ function abrirPrevia(idPieza) {
   if (!p) return;
 
   previaCtx = { pieza: p };
+  // Sin laminas no hay nada que llevarse: el boton estorba.
+  $('#previaBajarTodo').hidden = !archivosDe(p).length;
   laminaActual = 0;
   $('#previa').hidden = false;
   document.addEventListener('keydown', tecladoPrevia);
@@ -4917,6 +5087,7 @@ function conectarEventos() {
   $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));
 
   $('#previaCerrar').addEventListener('click', cerrarPrevia);
+  $('#previaBajarTodo').addEventListener('click', bajarPostCompleto);
   $('#previaEditar').addEventListener('click', () => {
     const id = previaCtx && previaCtx.pieza.id;
     cerrarPrevia();
