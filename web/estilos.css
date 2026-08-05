@@ -3139,3 +3139,18 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   color: var(--texto);
   font-size: .84rem;
 }
+
+/* Estado de la conexion con las redes. Verde no significa "todo
+   bien", significa "la llave abre" -- que es lo unico que se puede
+   saber sin publicar. */
+.red-estado {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 9px 12px; margin-top: 6px;
+  border-left: 3px solid var(--tono);
+  background: var(--capa-2);
+  border-radius: 0 var(--radio-chico, 6px) var(--radio-chico, 6px) 0;
+  font-size: .86rem;
+}
+.red-estado.viva   { --tono: var(--ok); }
+.red-estado.muerta { --tono: var(--tinta-tenue); }
+.red-estado span { color: var(--texto-medio); }

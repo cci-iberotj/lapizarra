@@ -1129,6 +1129,24 @@ const ROLES_SISTEMA = [
 
 let usuariosDelSistema = [];
 
+/* Cualquier funcion de servidor, con la sesion de quien llama. Es
+   la misma forma que llamarAdmin, sacada aparte porque ya son dos. */
+async function llamarFuncion(nombre, cuerpo) {
+  const token = await Almacen.motor._token();
+  const r = await fetch(`${CONFIG.supabase.url}/functions/v1/${nombre}`, {
+    method: 'POST',
+    headers: {
+      apikey: CONFIG.supabase.llave,
+      Authorization: 'Bearer ' + token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(cuerpo),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.error) throw new Error(d.error || 'No se pudo completar.');
+  return d;
+}
+
 async function llamarAdmin(accion, datos = {}) {
   const token = await Almacen.motor._token();
   const r = await fetch(CONFIG.supabase.url + '/functions/v1/administrar', {
@@ -1182,6 +1200,22 @@ async function pintarAjustes() {
   const eq = (datos.redaccion && datos.redaccion.equipo) || {};
   const nunca = u => !u.ultima_entrada;
   const miRol = ROLES_SISTEMA.find(r => r.id === yo.rol);
+
+  /* Saber si la llave de Meta sigue viva ANTES de necesitarla. Los
+     tokens caducan a los 60 dias, y el dia que deje de servir no
+     queremos enterarnos con un post a medio publicar. */
+  const bloqueRedes = !repartelTrabajo ? '' : `
+    <section class="bloque-auditoria">
+      <div class="bloque-encabezado">
+        <h3>Conexión con las redes</h3>
+        <button class="btn-plano" id="aj_redes">Comprobar</button>
+      </div>
+      <p class="tenue nota">
+        Comprueba que la llave de Meta siga sirviendo y a qué cuentas
+        apunta. No publica nada.
+      </p>
+      <div id="aj_redes_salida"></div>
+    </section>`;
 
   const bloqueCuentas = !esAdmin ? '' : `
     <section class="bloque-auditoria">
@@ -1294,6 +1328,7 @@ async function pintarAjustes() {
     </section>
 
     ${bloqueCuentas}
+    ${bloqueRedes}
     ${bloqueEquipo}
 
     <section class="bloque-auditoria">
@@ -1333,6 +1368,27 @@ async function pintarAjustes() {
       </div>
     </section>
   `;
+
+  const btnRedes = $('#aj_redes');
+  if (btnRedes) btnRedes.addEventListener('click', async () => {
+    const salida = $('#aj_redes_salida');
+    btnRedes.disabled = true;
+    salida.innerHTML = '<p class="tenue nota">Preguntándole a Meta…</p>';
+    try {
+      const d = await llamarFuncion('publicar', { accion: 'comprobar' });
+      const fila = (red, r) => `
+        <div class="red-estado ${r.ok ? 'viva' : 'muerta'}">
+          <b>${esc(red)}</b>
+          ${r.ok
+            ? `<span>Conectada a <b>@${esc(r.usuario || '?')}</b>${r.tipo ? ' · ' + esc(r.tipo) : ''}${
+                 r.publicadasHoy != null ? ' · ' + r.publicadasHoy + ' publicaciones hoy' : ''}</span>`
+            : `<span>${esc(r.porque || 'Sin conexión')}</span>`}
+        </div>`;
+      salida.innerHTML = fila('Instagram', d.instagram || {}) + fila('Facebook', d.facebook || {});
+    } catch (e) {
+      salida.innerHTML = `<p class="lamina-error">⚠ ${esc(e.message)}</p>`;
+    } finally { btnRedes.disabled = false; }
+  });
 
   if (esAdmin) {
     $('#aj_nueva').addEventListener('click', abrirAltaDeUsuario);
