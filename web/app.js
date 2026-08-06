@@ -1721,7 +1721,8 @@ function abrirEvento(idEvento, prellenado) {
     </div>
 
     <div class="grupo-campo">
-      <label for="e_notas">Detalles</label>
+      <label for="e_notas">Detalles${
+        quienAnoto(e) ? ` <span class="tenue">· lo anotó ${esc(quienAnoto(e))}</span>` : ''}</label>
       <textarea class="campo" id="e_notas" placeholder="Contacto, accesos, si hay que llegar antes, qué se espera de la cobertura…">${esc(e.notas)}</textarea>
     </div>
 
@@ -3062,6 +3063,9 @@ function leerPieza() {
   if (problema) { avisar(problema); return false; }
 
   p.actualizado = ahora();
+  // Quien la anoto, para poder contestar "¿quien metio esto?" sin
+  // entrar a la base.
+  if (!p.creadoPor) p.creadoPor = Almacen.usuario ? Almacen.usuario.nombre : '';
   if (modalCtx.esNuevo) {
     p.creado = ahora();
     datos.parrilla.piezas.push(p);
@@ -4882,6 +4886,19 @@ function bloqueCuando(p, rev, archivos) {
     </div>`;
 }
 
+/* QUIEN ANOTO ESTO
+
+   El dato estaba desde el principio en la columna 'actor' de cada
+   registro, pero nunca aparecio en pantalla. En una herramienta de
+   tres personas "¿quien metio esto?" es una pregunta normal, y
+   hasta hoy solo se podia contestar entrando a la base. */
+function quienAnoto(x) {
+  if (!x || !x.creadoPor) return '';
+  const cuando = x.creado || x.actualizado;
+  const fecha = cuando ? fechaLegible(String(cuando).slice(0, 10)) : '';
+  return `${x.creadoPor}${fecha ? ' · ' + fecha : ''}`;
+}
+
 function porQueNoSaldraSola(p) {
   if (!p.autopublicar) return null;
   const faltas = [];
@@ -5391,6 +5408,7 @@ function pintarPrevia() {
             p.hora ? ' · ' + esc(horaLegible(p.hora)) : ''}</dd>
           <dt>Estado</dt><dd style="color:${est ? est.color : ''}">${esc(est ? est.nombre : '—')}</dd>
           <dt>Responsable</dt><dd>${esc(p.responsable || 'sin asignar')}</dd>
+          ${quienAnoto(p) ? `<dt>Quién la anotó</dt><dd class="tenue">${esc(quienAnoto(p))}</dd>` : ''}
           ${archivos.length ? `<dt>Archivos</dt><dd>${archivos.length} ${archivos.length === 1 ? 'lámina' : 'láminas'}</dd>` : ''}
         </dl>
 
