@@ -22,6 +22,36 @@ const TOKEN_FB = Deno.env.get('META_TOKEN_FB') || '';
 const IG = 'https://graph.instagram.com';
 const FB = 'https://graph.facebook.com';
 
+/* Quien llama a la tanda automatica no es una persona: es el reloj
+   de la base. No tiene sesion, asi que se identifica con esto. */
+const SECRETO_RELOJ = Deno.env.get('CRON_SECRETO') || '';
+
+const ZONA = 'America/Tijuana';
+
+/* LA HORA, SIN CUENTAS DE HUSOS
+
+   Las piezas dicen "13 de agosto, 17:00" en hora de Tijuana. El
+   servidor piensa en UTC y ademas hay horario de verano. Restar
+   horas a mano es donde esto se rompe siempre, y se rompe en
+   silencio: el post sale bien, pero una hora antes.
+
+   En vez de calcular, se le pide a la maquina la hora de Tijuana ya
+   formateada igual que como la guardamos, y se comparan como texto.
+   Con ceros a la izquierda, el orden alfabetico ES el orden
+   cronologico. */
+function ahoraEnTijuana() {
+  const f = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: ZONA, year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(new Date());
+  return f.replace(' ', 'T').slice(0, 16);   // 2026-08-13T17:00
+}
+
+function leMomento(p: any) {
+  if (!p.fecha || !p.hora) return null;
+  return `${p.fecha}T${String(p.hora).slice(0, 5)}`;
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   // 'apikey' TIENE que ir: el cliente la manda siempre y sin ella el
@@ -472,10 +502,100 @@ async function marcarPublicada(id: string, pieza: any, salidas: any, quien: stri
 }
 
 
+/* ── La tanda automatica ───────────────────────────────────
+
+   La llama el reloj de la base cada pocos minutos. Publica UNA por
+   corrida: si el sistema estuvo caido y hay cinco atrasadas salen
+   todas, pero separadas, en vez de vaciarse de golpe en el muro.
+
+   Las condiciones son las mismas que las del boton, ni una menos.
+   Que no haya nadie mirando no es razon para relajarlas -- es razon
+   para lo contrario. */
+async function tanda() {
+  const r = await fetch(
+    `${URL_BASE}/rest/v1/registros?coleccion=eq.parrilla_piezas&borrado=is.false&select=id,datos`,
+    { headers: { apikey: LLAVE_ADMIN, Authorization: 'Bearer ' + LLAVE_ADMIN } });
+  const filas = await r.json();
+  const ahora = ahoraEnTijuana();
+
+  const listas = (filas || [])
+    .filter((f: any) => {
+      const p = f.datos || {};
+      if (!p.autopublicar) return false;
+      const ap = p.aprobacion || {};
+      if (ap.estado !== 'aprobado') return false;
+      if (ap.sello && ap.sello !== selloDeRevision(p)) return false;
+      if (!archivosDe(p).length) return false;
+      const posibles = ['ig', 'fb'].filter((c) => (p.canales || []).includes(c));
+      const faltan = posibles.filter((c) => !(p.publicaciones || {})[c]);
+      if (!faltan.length) return false;
+      const momento = leMomento(p);
+      return !!momento && momento <= ahora;
+    })
+    .sort((a: any, b: any) =>
+      (leMomento(a.datos) || '').localeCompare(leMomento(b.datos) || ''));
+
+  if (!listas.length) return { revisadas: filas?.length || 0, publicada: null, ahora };
+
+  const { id, datos: pieza } = listas[0];   // la mas atrasada primero
+  const posibles = ['ig', 'fb'].filter((c) => (pieza.canales || []).includes(c));
+  const pedidas = posibles.filter((c) => !(pieza.publicaciones || {})[c]);
+
+  const salidas: Record<string, any> = {};
+  const fallos: Record<string, string> = {};
+  for (const red of pedidas) {
+    try {
+      salidas[red] = red === 'ig'
+        ? await publicarEnInstagram(pieza)
+        : await publicarEnFacebook(pieza);
+    } catch (e) {
+      fallos[red] = (e as Error).message;
+    }
+  }
+
+  if (Object.keys(salidas).length) {
+    /* Que salio sola queda anotado: si alguien ve el post y no
+       recuerda haberlo mandado, la respuesta tiene que estar aqui. */
+    delete pieza.autoerror;
+    await marcarPublicada(id, pieza, salidas, 'La Pizarra (automático)');
+  }
+
+  if (Object.keys(fallos).length) {
+    /* Un fallo silencioso es lo peor que puede pasarle a esto: la
+       pieza no sale y nadie se entera hasta que alguien pregunta.
+       Se guarda para que aparezca en los avisos. */
+    pieza.autoerror = {
+      cuando: new Date().toISOString(),
+      texto: Object.entries(fallos).map(([r, m]) => `${r}: ${m}`).join(' · '),
+    };
+    await fetch(
+      `${URL_BASE}/rest/v1/registros?coleccion=eq.parrilla_piezas&id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { apikey: LLAVE_ADMIN, Authorization: 'Bearer ' + LLAVE_ADMIN,
+                   'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ datos: pieza, actualizado: new Date().toISOString() }),
+      });
+  }
+
+  return { ahora, publicada: pieza.titulo, salidas: Object.keys(salidas), fallos };
+}
+
+
 Deno.serve(async (peticion) => {
   if (peticion.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
+    /* El reloj entra por otra puerta: no tiene sesion de nadie. Se
+       comprueba antes que nada y con comparacion de longitud fija
+       para no filtrar el secreto por el tiempo de respuesta. */
+    if (peticion.headers.get('x-pizarra-reloj')) {
+      const dado = peticion.headers.get('x-pizarra-reloj') || '';
+      const ok = SECRETO_RELOJ.length > 0 && dado.length === SECRETO_RELOJ.length &&
+        dado.split('').reduce((a, c, i) => a | (c.charCodeAt(0) ^ SECRETO_RELOJ.charCodeAt(i)), 0) === 0;
+      if (!ok) return responder({ error: 'Reloj no reconocido.' }, 403);
+      return responder(await tanda());
+    }
+
     const quien = await quienLlama(peticion);
     const cuerpo = await peticion.json().catch(() => ({}));
     const accion = cuerpo.accion || '';

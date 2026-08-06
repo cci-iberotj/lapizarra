@@ -3188,3 +3188,7 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   background: var(--capa-1);
   font-size: .84rem;
 }
+
+/* Una pieza armada para salir sola tiene que verse distinta de una
+   que espera a que alguien apriete. */
+.sale-sola { color: var(--marca); }

@@ -2403,11 +2403,23 @@ function abrirPieza(idPieza, prellenado) {
         <input class="campo" type="date" id="f_fecha" value="${esc(p.fecha)}">
       </div>
       <div class="grupo-campo">
+        <label for="f_hora">Hora</label>
+        <input class="campo" type="time" id="f_hora" value="${esc(p.hora || '')}">
+      </div>
+      <div class="grupo-campo">
         <label for="f_estado">Estado</label>
         <select class="campo" id="f_estado">
           ${ESTADOS.map(x => `<option value="${x.id}"${x.id === p.estado ? ' selected' : ''}>${esc(x.nombre)}</option>`).join('')}
         </select>
       </div>
+    </div>
+
+    <div class="grupo-campo">
+      <label class="check-inline">
+        <input type="checkbox" id="f_autopublicar"${p.autopublicar ? ' checked' : ''}>
+        <span>Publicar sola a su hora</span>
+      </label>
+      <span class="ayuda">Si está aprobada y tiene arte, sale sin que nadie apriete nada — a la hora de arriba, hora de Tijuana. Aprobar y armar la salida son dos actos distintos: por eso esto se enciende aparte.</span>
     </div>
 
     <div class="grupo-campo">
@@ -3005,6 +3017,8 @@ function leerPieza() {
   p.formato     = $('#f_formato').value;
   p.canales     = $$('#f_canales input:checked').map(i => i.value);
   p.fecha       = $('#f_fecha').value;
+  p.hora        = $('#f_hora').value;
+  p.autopublicar = $('#f_autopublicar').checked;
   p.estado      = $('#f_estado').value;
   p.responsable = $('#f_responsable').value.trim();
   p.experto     = $('#f_experto').value;
@@ -3017,6 +3031,18 @@ function leerPieza() {
 
   if (!p.titulo) { avisar('Ponle un título a la pieza.'); return false; }
   if (!p.fecha)  { avisar('Falta la fecha de publicación.'); return false; }
+  /* Sin hora no hay a que hora publicar. Suponer una -- las nueve,
+     el mediodia -- seria decidir por alguien mas a que hora lo ven
+     42 mil personas. */
+  if (p.autopublicar && !p.hora) {
+    avisar('Si va a publicarse sola, ponle la hora.');
+    $('#f_hora').focus();
+    return false;
+  }
+  if (p.autopublicar && !redesDe(p).length) {
+    avisar('Sólo se publican solas Instagram y Facebook. Marca alguno de los dos.');
+    return false;
+  }
 
   const problema = fueraDeVentana(p, p.fecha);
   if (problema) { avisar(problema); return false; }
@@ -5009,6 +5035,12 @@ function avisosPara(yo) {
       meter(p, 'revisar', 'revisa', `${ap.corrigio || 'El equipo'} lo corrigió`,
             'Falta que lo revises.', ap.corregido);
     }
+    /* Fallo al publicarse sola. Es el aviso mas importante de todos:
+       nadie estaba mirando cuando paso, y la pieza no salio. */
+    if (p.autoerror && (edito || publico)) {
+      meter(p, 'autoerror', 'pide', 'No se pudo publicar sola',
+            p.autoerror.texto || '', p.autoerror.cuando);
+    }
     // A quien revisa: aprobo algo que ya no es lo que hay
     if (r.caducada && apruebo) {
       meter(p, 'caduca', 'revisa', 'Cambió después de que la revisaste',
@@ -5207,7 +5239,9 @@ function pintarPrevia() {
         </div>
 
         <dl class="previa-lista">
-          <dt>Sale</dt><dd>${esc(fechaLegible(p.fecha) || 'sin fecha')}</dd>
+          <dt>Sale</dt><dd>${esc(fechaLegible(p.fecha) || 'sin fecha')}${
+            p.hora ? ' · ' + esc(horaLegible(p.hora)) : ''}${
+            p.autopublicar ? ' <b class="sale-sola">· sola</b>' : ''}</dd>
           <dt>Estado</dt><dd style="color:${est ? est.color : ''}">${esc(est ? est.nombre : '—')}</dd>
           <dt>Responsable</dt><dd>${esc(p.responsable || 'sin asignar')}</dd>
           ${archivos.length ? `<dt>Archivos</dt><dd>${archivos.length} ${archivos.length === 1 ? 'lámina' : 'láminas'}</dd>` : ''}
