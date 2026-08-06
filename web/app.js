@@ -4758,6 +4758,16 @@ function redesDe(p) {
   return REDES_AUTOMATICAS.filter(r => (p.canales || []).includes(r.id));
 }
 
+/* Las que faltan por salir. Publicado es POR RED: una pieza que ya
+   salio en Facebook puede salir despues en Instagram, y el sistema
+   no tiene por que darla por terminada solo porque una de las dos
+   ocurrio. Si no falta ninguna, se ofrecen todas -- volver a
+   publicar es legitimo cuando se borro el post, pero se avisa. */
+function redesPendientes(p) {
+  const faltan = redesDe(p).filter(r => !(p.publicaciones || {})[r.id]);
+  return faltan.length ? faltan : redesDe(p);
+}
+
 function puedePublicar() {
   const rol = Almacen.usuario && Almacen.usuario.rol;
   return !Almacen.enLaNube || rol === 'admin' || rol === 'publicacion';
@@ -5251,10 +5261,13 @@ function pintarPrevia() {
               <button class="btn-plano" id="apCambios">Pedir cambios</button>` : ''}
             ${rev.crudo === 'cambios' && !soloLectura('parrilla_piezas') ? `
               <button class="btn-primario" id="apCorregido">Ya lo corregí</button>` : ''}
-            ${rev.estado === 'aprobado' && p.estado !== 'publicado' && archivos.length
-              && redesDe(p).length && puedePublicar() ? `
-              <button class="btn-primario" id="apPublicar">Publicar en ${
-                esc(redesDe(p).map(r => r.nombre).join(' y '))}</button>` : ''}
+            ${rev.estado === 'aprobado' && archivos.length
+              && redesDe(p).length && puedePublicar() ? (() => {
+              const faltan = redesPendientes(p);
+              const nuevas = faltan.some(r => !(p.publicaciones || {})[r.id]);
+              return `<button class="btn-primario" id="apPublicar">${
+                nuevas ? 'Publicar' : 'Volver a publicar'} en ${
+                esc(faltan.map(r => r.nombre).join(' y '))}</button>`; })() : ''}
             ${p.estado !== 'publicado' && archivos.length && !soloLectura('parrilla_piezas') ? `
               <button class="btn-plano" id="apPublicado">Ya lo publiqué a mano</button>` : ''}
           </div>
@@ -5375,7 +5388,7 @@ function conectarPrevia() {
      que no haya que acordarse. */
   if ($('#apPublicar')) $('#apPublicar').addEventListener('click', () => {
     const cuantas = archivosDe(p).length;
-    const redes = redesDe(p);
+    const redes = redesPendientes(p);
     /* Si ya salio antes en esa red, decirlo. Se puede querer -- se
        borro el post y se rehace -- pero nunca por descuido. */
     const repetidas = redes.filter(r => p.publicaciones && p.publicaciones[r.id]);
@@ -5403,7 +5416,8 @@ function conectarPrevia() {
       $('#apCancelarPub').disabled = true;
       b.textContent = 'Publicando…';
       try {
-        const d = await llamarFuncion('publicar', { accion: 'publicar', pieza: p.id });
+        const d = await llamarFuncion('publicar', {
+          accion: 'publicar', pieza: p.id, redes: redes.map(r => r.id) });
 
         // El servidor ya la marco; se refleja aqui para no esperar a
         // la siguiente sincronizacion.

@@ -496,10 +496,6 @@ Deno.serve(async (peticion) => {
       }
 
       const pieza = await leerPieza(idPieza);
-
-      if (pieza.estado === 'publicado') {
-        return responder({ error: 'Esa pieza ya está marcada como publicada.' }, 400);
-      }
       const ap = pieza.aprobacion || {};
       if (ap.estado !== 'aprobado') {
         return responder({ error: 'Solo se publica lo aprobado. Falta el visto bueno.' }, 400);
@@ -510,11 +506,30 @@ Deno.serve(async (peticion) => {
       /* A donde diga la pieza. Instagram y Facebook se publican por
          separado a proposito: el crossposting de Meta refleja el
          post tal cual, con el mismo recorte y el mismo copy, y lo
-         que funciona en una red no funciona igual en la otra. */
+         que funciona en una red no funciona igual en la otra.
+
+         PUBLICADO ES POR RED, NO DE LA PIEZA ENTERA. Una pieza que
+         ya salio en Facebook puede salir despues en Instagram: son
+         dos decisiones distintas y el sistema no tiene por que
+         darla por terminada solo porque una de las dos ocurrio. */
       const canales = pieza.canales || [];
-      const pedidas = ['ig', 'fb'].filter((c) => canales.includes(c));
-      if (!pedidas.length) {
+      const posibles = ['ig', 'fb'].filter((c) => canales.includes(c));
+      if (!posibles.length) {
         return responder({ error: 'Esta pieza no tiene Instagram ni Facebook entre sus canales.' }, 400);
+      }
+
+      /* El navegador dice a cuales quiere ir; el servidor comprueba
+         que esten entre los canales de la pieza. Sin peticion, van
+         las que faltan -- y si no falta ninguna, todas: eso es
+         volver a publicar a proposito. */
+      const yaSalieron = posibles.filter((c) => (pieza.publicaciones || {})[c]);
+      const faltan = posibles.filter((c) => !yaSalieron.includes(c));
+      const pedidas = Array.isArray(cuerpo.redes) && cuerpo.redes.length
+        ? posibles.filter((c) => cuerpo.redes.includes(c))
+        : (faltan.length ? faltan : posibles);
+
+      if (!pedidas.length) {
+        return responder({ error: 'Esas redes no están entre los canales de la pieza.' }, 400);
       }
 
       /* Si una red falla, la que ya salio NO se pierde: se registra
