@@ -1762,6 +1762,9 @@ function leerEvento() {
   if (!e.fecha)  { avisar('Un evento sin fecha no se puede cubrir. ¿Cuándo es?'); return false; }
 
   e.actualizado = ahora();
+  // Quien lo anota no necesita que le avisen de lo que acaba de
+  // anotar.
+  if (!e.creadoPor) e.creadoPor = Almacen.usuario ? Almacen.usuario.nombre : '';
   if (modalCtx.esNuevo) {
     e.creado = ahora();
     datos.parrilla.eventos = datos.parrilla.eventos || [];
@@ -5166,6 +5169,44 @@ function avisosPara(yo) {
     }
   });
 
+  /* EVENTOS POR CUBRIR
+
+     Los avisos solo miraban piezas, y eso dejaba el concepto de
+     evento a medias: alguien marca que hay que cubrir algo con foto,
+     y no le llega a quien tiene que llevar la camara. Marysol anoto
+     el curso de ultrasonido y Leo se entero preguntando.
+
+     Le llega a quien hace la cobertura, no a quien la pidio. */
+  const cubro = yo.rol === 'admin' || yo.rol === 'produccion';
+  const dentroDe = n => aTexto(sumarDias(new Date(), n));
+
+  if (cubro) {
+    (datos.parrilla.eventos || []).forEach(ev => {
+      if (ev.estado === 'cubierto' || ev.estado === 'cancelado') return;
+      if (!ev.fecha || ev.fecha < hoy) return;
+      if (ev.fecha > dentroDe(7)) return;      // mas alla de una semana, todavia no urge
+
+      const q = necesidadesDe(ev)
+        .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
+        .filter(Boolean);
+      if (!q.length) return;                   // sin saber que se necesita no hay nada que avisar
+      if (soyYo(ev.creadoPor)) return;
+
+      const esHoy = ev.fecha === hoy;
+      const cuando = esHoy ? 'Hoy' : fechaLegible(ev.fecha);
+      lista.push({
+        id: ev.id + ':cubrir:' + ev.fecha, pieza: ev.id, tipo: 'evento',
+        tono: esHoy ? 'pide' : 'revisa',
+        titulo: esHoy ? 'Hay que cubrir algo hoy' : 'Evento por cubrir',
+        detalle: `${cuando}${ev.hora ? ' a las ' + horaLegible(ev.hora) : ''}${
+                   ev.lugar ? ' · ' + ev.lugar : ''} · ${q.join(' y ').toLowerCase()}${
+                   ev.estado === 'avisado' ? ' · falta confirmar' : ''}`,
+        pie: ev.titulo || 'Evento sin nombre',
+        cuando: ev.actualizado || ev.creado || ev.fecha,
+      });
+    });
+  }
+
   const v = vistosDe(yo);
   lista.forEach(a => { a.visto = !!v[a.id]; });
   return lista.sort((a, b) => (b.cuando || '').localeCompare(a.cuando || ''));
@@ -5175,7 +5216,7 @@ function avisosPara(yo) {
    armara la suya, en tres meses dirian cosas distintas. */
 function filaDeAviso(a) {
   return `<button class="aviso-fila ${a.visto ? 'visto' : ''} t-${a.tono}"
-      data-aviso="${esc(a.id)}" data-pieza="${esc(a.pieza)}">
+      data-aviso="${esc(a.id)}" data-pieza="${esc(a.pieza)}" data-tipo="${esc(a.tipo || 'pieza')}">
     <span class="aviso-punto"></span>
     <span class="aviso-texto">
       <b>${esc(a.titulo)}</b>
@@ -5192,7 +5233,8 @@ function conectarFilasDeAviso(raiz, yo, despues) {
   $$('.aviso-fila', raiz).forEach(el => el.addEventListener('click', () => {
     marcarVisto(yo, el.dataset.aviso);
     el.classList.add('visto');
-    abrirPrevia(el.dataset.pieza);
+    if (el.dataset.tipo === 'evento') abrirEvento(el.dataset.pieza);
+    else abrirPrevia(el.dataset.pieza);
     pintarContadorAvisos();
     if (despues) despues();
   }));
