@@ -4811,6 +4811,74 @@ function redesPendientes(p) {
    arte, canales automatizables y hora. Si algo falta, el reloj pasa
    de largo en silencio y nadie se entera hasta que el post no
    aparece. Esto lo dice ANTES, donde se toma la decision. */
+/* CUANDO SALE — SU PROPIO BLOQUE
+
+   Antes esto vivia en dos sitios que no se hablaban: la casilla para
+   programar estaba enterrada en el formulario de Editar, y la
+   decision se toma aqui. Leo busco el boton donde tenia que estar y
+   no estaba; la unica pista era una leyenda pasiva mas arriba.
+
+   Y el renglon de acciones mezclaba cuatro botones del mismo peso
+   que contestan dos preguntas distintas: "¿va bien?" (eso lo decide
+   quien revisa) y "¿cuando sale?" (eso lo decide quien publica).
+   Ahora son dos bloques. */
+function bloqueCuando(p, rev, archivos) {
+  if (!archivos.length || !redesDe(p).length) return '';
+  if (!puedePublicar() && !puedeAprobar()) return '';
+
+  const donde = redesDe(p).map(r => r.nombre).join(' y ');
+  const faltas = porQueNoSaldraSola(p);
+  const armada = p.autopublicar && !faltas;
+  const puedo = puedePublicar();
+  const pendientes = redesPendientes(p);
+  const nuevas = pendientes.some(r => !(p.publicaciones || {})[r.id]);
+  const sePuedePublicar = rev.estado === 'aprobado' && puedo;
+
+  let estado;
+  if (armada) {
+    estado = `<div class="cuando-estado sola">
+      <b>⏱ Sale sola${p.hora ? ' a las ' + esc(horaLegible(p.hora)) : ''}</b>
+      <span>${esc(fechaLegible(p.fecha))} · ${esc(donde)}. Nadie tiene que apretar nada.</span>
+    </div>`;
+  } else if (p.autopublicar) {
+    estado = `<div class="cuando-estado rota">
+      <b>⏱ Programada, pero no va a salir</b>
+      <span>${esc(faltas.join(' · '))}</span>
+    </div>`;
+  } else {
+    estado = `<div class="cuando-estado mano">
+      <b>Sale cuando alguien la publique</b>
+      <span>Nadie la va a publicar sola${p.fecha ? '. Estaba prevista para el ' + esc(fechaLegible(p.fecha)) : ''}.</span>
+    </div>`;
+  }
+
+  return `
+    <div class="previa-cuando">
+      <h4>¿Cuándo sale?</h4>
+      ${estado}
+      <div class="cuando-acciones">
+        ${puedo && !p.autopublicar ? `
+          <button class="btn-primario" id="apProgramar">⏱ Programar${
+            p.hora ? ' a las ' + esc(horaLegible(p.hora)) : '…'}</button>` : ''}
+        ${puedo && p.autopublicar ? `
+          <button class="btn-plano" id="apDesprogramar">Quitar la programación</button>` : ''}
+        ${sePuedePublicar ? `
+          <button class="${armada ? 'btn-plano' : 'btn-primario'}" id="apPublicar">${
+            nuevas ? 'Publicar ahora' : 'Volver a publicar ahora'}</button>` : ''}
+        ${p.estado !== 'publicado' && !soloLectura('parrilla_piezas') ? `
+          <button class="btn-plano" id="apPublicado">Ya lo publiqué a mano</button>` : ''}
+      </div>
+      ${puedo && !p.autopublicar && !p.hora ? `
+        <div class="cuando-hora" id="cuandoHora" hidden>
+          <label for="apHora">¿A qué hora?</label>
+          <input type="time" class="campo-mini" id="apHora" value="09:00">
+          <button class="btn-plano" id="apHoraOk">Programar</button>
+        </div>` : ''}
+      ${!sePuedePublicar && rev.estado !== 'aprobado' ? `
+        <p class="cuando-nota">Puedes programarla desde ya, pero no saldrá hasta que esté aprobada.</p>` : ''}
+    </div>`;
+}
+
 function porQueNoSaldraSola(p) {
   if (!p.autopublicar) return null;
   const faltas = [];
@@ -5284,21 +5352,6 @@ function pintarPrevia() {
           ${archivos.length ? `<dt>Archivos</dt><dd>${archivos.length} ${archivos.length === 1 ? 'lámina' : 'láminas'}</dd>` : ''}
         </dl>
 
-        ${(() => {
-          if (!p.autopublicar) return '';
-          const faltas = porQueNoSaldraSola(p);
-          const donde = redesDe(p).map(r => r.nombre).join(' y ');
-          return faltas
-            ? `<div class="programada rota">
-                 <b>⏱ Armada para salir sola, pero no va a salir</b>
-                 <span>${esc(faltas.join(' · '))}</span>
-               </div>`
-            : `<div class="programada">
-                 <b>⏱ Sale sola${p.hora ? ' a las ' + esc(horaLegible(p.hora)) : ''}</b>
-                 <span>${esc(fechaLegible(p.fecha))}${donde ? ' · ' + esc(donde) : ''}. Nadie tiene que apretar nada.</span>
-               </div>`;
-        })()}
-
         ${p.notas ? `<div class="previa-notas"><b>Notas</b>${esc(p.notas).replace(/\n/g,'<br>')}</div>` : ''}
 
         <div class="previa-aprobacion" style="--tono:${marca.color}">
@@ -5347,21 +5400,6 @@ function pintarPrevia() {
               <button class="btn-plano" id="apCambios">Pedir cambios</button>` : ''}
             ${rev.crudo === 'cambios' && !soloLectura('parrilla_piezas') ? `
               <button class="btn-primario" id="apCorregido">Ya lo corregí</button>` : ''}
-            ${rev.estado === 'aprobado' && archivos.length
-              && redesDe(p).length && puedePublicar() ? (() => {
-              const faltan = redesPendientes(p);
-              const nuevas = faltan.some(r => !(p.publicaciones || {})[r.id]);
-              /* "Publicar en Instagram" decia DONDE pero no CUANDO, y
-                 este boton publica en el acto. Con una pieza armada
-                 para salir sola al dia siguiente, leerlo como "dejar
-                 programado" era facil -- y el error no se deshace. */
-              const armada = p.autopublicar && !porQueNoSaldraSola(p);
-              return `<button class="${armada ? 'btn-plano' : 'btn-primario'}" id="apPublicar">${
-                nuevas ? 'Publicar ahora' : 'Volver a publicar ahora'}${
-                armada ? ' (sin esperar)' : ' en ' + esc(faltan.map(r => r.nombre).join(' y '))
-              }</button>`; })() : ''}
-            ${p.estado !== 'publicado' && archivos.length && !soloLectura('parrilla_piezas') ? `
-              <button class="btn-plano" id="apPublicado">Ya lo publiqué a mano</button>` : ''}
           </div>
 
           <div class="ap-nuevo">
@@ -5371,6 +5409,8 @@ function pintarPrevia() {
             <button class="btn-plano" id="apComentar">Comentar sin decidir</button>
           </div>
         </div>
+
+        ${bloqueCuando(p, rev, archivos)}
       </div>
     </div>`;
 
@@ -5546,6 +5586,43 @@ function conectarPrevia() {
         conectarPrevia();
       }
     });
+  });
+
+  /* Programar y desprogramar viven aqui, junto a publicar, porque
+     son la misma pregunta con distinta respuesta. */
+  const armar = (hora) => {
+    p.autopublicar = true;
+    if (hora) p.hora = hora;
+    p.actualizado = ahora();
+    guardar('parrilla');
+    registrar(`Programó «${p.titulo}» para salir sola`);
+    avisar(`Queda programada${p.hora ? ' a las ' + horaLegible(p.hora) : ''}. Ya no hay que apretar nada.`);
+    pintarPrevia();
+    refrescarParrilla();
+  };
+
+  if ($('#apProgramar')) $('#apProgramar').addEventListener('click', () => {
+    if (p.hora) { armar(); return; }
+    // Sin hora no se puede programar, y suponerla seria decidir a
+    // que hora lo ven 42 mil personas.
+    const caja = $('#cuandoHora');
+    caja.hidden = false;
+    $('#apHora').focus();
+    $('#apHoraOk').addEventListener('click', () => {
+      const h = $('#apHora').value;
+      if (!h) { avisar('Ponle una hora.'); return; }
+      armar(h);
+    }, { once: true });
+  });
+
+  if ($('#apDesprogramar')) $('#apDesprogramar').addEventListener('click', () => {
+    p.autopublicar = false;
+    p.actualizado = ahora();
+    guardar('parrilla');
+    registrar(`Quitó la programación de «${p.titulo}»`);
+    avisar('Ya no sale sola. Habrá que publicarla a mano.');
+    pintarPrevia();
+    refrescarParrilla();
   });
 
   if ($('#apPublicado')) $('#apPublicado').addEventListener('click', () => {
