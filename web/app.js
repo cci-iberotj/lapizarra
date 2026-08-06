@@ -169,6 +169,13 @@ const LISTO_PARA_SALIR = ['programado', 'publicado'];
 /* La aprobacion tiene que verse SIN abrir la pieza. Si hay que
    entrar a cada una para saber cuales van, la revision no ocurre:
    nadie abre veinte fichas para buscar las que faltan. */
+/* Una pieza armada para salir sola se ve distinta en la parrilla:
+   si no, la unica forma de saber cuales van a dispararse es abrirlas
+   una por una. */
+function marcaProgramada(p) {
+  return p.autopublicar && !porQueNoSaldraSola(p) ? ' programada' : '';
+}
+
 function marcaAprobacion(p) {
   const e = estadoRevision(p).estado;
   return e === 'aprobado' ? ' aprobada'
@@ -660,7 +667,9 @@ function pintarPiezas() {
         <div class="pieza${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
           ${collageDe(p, 3)}
           <div class="pieza-cuerpo">
-            <div class="pieza-titulo">${esc(p.titulo || 'Sin título')}</div>
+            <div class="pieza-titulo">${p.autopublicar && !porQueNoSaldraSola(p)
+              ? '<span class="reloj-pieza" title="Sale sola a su hora">⏱</span> ' : ''}${
+              esc(p.titulo || 'Sin título')}</div>
             <div class="pieza-meta">
               ${p.formato ? `<span>${esc(p.formato)}</span>` : ''}
               ${p.responsable ? `<span>· ${esc(p.responsable)}</span>` : ''}
@@ -2025,7 +2034,9 @@ function pintarCalendario() {
              draggable="true" title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
-            <div class="cal-titulo">${acotada ? '<span class="marca-ventana" title="' + esc(rotulo) + '">⧖</span> ' : ''}${esc(p.titulo || 'Sin título')}</div>
+            <div class="cal-titulo">${acotada ? '<span class="marca-ventana" title="' + esc(rotulo) + '">⧖</span> ' : ''}${
+              p.autopublicar && !porQueNoSaldraSola(p) ? '<span class="reloj-pieza" title="Sale sola a su hora">⏱</span> ' : ''}${
+              esc(p.titulo || 'Sin título')}</div>
             <div class="cal-meta">${esc(p.formato || '')}${p.estado ? ' · ' + esc(catalogo(ESTADOS, p.estado)) : ''}</div>
           </div>
         </div>`;
@@ -4794,6 +4805,33 @@ function redesPendientes(p) {
   return faltan.length ? faltan : redesDe(p);
 }
 
+/* POR QUE UNA PIEZA ARMADA NO VA A SALIR
+
+   Encender la casilla no basta: hacen falta aprobacion vigente,
+   arte, canales automatizables y hora. Si algo falta, el reloj pasa
+   de largo en silencio y nadie se entera hasta que el post no
+   aparece. Esto lo dice ANTES, donde se toma la decision. */
+function porQueNoSaldraSola(p) {
+  if (!p.autopublicar) return null;
+  const faltas = [];
+  if (!p.hora) faltas.push('falta la hora');
+  if (!archivosDe(p).length) faltas.push('no tiene arte');
+  if (!redesDe(p).length) faltas.push('ninguno de sus canales se publica solo');
+
+  const rev = estadoRevision(p);
+  if (rev.estado !== 'aprobado') {
+    faltas.push(rev.caducada ? 'la aprobación caducó'
+              : rev.crudo === 'cambios' ? 'está pidiendo cambios'
+              : rev.crudo === 'revisar' ? 'falta que la revisen otra vez'
+              : 'falta que la aprueben');
+  }
+  if (redesPendientes(p).length && !redesDe(p).some(r => !(p.publicaciones || {})[r.id])
+      && redesDe(p).length) {
+    faltas.push('ya salió en todas sus redes');
+  }
+  return faltas.length ? faltas : null;
+}
+
 function puedePublicar() {
   const rol = Almacen.usuario && Almacen.usuario.rol;
   return !Almacen.enLaNube || rol === 'admin' || rol === 'publicacion';
@@ -5240,12 +5278,26 @@ function pintarPrevia() {
 
         <dl class="previa-lista">
           <dt>Sale</dt><dd>${esc(fechaLegible(p.fecha) || 'sin fecha')}${
-            p.hora ? ' · ' + esc(horaLegible(p.hora)) : ''}${
-            p.autopublicar ? ' <b class="sale-sola">· sola</b>' : ''}</dd>
+            p.hora ? ' · ' + esc(horaLegible(p.hora)) : ''}</dd>
           <dt>Estado</dt><dd style="color:${est ? est.color : ''}">${esc(est ? est.nombre : '—')}</dd>
           <dt>Responsable</dt><dd>${esc(p.responsable || 'sin asignar')}</dd>
           ${archivos.length ? `<dt>Archivos</dt><dd>${archivos.length} ${archivos.length === 1 ? 'lámina' : 'láminas'}</dd>` : ''}
         </dl>
+
+        ${(() => {
+          if (!p.autopublicar) return '';
+          const faltas = porQueNoSaldraSola(p);
+          const donde = redesDe(p).map(r => r.nombre).join(' y ');
+          return faltas
+            ? `<div class="programada rota">
+                 <b>⏱ Armada para salir sola, pero no va a salir</b>
+                 <span>${esc(faltas.join(' · '))}</span>
+               </div>`
+            : `<div class="programada">
+                 <b>⏱ Sale sola${p.hora ? ' a las ' + esc(horaLegible(p.hora)) : ''}</b>
+                 <span>${esc(fechaLegible(p.fecha))}${donde ? ' · ' + esc(donde) : ''}. Nadie tiene que apretar nada.</span>
+               </div>`;
+        })()}
 
         ${p.notas ? `<div class="previa-notas"><b>Notas</b>${esc(p.notas).replace(/\n/g,'<br>')}</div>` : ''}
 
@@ -5299,9 +5351,15 @@ function pintarPrevia() {
               && redesDe(p).length && puedePublicar() ? (() => {
               const faltan = redesPendientes(p);
               const nuevas = faltan.some(r => !(p.publicaciones || {})[r.id]);
-              return `<button class="btn-primario" id="apPublicar">${
-                nuevas ? 'Publicar' : 'Volver a publicar'} en ${
-                esc(faltan.map(r => r.nombre).join(' y '))}</button>`; })() : ''}
+              /* "Publicar en Instagram" decia DONDE pero no CUANDO, y
+                 este boton publica en el acto. Con una pieza armada
+                 para salir sola al dia siguiente, leerlo como "dejar
+                 programado" era facil -- y el error no se deshace. */
+              const armada = p.autopublicar && !porQueNoSaldraSola(p);
+              return `<button class="${armada ? 'btn-plano' : 'btn-primario'}" id="apPublicar">${
+                nuevas ? 'Publicar ahora' : 'Volver a publicar ahora'}${
+                armada ? ' (sin esperar)' : ' en ' + esc(faltan.map(r => r.nombre).join(' y '))
+              }</button>`; })() : ''}
             ${p.estado !== 'publicado' && archivos.length && !soloLectura('parrilla_piezas') ? `
               <button class="btn-plano" id="apPublicado">Ya lo publiqué a mano</button>` : ''}
           </div>
@@ -5433,6 +5491,10 @@ function conectarPrevia() {
         <p>Va a salir <b>ahora mismo</b> a <b>${esc(redes.map(r => r.nombre).join(' y '))}</b>${
              cuantas > 1 ? `, con <b>${cuantas} láminas</b>` : ''}.
            Esto no se puede deshacer.</p>
+        ${p.autopublicar && !porQueNoSaldraSola(p) ? `<p class="ap-repetida">
+           Esta pieza <b>ya estaba armada para salir sola</b>${
+             p.hora ? ' a las ' + esc(horaLegible(p.hora)) : ''} del ${esc(fechaLegible(p.fecha))}.
+           Si publicas ahora, sale <b>ya</b> y no espera.</p>` : ''}
         ${repetidas.length ? `<p class="ap-repetida">
            Ojo: esta pieza <b>ya se publicó</b> en ${esc(repetidas.map(r => r.nombre).join(' y '))}.
            Si vuelves a darle, saldrá otra vez.</p>` : ''}

@@ -3192,3 +3192,31 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 /* Una pieza armada para salir sola tiene que verse distinta de una
    que espera a que alguien apriete. */
 .sale-sola { color: var(--marca); }
+
+/* ═══ Programada: sale sola ═══
+   "Publicar" y "va a salir sola a su hora" son dos cosas distintas
+   y antes se veian igual. Quien abre una pieza tiene que saber, sin
+   leer nada mas, si esto ya esta armado o espera una mano. */
+.programada {
+  display: grid;
+  gap: 2px;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--ok);
+  background: var(--capa-2);
+  border-radius: 0 var(--radio-chico, 6px) var(--radio-chico, 6px) 0;
+}
+.programada b { font-size: .88rem; }
+.programada span { font-size: .82rem; color: var(--texto-medio); }
+
+/* Armada pero incompleta: el reloj va a pasar de largo. Esto es lo
+   que antes no se veia hasta que el post no aparecia. */
+.programada.rota { border-left-color: var(--marca); }
+.programada.rota b { color: var(--marca); }
+
+/* En la parrilla, para saber cuales van a dispararse sin abrirlas. */
+.reloj-pieza {
+  font-size: .82em;
+  color: var(--ok);
+  vertical-align: 1px;
+}
