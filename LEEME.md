@@ -518,3 +518,51 @@ Se arregla el día que CDMX conceda *acceso de socio* al portafolio de
 Tijuana: con eso se puede crear un usuario del sistema y el token deja de
 depender de nadie. `TOKEN FACEBOOK.bat` convierte un token corto en uno
 permanente y comprueba con Meta que de verdad no caduque.
+
+### Publicar solo, a la hora
+
+Una pieza con la casilla **«Publicar sola a su hora»** encendida sale sin
+que nadie apriete nada. La casilla está aparte de la aprobación a
+propósito: Marysol aprueba el contenido; armar la salida sola es otra
+decisión.
+
+**Quién guarda la fecha: nosotros, no Meta.** Un reloj en la base
+(`pg_cron`) despierta cada cinco minutos, llama a la función `publicar`, y
+ésta le dice a Meta «publica esto ahora». Se pensó lo contrario —dejarle
+la fecha a Meta— y no sirve: Facebook sí admite programar, Instagram no,
+así que una misma pieza tendría dos mecanismos con fallas distintas.
+
+Y sobre todo: **las reglas se comprueban en el momento de publicar.** Si
+alguien cambia el arte a las 16:55 de una pieza armada para las 17:00, la
+aprobación caduca y no sale. Si la fecha viviera en Meta, saldría igual —
+toda la red de seguridad se volvería decorativa.
+
+Las condiciones son las mismas que las del botón: aprobada, aprobación no
+caducada, con arte, con canales automatizables y sin haber salido ya en
+esa red. Sale **una por corrida**, así que una cola atrasada se vacía
+espaciada y no de golpe.
+
+**La hora se compara como texto, no con cuentas de husos.** Las piezas
+dicen «17:00 en Tijuana»; el servidor piensa en UTC y hay horario de
+verano. Restar horas a mano se rompe en silencio: el post sale bien pero
+una hora antes. En vez de calcular se le pide a la máquina la hora de
+Tijuana ya formateada igual que como la guardamos.
+
+Si falla, el motivo se guarda en la pieza y aparece en la campana como
+**«No se pudo publicar sola»**. Un fallo callado sería el peor final: la
+pieza no sale y nadie se entera.
+
+#### El interruptor
+
+**`RELOJ.bat`** — doble clic. Dice cómo va y permite apagarlo o
+encenderlo. Apagarlo no borra ni cancela nada: sólo deja de publicar
+solo, y el botón de publicar a mano sigue igual.
+
+También `python supabase/reloj.py [ver|apagar|encender]`.
+
+Existe porque un sistema que publica sin que nadie apriete nada necesita
+un freno que cualquiera pueda alcanzar. Si el día que algo sale mal hay
+que buscar a quien sepa SQL, el freno no existe.
+
+El reloj se identifica con un secreto propio (`CRON_SECRETO`) que vive en
+las variables del servidor, porque no tiene sesión de nadie.
