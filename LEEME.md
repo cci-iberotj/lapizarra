@@ -566,3 +566,59 @@ que buscar a quien sepa SQL, el freno no existe.
 
 El reloj se identifica con un secreto propio (`CRON_SECRETO`) que vive en
 las variables del servidor, porque no tiene sesión de nadie.
+
+## Avisos por WhatsApp — a medio camino, para quien lo retome
+
+Se intentó el 6 de agosto de 2026 y se paró a propósito. **Nada de esto
+está encendido**: no hay código llamando a WhatsApp y nadie recibe nada.
+Lo que sigue es el mapa para retomarlo sin repetir el camino.
+
+### Lo que YA está hecho
+
+- Columna **`whatsapp`** en `perfiles` — el teléfono vive con la persona,
+  no en una lista aparte. Vacía todavía.
+- Tabla **`avisos_enviados`** — lleva cuenta de qué mensaje ya salió.
+  Existe porque los avisos de la pantalla se recalculan cada vez (si la
+  pieza ya se corrigió, el aviso desaparece solo), pero **un WhatsApp no
+  se puede deshacer**: sin esta tabla, Marysol recibiría el mismo mensaje
+  cada cinco minutos hasta que alguien apagara el reloj.
+- App de Meta **`La Pizarra Avisos · IBERO`** (identificador
+  `1692842351829661`), creada por Marysol, con el producto WhatsApp
+  agregado y en modo Desarrollo — que para el número de prueba **basta**,
+  no hace falta activarla.
+
+### Lo que falta
+
+1. Que quien continúe tenga **acceso al portafolio comercial**
+   «IBERO Tijuana», no sólo rol en la app. Son dos permisos distintos y
+   ahí se atoró: la cuenta de WhatsApp vive en el portafolio.
+2. Registrar los celulares en *WhatsApp → Configuración de la API*. Con
+   el número de prueba de Meta sólo se puede mandar a números dados de
+   alta, lo cual para tres personas sobra.
+3. Las **plantillas**: WhatsApp no deja mandar texto libre a alguien que
+   no te escribió antes. Cada tipo de aviso — algo que aprobar, evento
+   nuevo, no se pudo publicar — va como plantilla que Meta revisa.
+4. El token, a los secretos de Supabase con `PEGAR TOKEN.bat`.
+5. La función que manda, que no existe todavía.
+
+### Lo que costó y conviene saber de entrada
+
+- **No hace falta verificar el negocio.** Un portafolio nuevo sin
+  verificar manda 250 mensajes cada 24 horas; aquí se mandarían unos
+  cinco al día.
+- **El número de prueba de Meta es gratis** y no pide método de pago. No
+  hay que tocar el celular institucional para probar.
+- **Ojo con el celular institucional** si algún día se usa: la API exige
+  un número que NO esté dado de alta en la app de WhatsApp. Pasarlo
+  implica borrar esa cuenta del teléfono, y con ella las conversaciones.
+- La cuenta personal de Facebook de Leo tiene una **restricción de
+  publicidad** que le impide crear portafolios y apps. Es de su cuenta,
+  no de IBERO, y dice «temporalmente». Mientras siga, él no puede hacer
+  esta parte.
+
+### Por qué no se hizo por correo
+
+Se ofreció y Leo prefirió esperar a WhatsApp. La parte difícil —decidir
+**qué se avisa y a quién**— ya está resuelta en `avisosPara()` y sirve
+igual para cualquier canal. Cambiar de canal es cambiar el final del
+camino, no el camino.
