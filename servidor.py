@@ -364,7 +364,12 @@ def main():
     print("  Para cerrar: Ctrl+C o cierra esta ventana.")
     print("")
 
-    threading.Timer(1.0, lambda: webbrowser.open(direccion)).start()
+    # Con --sin-navegador no se abre nada. Sirve cuando el servidor
+    # lo levanta otra herramienta que ya trae su propia ventana: si
+    # no, aparece una pestana suelta del navegador por defecto en la
+    # pantalla de acceso cada vez que se reinicia.
+    if "--sin-navegador" not in sys.argv:
+        threading.Timer(1.0, lambda: webbrowser.open(direccion)).start()
 
     try:
         servidor.serve_forever()
