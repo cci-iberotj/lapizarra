@@ -259,6 +259,10 @@
   --alerta-luz:  var(--alerta-velo);
   --peligro-luz: var(--peligro-velo);
   --info-luz:    var(--info-velo);
+  /* Nunca se definio. Como font-weight: var(--peso-alto) invalida la
+     declaracion entera cuando la variable no existe, la hora de los
+     eventos y los sellos llevaban meses saliendo en peso normal. */
+  --peso-alto:   var(--peso-fuerte);
 
   --pilar-vida:     var(--pilar-vida-tinta);
   --pilar-academia: var(--pilar-academia-tinta);
@@ -743,7 +747,11 @@ textarea.campo.alto { min-height: 132px; }
   font-size: var(--t-mini); font-weight: 600; line-height: 1.32;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.cal-meta { font-size: var(--t-micro); color: var(--texto-tenue); margin-top: 3px; }
+.cal-meta {
+  font-size: var(--t-micro); color: var(--texto-tenue); margin-top: 4px;
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+}
+.cal-formato { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .cal-pieza.sin-imagen .cal-titulo { -webkit-line-clamp: 4; }
 
 /* Marca de pieza con ventana de fechas acotada */
@@ -1476,6 +1484,22 @@ body {
 .btn-mini:hover:not(:disabled) { border-color: var(--marca-tinta); color: var(--marca-tinta); }
 
 /* El conmutador vivía en 2.7:1 en su segmento en reposo. */
+/* "+ Evento por cubrir" era un btn-plano identico a los secundarios
+   grises: al lado del primario rojo se leia como deshabilitado. Se
+   pinta con --info, que es el color con que los eventos ya salen en
+   el calendario y en los sellos — el boton se ve como lo que crea.
+   Sigue siendo de contorno, asi que no le compite al primario. */
+.btn-plano.acento-evento {
+  color: var(--info);
+  border-color: var(--info);
+  font-weight: var(--peso-medio);
+}
+.btn-plano.acento-evento:hover:not(:disabled) {
+  background: var(--info-velo);
+  border-color: var(--info);
+  color: var(--info);
+}
+
 .conmutador { background: var(--capa-hundida); border-radius: var(--r-md); padding: 3px; }
 .conmutador-op {
   color: var(--tinta-media); background: none; border: 0;
@@ -2112,10 +2136,11 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
    ═══════════════════════════════════════════════════════════ */
 
 .cal-evento {
+  /* Dos renglones: arriba el sello con la hora, abajo el titulo.
+     En una sola linea el sello le comia el ancho al nombre y el
+     evento quedaba ilegible en las cajas angostas del mes. */
   display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 6px;
+  gap: 3px;
   background: var(--capa-2);
   border: 1px solid var(--evento-tono, var(--info));
   border-left: 3px solid var(--evento-tono, var(--info));
@@ -2127,6 +2152,11 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   transition: transform var(--dur-instantanea), box-shadow var(--dur-instantanea);
 }
 .cal-evento:hover { transform: translateY(-1px); box-shadow: var(--elev-1); }
+.cal-evento-alto { display: flex; min-width: 0; overflow: hidden; }
+.cal-evento-bajo { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+/* En la caja del mes quedan ~80px utiles. El sello con su
+   interletrado normal se los comia enteros. */
+.cal-evento .sello { letter-spacing: .04em; padding: 2px 5px; }
 .cal-evento .hora {
   font-weight: var(--peso-alto);
   color: var(--evento-tono, var(--info));
@@ -2152,6 +2182,36 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
    y el sello heredaba de ella rejilla, borde izquierdo y cursor. */
 .sello-tipo.es-post   { background: var(--marca-velo); color: var(--marca-tinta); }
 .sello-tipo.es-evento { background: var(--info-velo);  color: var(--info); }
+
+/* ── Sello de estado ───────────────────────────────────────
+   Una etiqueta por tarjeta, derivada del estado real (etiquetaPieza
+   / etiquetaEvento en app.js). La FORMA carga el dato importante:
+
+     contorno → todavia depende de que alguien lo mueva
+     solido   → cerrado, o va a ocurrir sin que nadie intervenga
+
+   Es la misma regla con la que el calendario ya rellenaba las
+   tarjetas; aqui solo se dice con palabras. El color entra por
+   --sello-tono desde JS, siempre un --estado-* ya medido. */
+.sello {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: var(--peso-fuerte);
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: var(--r-pastilla);
+  line-height: 1.5; white-space: nowrap; flex: none;
+  color: var(--sello-tono, var(--tinta-tenue));
+  border: 1px solid var(--sello-tono, var(--linea-control));
+  /* Fondo propio, no heredado: las tarjetas ya resueltas se pintan
+     rellenas con el color de su pilar (.cal-pieza.lista) y ahi un
+     sello transparente caia a 1.46:1. */
+  background: var(--capa-2);
+}
+.sello.solido {
+  background: var(--sello-tono, var(--tinta-tenue));
+  color: var(--texto-sobre-pilar);
+  border-color: var(--sello-tono, var(--tinta-tenue));
+}
+.sello-icono { font-size: 8px; line-height: 1; }
 
 /* En la lista, el evento se lee como tarjeta con su hora al frente */
 .evento {
@@ -2465,7 +2525,10 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 .cal-pieza.lista .cal-meta {
   color: var(--texto-sobre-pilar);
 }
-.cal-pieza.lista .cal-meta { opacity: .82; }
+/* Se atenua el formato, no el renglon entero: el renglon ahora
+   lleva el sello, y esa opacidad se multiplicaba con la de la
+   tarjeta publicada (.82 x .78 = .64) hasta tumbarlo a 4.02:1. */
+.cal-pieza.lista .cal-meta .cal-formato { opacity: .82; }
 
 /* En la lista la tarjeta es grande: un bloque de color puro a ese
    tamaño cansa. Se usa el mismo tono rebajado contra la capa, que
@@ -2490,16 +2553,10 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 /* ── Evento ────────────────────────────────────────────── */
 
 .cal-evento {
-  grid-template-columns: auto auto 1fr;
   background: transparent;
   border: 1px dashed var(--evento-tono, var(--info));
   border-left-width: 3px;
   border-left-style: solid;
-}
-.cal-evento .marca-evento {
-  color: var(--evento-tono, var(--info));
-  font-size: 8px;
-  line-height: 1;
 }
 .cal-evento:hover {
   background: color-mix(in oklab, var(--evento-tono) 12%, var(--capa-2));
@@ -2560,6 +2617,39 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   display: grid; gap: var(--e-6);
   grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
   align-items: start;
+}
+/* El evento no tiene simulacion que enseñar: sin esto quedaba una
+   columna vacia de 380px a la izquierda de la ficha. */
+.previa-rejilla.sola { grid-template-columns: minmax(0, 1fr); max-width: 62ch; }
+
+.chip-necesita {
+  background: var(--capa-hundida); color: var(--tinta-media);
+  border-radius: var(--r-pastilla); padding: 3px 9px;
+  font-size: var(--t-sello);
+}
+
+.ficha-cobertura {
+  border-top: 1px solid var(--linea-sutil);
+  padding-top: var(--e-5); margin-top: var(--e-5);
+}
+.ficha-cobertura > b {
+  display: block; font-size: var(--t-sello); text-transform: uppercase;
+  letter-spacing: .08em; color: var(--tinta-tenue); margin-bottom: var(--e-3);
+}
+.ficha-cobertura p { margin: 0 0 var(--e-4); font-size: var(--t-cuerpo); }
+.ficha-piezas { display: grid; gap: 6px; margin-bottom: var(--e-4); }
+.ficha-pieza {
+  display: flex; align-items: center; gap: var(--e-3); width: 100%;
+  text-align: left; cursor: pointer;
+  background: var(--capa-1); border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-sm); padding: 8px var(--e-4);
+  font-size: var(--t-cuerpo); color: var(--tinta);
+  transition: border-color var(--dur-instantanea);
+}
+.ficha-pieza:hover { border-color: var(--linea-control); }
+.ficha-pieza-titulo {
+  flex: 1; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
 }
 
 /* ── La simulación ─────────────────────────────────────── */
