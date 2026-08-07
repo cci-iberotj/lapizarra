@@ -220,14 +220,14 @@ function etiquetaPieza(p) {
   return ETIQUETAS[p.estado] || ETIQUETAS.idea;
 }
 
-/* El rombo va en los cuatro estados: es la marca de "esto es un
-   evento", no un estado. La palabra dice en cuál va. */
+/* El icono dice QUE es --evento, reunión, entrega, bloqueo-- y la
+   palabra dice en que estado va. Dos datos en una sola pastilla. */
 function etiquetaEvento(e) {
-  const s = e.estado || 'avisado';
-  return s === 'cubierto'   ? { texto: 'Cubierto',   tono: 'var(--estado-publicado)', icono: '◆', solida: true, ayuda: 'Evento · ya se grabó o fotografió' }
-       : s === 'confirmado' ? { texto: 'Confirmado', tono: 'var(--info)',             icono: '◆', ayuda: 'Evento · va, y sabemos qué se necesita' }
-       : s === 'cancelado'  ? { texto: 'Cancelado',  tono: 'var(--tinta-tenue)',      icono: '◆', ayuda: 'Evento · no ocurrió' }
-       :                      { texto: 'Evento',     tono: 'var(--tinta-tenue)',      icono: '◆', ayuda: 'Evento · alguien lo reportó, falta confirmar' };
+  const t = tipoDe(e), s = estadoDe(e);
+  return {
+    texto: s.nombre, tono: s.tono, icono: t.icono, solida: !!s.solida,
+    ayuda: t.nombre + ' · ' + s.nota.charAt(0).toLowerCase() + s.nota.slice(1),
+  };
 }
 
 function selloEstado(et) {
@@ -1732,12 +1732,111 @@ const HORAS_SUGERIDAS = (() => {
   return l;
 })();
 
-const ESTADOS_EVENTO = [
-  { id: 'avisado',   nombre: 'Avisado',     color: 'var(--estado-idea)',       nota: 'Alguien lo reportó; falta confirmar' },
-  { id: 'confirmado',nombre: 'Confirmado',  color: 'var(--info)',              nota: 'Va, y sabemos qué se necesita' },
-  { id: 'cubierto',  nombre: 'Cubierto',    color: 'var(--estado-publicado)',  nota: 'Ya se grabó o fotografió' },
-  { id: 'cancelado', nombre: 'Cancelado',   color: 'var(--tinta-tenue)',       nota: 'No ocurrió' },
+/* ── Qué se anota en el calendario ─────────────────────────
+   Hasta aquí "evento" significaba una sola cosa: algo que el área
+   va a cubrir. Por eso la barra decía "lo que hay que cubrir", el
+   estado final era "Cubierto" y el formulario preguntaba qué
+   material se necesita. Una reunión no cabía en nada de eso.
+
+   Cada tipo declara qué campos tienen sentido, cómo se llaman y
+   cómo se llaman sus estados. El formulario, la ficha, la tarjeta
+   del calendario y la barra lateral leen de aquí: un tipo nuevo es
+   un renglón más, no cuatro parches.
+
+   Lo guardado antes de esto no trae 'tipo'. Se lee como cobertura,
+   que es lo que era. */
+const TIPOS_EVENTO = [
+  {
+    id: 'cobertura', nombre: 'Evento por cubrir', corto: 'Evento', icono: '◆',
+    titulo: 'Anotar evento por cubrir',
+    pista: 'Algo que ocurre y el área va a fotografiar, grabar o cubrir.',
+    etiquetas: {
+      titulo: 'Qué es', lugar: 'Dónde', quien: 'Quién avisa',
+      quienPista: 'Área o persona que lo pidió',
+      ejemplo: 'IGNITE, Ceremonia de graduación, Feria de posgrados…',
+      detalles: 'Contacto, accesos, si hay que llegar antes, qué se espera de la cobertura…',
+    },
+    necesita: true, cobertura: true,
+    estados: [
+      { id: 'avisado',    nombre: 'Avisado',    tono: 'var(--tinta-tenue)',      nota: 'Alguien lo reportó; falta confirmar' },
+      { id: 'confirmado', nombre: 'Confirmado', tono: 'var(--info)',             nota: 'Va, y sabemos qué se necesita' },
+      { id: 'cubierto',   nombre: 'Cubierto',   tono: 'var(--estado-publicado)', nota: 'Ya se grabó o fotografió', solida: true },
+    ],
+  },
+  {
+    id: 'reunion', nombre: 'Reunión', corto: 'Reunión', icono: '●',
+    cancelado: 'Cancelada',
+    titulo: 'Anotar una reunión',
+    pista: 'Ocupa tu tiempo pero no produce material.',
+    etiquetas: {
+      titulo: 'De qué es', lugar: 'Dónde', quien: 'Con quién',
+      quienPista: 'Personas o áreas que asisten',
+      ejemplo: 'Junta de área, revisión con Rectoría, arranque de campaña…',
+      detalles: 'Puntos a tratar, qué hay que llevar, acuerdos…',
+    },
+    estados: [
+      { id: 'agendada', nombre: 'Agendada', tono: 'var(--info)',             nota: 'Está en el calendario' },
+      { id: 'hecha',    nombre: 'Hecha',    tono: 'var(--estado-publicado)', nota: 'Ya ocurrió', solida: true },
+    ],
+  },
+  {
+    id: 'entrega', nombre: 'Entrega o fecha límite', corto: 'Entrega', icono: '▲',
+    cancelado: 'Cancelada',
+    titulo: 'Anotar una entrega',
+    pista: 'No es algo que ocurre: es una fecha en la que algo tiene que estar listo.',
+    etiquetas: {
+      titulo: 'Qué se entrega', lugar: 'Dónde se entrega', quien: 'Para quién',
+      quienPista: 'Área o persona que lo espera',
+      ejemplo: 'Deck de inducción, comunicado de rectoría, artes para imprenta…',
+      detalles: 'Formato, medidas, a dónde se sube, de qué depende…',
+    },
+    estados: [
+      { id: 'pendiente', nombre: 'Pendiente', tono: 'var(--alerta)',           nota: 'Todavía no se entrega' },
+      { id: 'entregada', nombre: 'Entregada', tono: 'var(--estado-publicado)', nota: 'Ya se entregó', solida: true },
+    ],
+  },
+  {
+    id: 'bloqueo', nombre: 'Tiempo bloqueado', corto: 'Bloqueo', icono: '▬',
+    titulo: 'Bloquear tiempo',
+    pista: 'Vacaciones, permiso, día fuera de campus. Para que no te agenden encima.',
+    etiquetas: {
+      titulo: 'Por qué', lugar: 'Dónde estarás', quien: 'Quién no está',
+      quienPista: 'Deja vacío si eres tú',
+      ejemplo: 'Vacaciones, permiso, curso fuera del campus…',
+      detalles: 'Quién cubre lo urgente, cómo localizarte…',
+    },
+    estados: [
+      { id: 'firme', nombre: 'No disponible', tono: 'var(--tinta-tenue)', nota: 'Nadie debería agendarte encima' },
+    ],
+  },
 ];
+
+/* Cancelado vale para los cuatro: cualquier cosa se puede caer. */
+const ESTADO_CANCELADO = {
+  id: 'cancelado', nombre: 'Cancelado', tono: 'var(--tinta-tenue)', nota: 'Ya no va',
+};
+
+function tipoDe(e) {
+  return TIPOS_EVENTO.find(t => t.id === (e && e.tipo)) || TIPOS_EVENTO[0];
+}
+
+function estadosDe(e) {
+  const t = tipoDe(e);
+  return t.estados.concat([
+    t.cancelado ? Object.assign({}, ESTADO_CANCELADO, { nombre: t.cancelado })
+                : ESTADO_CANCELADO,
+  ]);
+}
+
+function estadoDe(e) {
+  const lista = estadosDe(e);
+  return lista.find(s => s.id === e.estado) || lista[0];
+}
+
+/* Se conserva para lo que todavía la nombra; ahora sale de la
+   tabla en vez de ser una lista suelta. */
+const ESTADOS_EVENTO = TIPOS_EVENTO[0].estados.concat([ESTADO_CANCELADO])
+  .map(s => Object.assign({ color: s.tono }, s));
 
 function eventosDe(fecha) {
   return (datos.parrilla.eventos || [])
@@ -1746,8 +1845,7 @@ function eventosDe(fecha) {
 }
 
 function colorEvento(e) {
-  const x = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
-  return x ? x.color : 'var(--info)';
+  return estadoDe(e).tono;
 }
 
 /* La hora en formato de doce horas, que es como la dice la gente
@@ -1767,19 +1865,38 @@ function abrirEvento(idEvento, prellenado) {
   datos.parrilla.eventos = datos.parrilla.eventos || [];
   const existente = idEvento ? datos.parrilla.eventos.find(e => e.id === idEvento) : null;
   const e = existente || Object.assign({
-    id: id(), titulo: '', fecha: '', hora: '', lugar: '',
-    solicita: '', necesita: 'sin_definir', estado: 'avisado', notas: '',
+    id: id(), tipo: 'cobertura', titulo: '', fecha: '', hora: '', hora_fin: '',
+    lugar: '', solicita: '', necesita: [], estado: 'avisado', notas: '',
   }, prellenado || {});
 
+  const t = tipoDe(e);
+  const L = t.etiquetas;
+  // Al cambiar de tipo el estado anterior puede no existir en el
+  // nuevo: "cubierto" no significa nada en una reunion.
+  if (!estadosDe(e).some(s => s.id === e.estado)) e.estado = t.estados[0].id;
+
   modalCtx = { tipo: 'evento', datos: e, esNuevo: !existente };
-  $('#modalTitulo').textContent = existente ? 'Editar evento' : 'Anotar evento por cubrir';
+  $('#modalTitulo').textContent = existente ? 'Editar · ' + t.nombre : t.titulo;
   $('#modalEliminar').hidden = !existente;
 
   $('#modalCuerpo').innerHTML = `
     <div class="grupo-campo">
-      <label for="e_titulo">Qué es</label>
+      <label>Qué estás anotando</label>
+      <div class="tipos-evento" id="e_tipo" role="radiogroup">
+        ${TIPOS_EVENTO.map(x => `
+          <button type="button" class="tipo-op${x.id === t.id ? ' activo' : ''}"
+                  data-tipo="${x.id}" role="radio" aria-checked="${x.id === t.id}"
+                  title="${esc(x.pista)}">
+            <span class="tipo-icono" aria-hidden="true">${x.icono}</span>${esc(x.corto)}
+          </button>`).join('')}
+      </div>
+      <span class="ayuda">${esc(t.pista)}</span>
+    </div>
+
+    <div class="grupo-campo">
+      <label for="e_titulo">${esc(L.titulo)}</label>
       <input class="campo" id="e_titulo" value="${esc(e.titulo)}"
-             placeholder="IGNITE, Ceremonia de graduación, Feria de posgrados…">
+             placeholder="${esc(L.ejemplo)}">
     </div>
 
     <div class="fila-campos">
@@ -1807,19 +1924,20 @@ function abrirEvento(idEvento, prellenado) {
 
     <div class="fila-campos">
       <div class="grupo-campo">
-        <label for="e_lugar">Dónde</label>
+        <label for="e_lugar">${esc(L.lugar)}</label>
         <input class="campo" id="e_lugar" value="${esc(e.lugar)}"
                placeholder="Auditorio, Explanada, fuera del campus…">
       </div>
       <div class="grupo-campo">
-        <label for="e_solicita">Quién avisa</label>
+        <label for="e_solicita">${esc(L.quien)}</label>
         <input class="campo" id="e_solicita" value="${esc(e.solicita)}"
-               placeholder="Área o persona que lo pidió">
-        <span class="ayuda">A futuro esto llegará solo desde la plataforma de solicitudes.</span>
+               placeholder="${esc(L.quienPista)}">
+        ${t.id === 'cobertura' ? '<span class="ayuda">A futuro esto llegará solo desde la plataforma de solicitudes.</span>' : ''}
       </div>
     </div>
 
     <div class="fila-campos">
+      ${t.necesita ? `
       <div class="grupo-campo">
         <label>Qué se necesita</label>
         <div class="opciones-canal" id="e_necesita">
@@ -1831,24 +1949,24 @@ function abrirEvento(idEvento, prellenado) {
           }).join('')}
         </div>
         <span class="ayuda">Marca todo lo que haga falta. Sirve para saber si alcanza con una salida de equipo o hay que dividirse.</span>
-      </div>
+      </div>` : ''}
       <div class="grupo-campo">
         <label for="e_estado">Cómo va</label>
         <select class="campo" id="e_estado">
-          ${ESTADOS_EVENTO.map(s =>
-            `<option value="${s.id}"${s.id === (e.estado || 'avisado') ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}
+          ${estadosDe(e).map(s =>
+            `<option value="${s.id}"${s.id === e.estado ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}
         </select>
-        <span class="ayuda">${esc((ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado')) || {}).nota || '')}</span>
+        <span class="ayuda">${esc(estadoDe(e).nota)}</span>
       </div>
     </div>
 
     <div class="grupo-campo">
       <label for="e_notas">Detalles${
         quienAnoto(e) ? ` <span class="tenue">· lo anotó ${esc(quienAnoto(e))}</span>` : ''}</label>
-      <textarea class="campo" id="e_notas" placeholder="Contacto, accesos, si hay que llegar antes, qué se espera de la cobertura…">${esc(e.notas)}</textarea>
+      <textarea class="campo" id="e_notas" placeholder="${esc(L.detalles)}">${esc(e.notas)}</textarea>
     </div>
 
-    ${existente ? `
+    ${existente && t.cobertura ? `
     <div class="grupo-campo">
       <button type="button" class="btn-plano btn-auto ancho" id="e_cubrir">
         ◈ Programar la cobertura de este evento
@@ -1887,9 +2005,27 @@ function abrirEvento(idEvento, prellenado) {
              c.addEventListener('blur', acomodarHoras); }
   });
 
+  /* Cambiar de tipo vuelve a armar el formulario, porque cambian
+     los campos y las etiquetas. Antes de rearmar se recoge lo ya
+     escrito: perder el titulo por picar "Reunión" seria un castigo
+     por explorar. */
+  $$('#e_tipo .tipo-op').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.tipo === e.tipo) return;
+    e.titulo   = ($('#e_titulo').value || '').trim();
+    e.fecha    = $('#e_fecha').value;
+    e.hora     = leerHora($('#e_hora').value) || '';
+    e.hora_fin = leerHora($('#e_hora_fin').value) || '';
+    e.lugar    = ($('#e_lugar').value || '').trim();
+    e.solicita = ($('#e_solicita').value || '').trim();
+    e.notas    = $('#e_notas').value;
+    if ($('#e_necesita')) e.necesita = $$('#e_necesita input:checked').map(x => x.value);
+    e.tipo = b.dataset.tipo;
+    abrirEvento(existente ? e.id : null, existente ? null : e);
+  }));
+
   const sel = $('#e_estado');
   if (sel) sel.addEventListener('change', () => {
-    const x = ESTADOS_EVENTO.find(s => s.id === sel.value);
+    const x = estadosDe(e).find(s => s.id === sel.value);
     const ayuda = sel.parentElement.querySelector('.ayuda');
     if (ayuda && x) ayuda.textContent = x.nota;
   });
@@ -1908,12 +2044,13 @@ function leerEvento() {
   e.hora_fin = leerHora($('#e_hora_fin').value);
   e.lugar    = $('#e_lugar').value.trim();
   e.solicita = $('#e_solicita').value.trim();
-  e.necesita = $$('#e_necesita input:checked').map(x => x.value);
+  e.necesita = $('#e_necesita') ? $$('#e_necesita input:checked').map(x => x.value) : [];
   e.estado   = $('#e_estado').value;
+  e.tipo     = e.tipo || 'cobertura';
   e.notas    = $('#e_notas').value;
 
   if (!e.titulo) { avisar('El evento necesita un nombre.'); return false; }
-  if (!e.fecha)  { avisar('Un evento sin fecha no se puede cubrir. ¿Cuándo es?'); return false; }
+  if (!e.fecha)  { avisar('Sin fecha no se puede poner en el calendario. ¿Cuándo es?'); return false; }
   if (e.hora === null || e.hora_fin === null) {
     avisar('No entendí una de las horas. Escríbela como 9:30 am o como 14:00.');
     return false;
@@ -1977,15 +2114,15 @@ function pintarEventos() {
 
   if (!proximos.length) {
     cont.innerHTML = `<div class="vacio">
-      Nada por cubrir todavía.<br>
-      Anota aquí lo que te vayan avisando: ceremonias, conferencias, ferias.
-      Con la fecha puesta, la cobertura se programa sola sin caer antes del evento.
+      Nada anotado todavía.<br>
+      Aquí van los eventos por cubrir, las reuniones, las entregas y los días
+      que no estés. Con la fecha puesta, la cobertura de un evento se programa
+      sola sin caer antes de que ocurra.
     </div>`;
     return;
   }
 
   cont.innerHTML = proximos.map(e => {
-    const est = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
     const necesita = necesidadesDe(e)
       .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
       .filter(Boolean).join(' + ');
@@ -5667,7 +5804,9 @@ function pintarFichaEvento() {
   const necesita = necesidadesDe(e)
     .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
     .filter(Boolean);
-  const est = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
+  const t = tipoDe(e);
+  const L = t.etiquetas;
+  const est = estadoDe(e);
 
   /* Lo primero que uno quiere saber de un evento anotado es si ya
      hay alguien encargado de cubrirlo. Ese dato existia —las piezas
@@ -5699,17 +5838,17 @@ function pintarFichaEvento() {
           ${cuando || dura ? `<span class="tenue">(${
             esc([cuando, dura].filter(Boolean).join(' · '))})</span>` : ''}</dd>
 
-        <dt>Dónde</dt>
+        <dt>${esc(L.lugar)}</dt>
         <dd>${e.lugar ? esc(e.lugar) : '<span class="tenue">sin definir</span>'}</dd>
 
-        <dt>Quién avisa</dt>
+        <dt>${esc(L.quien)}</dt>
         <dd>${e.solicita ? esc(e.solicita) : '<span class="tenue">sin registrar</span>'}</dd>
 
-        <dt>Qué se necesita</dt>
+        ${t.necesita ? `<dt>Qué se necesita</dt>
         <dd>${necesita.length
           ? `<span class="ficha-ev-necesita">${necesita.map(n =>
               `<span class="chip-necesita">${esc(n)}</span>`).join('')}</span>`
-          : '<span class="tenue">todavía sin definir</span>'}</dd>
+          : '<span class="tenue">todavía sin definir</span>'}</dd>` : ''}
 
         ${quienAnoto(e) ? `<dt>Lo anotó</dt>
         <dd class="tenue">${esc(quienAnoto(e))}</dd>` : ''}
@@ -5718,6 +5857,7 @@ function pintarFichaEvento() {
       ${e.notas ? `<div class="previa-notas"><b>Detalles</b>${
         esc(e.notas).replace(/\n/g, '<br>')}</div>` : ''}
 
+      ${t.cobertura ? `
       <section class="ficha-cobertura">
         <b>Cobertura</b>
         ${coberturas.length ? `
@@ -5735,10 +5875,10 @@ function pintarFichaEvento() {
             ◈ Programar ${coberturas.length ? 'otra pieza' : 'la cobertura'}
           </button>
           <p class="ficha-ev-pie">Nace con la fecha acotada: nada de cobertura puede publicarse antes de que el evento ocurra.</p>`}
-      </section>
+      </section>` : ''}
     </div>`;
 
-  $('#previaTitulo').textContent = 'Evento por cubrir';
+  $('#previaTitulo').textContent = t.nombre;
 
   const cubrir = $('#fichaCubrir');
   if (cubrir) cubrir.addEventListener('click', () => {

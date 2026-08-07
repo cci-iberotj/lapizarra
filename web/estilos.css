@@ -2113,6 +2113,30 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 }
 .grupo-campo .ayuda { line-height: 1.45; }
 
+/* ── Qué se está anotando ──────────────────────────────────
+   Cuatro opciones visibles de golpe, no un desplegable: el tipo
+   decide que campos salen abajo, asi que esconderlo detras de un
+   clic hacia el formulario cambiar solo. */
+.tipos-evento {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  background: var(--capa-hundida); border-radius: var(--r-md); padding: 3px;
+}
+.tipo-op {
+  display: inline-flex; align-items: center; gap: 6px;
+  flex: 1 1 auto; justify-content: center;
+  padding: 8px 12px; border: 0; border-radius: var(--r-sm);
+  background: none; color: var(--tinta-media);
+  font-size: var(--t-meta); font-weight: var(--peso-medio);
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--dur-instantanea), color var(--dur-instantanea);
+}
+.tipo-op:hover:not(.activo) { color: var(--tinta); }
+.tipo-op.activo {
+  background: var(--capa-2); color: var(--marca-tinta);
+  box-shadow: var(--elev-1);
+}
+.tipo-icono { font-size: 9px; line-height: 1; }
+
 /* ── Hora de inicio y de termino ───────────────────────────
    input type=time en Windows sale como --:-- -- con dos flechitas
    de 7px: hay que apuntarle tres veces para poner una hora. Aqui
