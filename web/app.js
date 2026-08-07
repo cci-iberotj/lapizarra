@@ -1760,7 +1760,7 @@ const TIPOS_EVENTO = [
     estados: [
       { id: 'avisado',    nombre: 'Avisado',    tono: 'var(--tinta-tenue)',      nota: 'Alguien lo reportó; falta confirmar' },
       { id: 'confirmado', nombre: 'Confirmado', tono: 'var(--info)',             nota: 'Va, y sabemos qué se necesita' },
-      { id: 'cubierto',   nombre: 'Cubierto',   tono: 'var(--estado-publicado)', nota: 'Ya se grabó o fotografió', solida: true },
+      { id: 'cubierto',   nombre: 'Cubierto',   tono: 'var(--estado-publicado)', nota: 'Ya se grabó o fotografió', solida: true, cierra: true },
     ],
   },
   {
@@ -1776,7 +1776,7 @@ const TIPOS_EVENTO = [
     },
     estados: [
       { id: 'agendada', nombre: 'Agendada', tono: 'var(--info)',             nota: 'Está en el calendario' },
-      { id: 'hecha',    nombre: 'Hecha',    tono: 'var(--estado-publicado)', nota: 'Ya ocurrió', solida: true },
+      { id: 'hecha',    nombre: 'Hecha',    tono: 'var(--estado-publicado)', nota: 'Ya ocurrió', solida: true, cierra: true },
     ],
   },
   {
@@ -1792,7 +1792,7 @@ const TIPOS_EVENTO = [
     },
     estados: [
       { id: 'pendiente', nombre: 'Pendiente', tono: 'var(--alerta)',           nota: 'Todavía no se entrega' },
-      { id: 'entregada', nombre: 'Entregada', tono: 'var(--estado-publicado)', nota: 'Ya se entregó', solida: true },
+      { id: 'entregada', nombre: 'Entregada', tono: 'var(--estado-publicado)', nota: 'Ya se entregó', solida: true, cierra: true },
     ],
   },
   {
@@ -1806,7 +1806,7 @@ const TIPOS_EVENTO = [
       detalles: 'Quién cubre lo urgente, cómo localizarte…',
     },
     estados: [
-      { id: 'firme', nombre: 'No disponible', tono: 'var(--tinta-tenue)', nota: 'Nadie debería agendarte encima' },
+      { id: 'firme', nombre: 'No disponible', tono: 'var(--tinta-tenue)', nota: 'Nadie debería agendarte encima', cierra: true },
     ],
   },
 ];
@@ -1814,6 +1814,7 @@ const TIPOS_EVENTO = [
 /* Cancelado vale para los cuatro: cualquier cosa se puede caer. */
 const ESTADO_CANCELADO = {
   id: 'cancelado', nombre: 'Cancelado', tono: 'var(--tinta-tenue)', nota: 'Ya no va',
+  cierra: true,
 };
 
 function tipoDe(e) {
@@ -1837,6 +1838,25 @@ function estadoDe(e) {
    tabla en vez de ser una lista suelta. */
 const ESTADOS_EVENTO = TIPOS_EVENTO[0].estados.concat([ESTADO_CANCELADO])
   .map(s => Object.assign({ color: s.tono }, s));
+
+/* Compara fecha Y hora. Se usa la de termino cuando la hay: una
+   jornada de 9 a 12 sigue siendo "lo que viene" a las diez.
+   Sin hora dura todo el dia, que es lo que uno espera de algo
+   anotado solo con fecha. */
+function yaPaso(e, ahora) {
+  const p = n => String(n).padStart(2, '0');
+  const hoy = aTexto(ahora);
+  if (!e.fecha || e.fecha > hoy) return false;
+  if (e.fecha < hoy) return true;
+  const fin = e.hora_fin || e.hora;
+  if (!fin) return false;
+  return fin < p(ahora.getHours()) + ':' + p(ahora.getMinutes());
+}
+
+/* Paso y nadie lo cerro. No se tira: se aparta. */
+function pendienteDeCerrar(e, ahora) {
+  return yaPaso(e, ahora) && !estadoDe(e).cierra;
+}
 
 function eventosDe(fecha) {
   return (datos.parrilla.eventos || [])
@@ -2106,13 +2126,25 @@ function pintarEventos() {
   const cont = $('#listaEventos');
   if (!cont) return;
 
-  const hoy = aTexto(new Date());
-  const proximos = (datos.parrilla.eventos || [])
-    .filter(e => e.fecha >= hoy && e.estado !== 'cancelado')
-    .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')))
-    .slice(0, 8);
+  const ahora = new Date();
+  const vivos = (datos.parrilla.eventos || []).filter(e => e.estado !== 'cancelado');
+  const orden = (a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || ''));
 
-  if (!proximos.length) {
+  const proximos = vivos.filter(e => !yaPaso(e, ahora)).sort(orden).slice(0, 8);
+  // Lo que ocurrio y sigue abierto: fuera de la lista, pero no
+  // perdido. Del mas reciente al mas viejo, que es el orden en que
+  // uno se acuerda de las cosas.
+  const sinCerrar = vivos.filter(e => pendienteDeCerrar(e, ahora))
+                         .sort(orden).reverse().slice(0, 6);
+
+  const aviso = sinCerrar.length ? `
+    <button type="button" class="eventos-pasados${verPasados ? ' abierto' : ''}" id="verPasados">
+      <span class="eventos-pasados-cuenta">${sinCerrar.length}</span>
+      ${sinCerrar.length === 1 ? 'ya ocurrió y sigue sin cerrar' : 'ya ocurrieron y siguen sin cerrar'}
+      <span class="eventos-pasados-flecha" aria-hidden="true">${verPasados ? '▴' : '▾'}</span>
+    </button>` : '';
+
+  if (!proximos.length && !sinCerrar.length) {
     cont.innerHTML = `<div class="vacio">
       Nada anotado todavía.<br>
       Aquí van los eventos por cubrir, las reuniones, las entregas y los días
@@ -2122,14 +2154,18 @@ function pintarEventos() {
     return;
   }
 
-  cont.innerHTML = proximos.map(e => {
+  const pintar = (e, paso) => {
     const necesita = necesidadesDe(e)
       .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
       .filter(Boolean).join(' + ');
-    const dias = Math.round((aFecha(e.fecha) - aFecha(hoy)) / 86400000);
-    const cuando = dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : `En ${dias} días`;
+    const dias = Math.round((aFecha(e.fecha) - aFecha(aTexto(ahora))) / 86400000);
+    const cuando = dias === 0 ? 'Hoy'
+                 : dias === 1 ? 'Mañana'
+                 : dias === -1 ? 'Ayer'
+                 : dias > 1 ? `En ${dias} días`
+                 : `Hace ${-dias} días`;
     return `
-      <div class="evento" data-id="${esc(e.id)}" style="--evento-tono:${colorEvento(e)}">
+      <div class="evento${paso ? ' paso' : ''}" data-id="${esc(e.id)}" style="--evento-tono:${colorEvento(e)}">
         <div class="evento-hora">${esc(horaLegible(e.hora) || '—')}</div>
         <div>
           <div class="evento-titulo">${esc(e.titulo)}</div>
@@ -2140,11 +2176,34 @@ function pintarEventos() {
         </div>
         ${selloEstado(etiquetaEvento(e))}
       </div>`;
-  }).join('');
+  };
+
+  cont.innerHTML = aviso
+    + (verPasados ? sinCerrar.map(e => pintar(e, true)).join('') : '')
+    + proximos.map(e => pintar(e, false)).join('');
+
+  const boton = $('#verPasados');
+  if (boton) boton.addEventListener('click', () => {
+    verPasados = !verPasados;
+    pintarEventos();
+  });
 
   $$('.evento', cont).forEach(el =>
     el.addEventListener('click', () => abrirFichaEvento(el.dataset.id)));
 }
+
+/* Se recuerda entre repintados: si se cerrara solo cada vez que
+   entra un cambio de Marysol, abrirlo no serviria de nada. */
+let verPasados = false;
+
+/* El tiempo pasa aunque nadie toque nada. Sin esto, una reunion que
+   termina a las 12 sigue en "lo que viene" hasta que algo mas
+   provoque un repintado. */
+setInterval(() => {
+  if (document.hidden) return;
+  if (!$('#modalFondo').hidden || !$('#previa').hidden) return;
+  pintarEventos();
+}, 120000);
 
 
 /* ── Del banco al calendario ───────────────────────────────
