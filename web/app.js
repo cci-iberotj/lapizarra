@@ -183,6 +183,61 @@ function marcaAprobacion(p) {
        : e === 'revisar'  ? ' por-revisar' : '';
 }
 
+/* ── Etiquetas ─────────────────────────────────────────────
+   Una tarjeta tiene que contestar dos cosas sin que la abras: QUÉ
+   es —un evento del mundo o una pieza nuestra— y SI todavía
+   depende de que alguien la mueva.
+
+   La forma lleva el segundo dato: SÓLIDA es trabajo cerrado o algo
+   que va a ocurrir sin que nadie intervenga; CONTORNO es que falta
+   una mano. Es la misma regla con la que el calendario ya rellenaba
+   las tarjetas (ver LISTO_PARA_SALIR), ahora dicha con palabras.
+
+   No hace falta ningún color nuevo: los --estado-* ya existen y ya
+   están medidos contra los dos temas. */
+const ETIQUETAS = {
+  idea:       { texto: 'Idea',        tono: 'var(--estado-idea)',       ayuda: 'Anotada, sin trabajar todavía' },
+  brief:      { texto: 'Brief',       tono: 'var(--estado-brief)',      ayuda: 'Ya se sabe qué lleva' },
+  produccion: { texto: 'Produciendo', tono: 'var(--estado-produccion)', ayuda: 'En manos de diseño' },
+  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   ayuda: 'Esperando revisión de Leo' },
+  vobo:       { texto: 'Por aprobar', tono: 'var(--estado-vobo)',       ayuda: 'Esperando el visto bueno institucional' },
+  publicado:  { texto: 'Publicado',   tono: 'var(--estado-publicado)',  ayuda: 'Ya salió', solida: true },
+};
+
+function etiquetaPieza(p) {
+  if (p.estado === 'programado') {
+    /* Ésta es la distinción que importa y la que no se veía: una
+       cosa es estar listo y otra que se vaya a disparar solo. Sin
+       esto hay que abrir la pieza para saber si alguien tiene que
+       apretar el botón. */
+    const impedimento = porQueNoSaldraSola(p);
+    return p.autopublicar && !impedimento
+      ? { texto: 'Programado', tono: 'var(--estado-programado)', solida: true,
+          icono: '⏱', ayuda: 'Sale sola a su hora, sin que nadie la toque' }
+      : { texto: 'Listo', tono: 'var(--estado-programado)',
+          ayuda: impedimento || 'Listo, pero alguien tiene que publicarlo a mano' };
+  }
+  return ETIQUETAS[p.estado] || ETIQUETAS.idea;
+}
+
+/* El rombo va en los cuatro estados: es la marca de "esto es un
+   evento", no un estado. La palabra dice en cuál va. */
+function etiquetaEvento(e) {
+  const s = e.estado || 'avisado';
+  return s === 'cubierto'   ? { texto: 'Cubierto',   tono: 'var(--estado-publicado)', icono: '◆', solida: true, ayuda: 'Evento · ya se grabó o fotografió' }
+       : s === 'confirmado' ? { texto: 'Confirmado', tono: 'var(--info)',             icono: '◆', ayuda: 'Evento · va, y sabemos qué se necesita' }
+       : s === 'cancelado'  ? { texto: 'Cancelado',  tono: 'var(--tinta-tenue)',      icono: '◆', ayuda: 'Evento · no ocurrió' }
+       :                      { texto: 'Evento',     tono: 'var(--tinta-tenue)',      icono: '◆', ayuda: 'Evento · alguien lo reportó, falta confirmar' };
+}
+
+function selloEstado(et) {
+  if (!et) return '';
+  return `<span class="sello${et.solida ? ' solido' : ''}" style="--sello-tono:${et.tono}"` +
+         `${et.ayuda ? ` title="${esc(et.ayuda)}"` : ''}>` +
+         `${et.icono ? `<span class="sello-icono" aria-hidden="true">${et.icono}</span>` : ''}` +
+         `${esc(et.texto)}</span>`;
+}
+
 const CATEGORIAS = [
   { id: 'camara',        nombre: 'Cámara' },
   { id: 'lente',         nombre: 'Lente' },
@@ -667,19 +722,16 @@ function pintarPiezas() {
         <div class="pieza${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${pil ? pil.solido : 'var(--linea-control)'}">
           ${collageDe(p, 3)}
           <div class="pieza-cuerpo">
-            <div class="pieza-titulo">${p.autopublicar && !porQueNoSaldraSola(p)
-              ? '<span class="reloj-pieza" title="Sale sola a su hora">⏱</span> ' : ''}${
-              esc(p.titulo || 'Sin título')}</div>
+            <div class="pieza-titulo">${esc(p.titulo || 'Sin título')}</div>
             <div class="pieza-meta">
               ${p.formato ? `<span>${esc(p.formato)}</span>` : ''}
               ${p.responsable ? `<span>· ${esc(p.responsable)}</span>` : ''}
             </div>
           </div>
           <div class="pieza-meta">
-            <span class="sello-tipo es-post">Post</span>
+            ${selloEstado(etiquetaPieza(p))}
             ${canales}
             ${pil ? `<span class="chip chip-pilar" style="background:${pil.solido || pil.color}">${esc(pil.nombre)}</span>` : ''}
-            ${est ? `<span class="chip chip-estado" style="color:${est.color}">${esc(est.nombre)}</span>` : ''}
           </div>
         </div>`;
     }).join('');
@@ -1113,7 +1165,7 @@ function pintarEscritorio() {
   $$('.mia', cont).forEach(el =>
     el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
   const px = $('.escritorio-proximo', cont);
-  if (px) px.addEventListener('click', () => abrirEvento(px.dataset.evento));
+  if (px) px.addEventListener('click', () => abrirFichaEvento(px.dataset.evento));
 }
 
 
@@ -1840,12 +1892,12 @@ function pintarEventos() {
             ${necesita ? ' · ' + esc(necesita) : ''}${e.solicita ? ' · pide ' + esc(e.solicita) : ''}
           </div>
         </div>
-        <span class="sello-tipo es-evento">${esc(est ? est.nombre : 'Evento')}</span>
+        ${selloEstado(etiquetaEvento(e))}
       </div>`;
   }).join('');
 
   $$('.evento', cont).forEach(el =>
-    el.addEventListener('click', () => abrirEvento(el.dataset.id)));
+    el.addEventListener('click', () => abrirFichaEvento(el.dataset.id)));
 }
 
 
@@ -2039,9 +2091,9 @@ function pintarCalendario() {
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
             <div class="cal-titulo">${acotada ? '<span class="marca-ventana" title="' + esc(rotulo) + '">⧖</span> ' : ''}${
-              p.autopublicar && !porQueNoSaldraSola(p) ? '<span class="reloj-pieza" title="Sale sola a su hora">⏱</span> ' : ''}${
               esc(p.titulo || 'Sin título')}</div>
-            <div class="cal-meta">${esc(p.formato || '')}${p.estado ? ' · ' + esc(catalogo(ESTADOS, p.estado)) : ''}</div>
+            <div class="cal-meta">${selloEstado(etiquetaPieza(p))}${
+              p.formato ? `<span class="cal-formato">${esc(p.formato)}</span>` : ''}</div>
           </div>
         </div>`;
     }).join('');
@@ -2054,9 +2106,11 @@ function pintarCalendario() {
       <div class="cal-evento" data-evento="${esc(ev.id)}"
            style="--evento-tono:${colorEvento(ev)}"
            title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}${q ? ' — ' + esc(q) : ''}">
-        <span class="marca-evento" aria-hidden="true">◆</span>
-        <span class="hora">${esc(horaLegible(ev.hora) || '·')}</span>
-        <span class="titulo">${esc(ev.titulo)}</span>
+        <div class="cal-evento-alto">${selloEstado(etiquetaEvento(ev))}</div>
+        <div class="cal-evento-bajo">
+          ${ev.hora ? `<span class="hora">${esc(horaLegible(ev.hora))}</span>` : ''}
+          <span class="titulo">${esc(ev.titulo)}</span>
+        </div>
       </div>`;
     }).join('');
 
@@ -2078,7 +2132,7 @@ function pintarCalendario() {
   $$('.cal-pieza', cont).forEach(el =>
     el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
   $$('.cal-evento', cont).forEach(el =>
-    el.addEventListener('click', ev => { ev.stopPropagation(); abrirEvento(el.dataset.evento); }));
+    el.addEventListener('click', ev => { ev.stopPropagation(); abrirFichaEvento(el.dataset.evento); }));
   $$('.celda-agregar', cont).forEach(b =>
     b.addEventListener('click', ev => { ev.stopPropagation(); abrirPieza(null, { fecha: b.dataset.fecha }); }));
 
@@ -5250,7 +5304,7 @@ function conectarFilasDeAviso(raiz, yo, despues) {
   $$('.aviso-fila', raiz).forEach(el => el.addEventListener('click', () => {
     marcarVisto(yo, el.dataset.aviso);
     el.classList.add('visto');
-    if (el.dataset.tipo === 'evento') abrirEvento(el.dataset.pieza);
+    if (el.dataset.tipo === 'evento') abrirFichaEvento(el.dataset.pieza);
     else abrirPrevia(el.dataset.pieza);
     pintarContadorAvisos();
     if (despues) despues();
@@ -5336,6 +5390,20 @@ function abrirPrevia(idPieza) {
   pintarPrevia();
 }
 
+/* El mismo panel que las piezas: si el evento se abriera en otro
+   lado, el gesto de "picar algo del calendario" tendria dos
+   resultados distintos segun lo que picaste. */
+function abrirFichaEvento(idEvento) {
+  const e = (datos.parrilla.eventos || []).find(x => x.id === idEvento);
+  if (!e) return;
+
+  previaCtx = { evento: e };
+  $('#previaBajarTodo').hidden = true;
+  $('#previa').hidden = false;
+  document.addEventListener('keydown', tecladoPrevia);
+  pintarPrevia();
+}
+
 function cerrarPrevia() {
   $('#previa').hidden = true;
   document.removeEventListener('keydown', tecladoPrevia);
@@ -5345,6 +5413,7 @@ function cerrarPrevia() {
 function tecladoPrevia(ev) {
   if (!previaCtx) return;
   if (ev.key === 'Escape') { cerrarPrevia(); return; }
+  if (!previaCtx.pieza) return;   // un evento no tiene láminas que pasar
   const n = archivosDe(previaCtx.pieza).length;
   if (n < 2) return;
   if (ev.key === 'ArrowRight') { laminaActual = (laminaActual + 1) % n; pintarLaminas(); }
@@ -5352,6 +5421,7 @@ function tecladoPrevia(ev) {
 }
 
 function pintarPrevia() {
+  if (previaCtx.evento) return pintarFichaEvento();
   const p = previaCtx.pieza;
   const cuerpo = $('#previaCuerpo');
   const pil = PILARES.find(x => x.id === p.pilar);
@@ -5477,6 +5547,86 @@ function pintarPrevia() {
   $('#previaTitulo').textContent = 'Vista previa';
   pintarLaminas();
   conectarPrevia();
+}
+
+function pintarFichaEvento() {
+  const e = previaCtx.evento;
+  const necesita = necesidadesDe(e)
+    .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
+    .filter(Boolean);
+  const est = ESTADOS_EVENTO.find(s => s.id === (e.estado || 'avisado'));
+
+  /* Lo primero que uno quiere saber de un evento anotado es si ya
+     hay alguien encargado de cubrirlo. Ese dato existia —las piezas
+     guardan de_evento— pero no se veia en ningun lado. */
+  const coberturas = datos.parrilla.piezas.filter(p => p.de_evento === e.id);
+
+  const hoy = aTexto(new Date());
+  const dias = Math.round((aFecha(e.fecha) - aFecha(hoy)) / 86400000);
+  const cuando = !e.fecha ? '' : dias === 0 ? 'hoy'
+               : dias === 1 ? 'mañana'
+               : dias > 0 ? `en ${dias} días`
+               : dias === -1 ? 'ayer' : `hace ${-dias} días`;
+
+  $('#previaCuerpo').innerHTML = `
+    <div class="previa-rejilla sola">
+      <div class="previa-datos">
+        <div class="previa-titulo">${esc(e.titulo || 'Evento sin nombre')}</div>
+
+        <div class="previa-chips">
+          ${selloEstado(etiquetaEvento(e))}
+          ${necesita.map(n => `<span class="chip chip-necesita">${esc(n)}</span>`).join('')}
+        </div>
+
+        <dl class="previa-lista">
+          <dt>Cuándo</dt><dd>${esc(fechaLegible(e.fecha) || 'sin fecha')}${
+            e.hora ? ' · ' + esc(horaLegible(e.hora)) : ''}${
+            cuando ? ` <span class="tenue">(${esc(cuando)})</span>` : ''}</dd>
+          <dt>Dónde</dt><dd>${esc(e.lugar || 'sin definir')}</dd>
+          <dt>Quién avisa</dt><dd>${esc(e.solicita || 'sin registrar')}</dd>
+          <dt>Cómo va</dt><dd>${esc(est ? est.nombre : '—')}
+            <span class="tenue">· ${esc(est ? est.nota : '')}</span></dd>
+          ${!necesita.length ? '<dt>Qué se necesita</dt><dd class="tenue">todavía sin definir</dd>' : ''}
+          ${quienAnoto(e) ? `<dt>Quién lo anotó</dt><dd class="tenue">${esc(quienAnoto(e))}</dd>` : ''}
+        </dl>
+
+        ${e.notas ? `<div class="previa-notas"><b>Detalles</b>${
+          esc(e.notas).replace(/\n/g, '<br>')}</div>` : ''}
+
+        <div class="ficha-cobertura">
+          <b>Cobertura</b>
+          ${coberturas.length ? `
+            <div class="ficha-piezas">
+              ${coberturas.map(p => `
+                <button class="ficha-pieza" data-pieza="${esc(p.id)}">
+                  ${selloEstado(etiquetaPieza(p))}
+                  <span class="ficha-pieza-titulo">${esc(p.titulo || 'Sin título')}</span>
+                  <span class="tenue">${esc(fechaLegible(p.fecha) || 'sin fecha')}</span>
+                </button>`).join('')}
+            </div>`
+            : `<p class="tenue">Nadie ha programado todavía una pieza para este evento.</p>`}
+          ${soloLectura('parrilla_piezas') ? '' : `
+            <button type="button" class="btn-plano btn-auto ancho" id="fichaCubrir">
+              ◈ Programar ${coberturas.length ? 'otra pieza' : 'la cobertura'}
+            </button>
+            <span class="ayuda">La pieza nace con la fecha acotada: nada de cobertura puede publicarse antes de que el evento ocurra.</span>`}
+        </div>
+      </div>
+    </div>`;
+
+  $('#previaTitulo').textContent = 'Evento por cubrir';
+
+  const cubrir = $('#fichaCubrir');
+  if (cubrir) cubrir.addEventListener('click', () => {
+    cerrarPrevia();
+    coberturaDeEvento(e);
+  });
+
+  $$('.ficha-pieza').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.pieza;
+    cerrarPrevia();
+    abrirPrevia(id);
+  }));
 }
 
 async function pintarLaminas() {
@@ -6034,9 +6184,12 @@ function conectarEventos() {
   $('#previaCerrar').addEventListener('click', cerrarPrevia);
   $('#previaBajarTodo').addEventListener('click', bajarPostCompleto);
   $('#previaEditar').addEventListener('click', () => {
-    const id = previaCtx && previaCtx.pieza.id;
+    if (!previaCtx) return;
+    const esEvento = !!previaCtx.evento;
+    const id = esEvento ? previaCtx.evento.id : previaCtx.pieza.id;
     cerrarPrevia();
-    if (id) abrirPieza(id);
+    if (!id) return;
+    if (esEvento) abrirEvento(id); else abrirPieza(id);
   });
   // Cerrar al picar el fondo, con la misma guarda que el modal:
   // el gesto tiene que empezar Y terminar fuera.
