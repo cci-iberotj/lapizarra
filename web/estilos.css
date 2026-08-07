@@ -2113,6 +2113,22 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 }
 .grupo-campo .ayuda { line-height: 1.45; }
 
+/* ── Hora de inicio y de termino ───────────────────────────
+   input type=time en Windows sale como --:-- -- con dos flechitas
+   de 7px: hay que apuntarle tres veces para poner una hora. Aqui
+   son dos campos de texto normales, del ancho justo de "12:30 pm",
+   que se acomodan solos al salir. */
+.rango-hora { display: flex; align-items: center; gap: var(--e-3); }
+.campo-hora {
+  width: 10ch; flex: none; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.campo-hora.mal {
+  border-color: var(--peligro);
+  background: var(--peligro-velo);
+}
+.rango-a { color: var(--tinta-tenue); font-size: var(--t-meta); }
+
 @media (max-width: 620px) {
   .fila-campos { grid-template-columns: 1fr; }
 }
@@ -2605,6 +2621,10 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   display: flex; align-items: center; justify-content: center;
   padding: var(--e-5);
 }
+/* 1000px son para la simulacion del post al lado de sus datos.
+   Un evento son ocho renglones: en ese ancho quedaban 440px de
+   vacio a la derecha. */
+.previa-fondo.estrecha .previa { width: min(600px, 100%); }
 .previa {
   background: var(--capa-3);
   border-radius: var(--r-xl);
@@ -2628,25 +2648,49 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
   grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
   align-items: start;
 }
-/* El evento no tiene simulacion que enseñar: sin esto quedaba una
-   columna vacia de 380px a la izquierda de la ficha. */
-.previa-rejilla.sola { grid-template-columns: minmax(0, 1fr); max-width: 62ch; }
+/* ── Ficha del evento ──────────────────────────────────── */
+
+.ficha-ev { display: grid; gap: var(--e-5); }
+
+/* El sello va ARRIBA del titulo, no al lado: leido de corrido
+   dice "confirmado: Curso de ultrasonido". Al lado competia con
+   el nombre por el primer golpe de vista. */
+.ficha-ev-cabeza { display: grid; gap: var(--e-3); justify-items: start; }
+.ficha-ev-cabeza .previa-titulo { margin: 0; }
+.ficha-ev-nota {
+  margin: 0; font-size: var(--t-meta); color: var(--tinta-tenue);
+  line-height: 1.45;
+}
 
 .chip-necesita {
   background: var(--capa-hundida); color: var(--tinta-media);
-  border-radius: var(--r-pastilla); padding: 3px 9px;
-  font-size: var(--t-sello);
+  border-radius: var(--r-pastilla); padding: 3px 10px;
+  font-size: var(--t-sello); white-space: nowrap;
 }
+.ficha-ev-necesita { display: inline-flex; flex-wrap: wrap; gap: 5px; }
+
+.ficha-ev .previa-lista { margin: 0; align-items: baseline; }
+
+.ficha-ev .previa-notas { margin: 0; }
 
 .ficha-cobertura {
   border-top: 1px solid var(--linea-sutil);
-  padding-top: var(--e-5); margin-top: var(--e-5);
+  padding-top: var(--e-5);
+}
+.ficha-ev-vacio {
+  margin: 0 0 var(--e-4); font-size: var(--t-cuerpo);
+  color: var(--tinta-tenue);
+}
+/* La ayuda iba en un <span> inline y el parrafo se le enredaba
+   alrededor del boton. */
+.ficha-ev-pie {
+  margin: var(--e-3) 0 0; font-size: var(--t-sello);
+  color: var(--tinta-tenue); line-height: 1.5;
 }
 .ficha-cobertura > b {
   display: block; font-size: var(--t-sello); text-transform: uppercase;
   letter-spacing: .08em; color: var(--tinta-tenue); margin-bottom: var(--e-3);
 }
-.ficha-cobertura p { margin: 0 0 var(--e-4); font-size: var(--t-cuerpo); }
 .ficha-piezas { display: grid; gap: 6px; margin-bottom: var(--e-4); }
 .ficha-pieza {
   display: flex; align-items: center; gap: var(--e-3); width: 100%;

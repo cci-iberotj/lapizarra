@@ -1673,6 +1673,65 @@ function necesidadesDe(e) {
   return [e.necesita];
 }
 
+/* ── Horas escritas a mano ─────────────────────────────────
+   Devuelve 'HH:MM', '' si venia vacio, o null si no se entendio
+   —que no es lo mismo: vacio es valido, ilegible no.
+
+   Sin sufijo se supone que 1 a 7 son de la tarde y 8 a 12 de la
+   mañana, que es como cae la jornada aqui. Se supone, no se
+   adivina: el campo se reescribe a la vista con lo que entendio,
+   asi que si te equivocas lo ves antes de guardar. */
+function leerHora(txt) {
+  const t = String(txt == null ? '' : txt).trim().toLowerCase()
+    .replace(/[.\s]/g, '').replace(/hrs?$/, '');
+  if (!t) return '';
+  const m = t.match(/^(\d{1,2})(?::?(\d{2}))?(am|pm|a|p)?$/);
+  if (!m) return null;
+
+  let h = +m[1];
+  const min = m[2] ? +m[2] : 0;
+  const suf = m[3] ? m[3][0] : '';
+  if (min > 59) return null;
+
+  if (suf === 'p') { if (h > 12) return null; if (h < 12) h += 12; }
+  else if (suf === 'a') { if (h > 12) return null; if (h === 12) h = 0; }
+  else if (h >= 1 && h <= 7) h += 12;
+  if (h > 23) return null;
+
+  return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
+}
+
+/* Cuanto dura, dicho como se dice. Sirve para saber de un vistazo
+   si alcanza con una salida de equipo o hay que dividirse. */
+function duracionEntre(inicio, fin) {
+  if (!inicio || !fin) return '';
+  const a = inicio.split(':'), b = fin.split(':');
+  const min = (+b[0] * 60 + +b[1]) - (+a[0] * 60 + +a[1]);
+  if (min <= 0) return '';
+  const h = Math.floor(min / 60), r = min % 60;
+  return (h ? h + ' h' : '') + (h && r ? ' ' : '') + (r ? r + ' min' : '');
+}
+
+/* "12 pm" o "12 pm – 2:30 pm". El am/pm se dice una sola vez
+   cuando los dos caen en la misma mitad del dia. */
+function rangoHoras(inicio, fin) {
+  if (!inicio) return '';
+  if (!fin) return horaLegible(inicio);
+  const a = horaLegible(inicio), b = horaLegible(fin);
+  const mitad = s => s.slice(-2);
+  return (mitad(a) === mitad(b) ? a.slice(0, -3) : a) + ' – ' + b;
+}
+
+/* Medias horas de una jornada universitaria. Es sugerencia: el
+   campo acepta cualquier cosa que se entienda. */
+const HORAS_SUGERIDAS = (() => {
+  const l = [];
+  for (let h = 7; h <= 21; h++) for (const m of ['00', '30']) {
+    l.push(horaLegible(String(h).padStart(2, '0') + ':' + m));
+  }
+  return l;
+})();
+
 const ESTADOS_EVENTO = [
   { id: 'avisado',   nombre: 'Avisado',     color: 'var(--estado-idea)',       nota: 'Alguien lo reportó; falta confirmar' },
   { id: 'confirmado',nombre: 'Confirmado',  color: 'var(--info)',              nota: 'Va, y sabemos qué se necesita' },
@@ -1729,9 +1788,20 @@ function abrirEvento(idEvento, prellenado) {
         <input type="date" class="campo" id="e_fecha" value="${esc(e.fecha)}">
       </div>
       <div class="grupo-campo">
-        <label for="e_hora">A qué hora</label>
-        <input type="time" class="campo" id="e_hora" value="${esc(e.hora)}">
-        <span class="ayuda">Sirve para ordenar el día y para saber si alcanza con una sola salida de equipo.</span>
+        <label for="e_hora">De qué hora a qué hora</label>
+        <div class="rango-hora">
+          <input class="campo campo-hora" id="e_hora" list="horasSugeridas"
+                 autocomplete="off" spellcheck="false" placeholder="9:00 am"
+                 value="${esc(horaLegible(e.hora))}">
+          <span class="rango-a" aria-hidden="true">a</span>
+          <input class="campo campo-hora" id="e_hora_fin" list="horasSugeridas"
+                 autocomplete="off" spellcheck="false" placeholder="opcional"
+                 value="${esc(horaLegible(e.hora_fin))}">
+        </div>
+        <datalist id="horasSugeridas">
+          ${HORAS_SUGERIDAS.map(h => `<option value="${esc(h)}">`).join('')}
+        </datalist>
+        <span class="ayuda" id="e_horaAyuda">Escríbela como quieras: <b>9</b>, <b>930</b>, <b>2 pm</b>, <b>14:00</b>. La de término es opcional; sirve para saber si alcanza con una salida de equipo.</span>
       </div>
     </div>
 
@@ -1787,6 +1857,36 @@ function abrirEvento(idEvento, prellenado) {
     </div>` : ''}
   `;
 
+  /* Se reescribe con lo que se entendio, para que lo veas antes de
+     guardar en vez de descubrirlo despues en el calendario. */
+  const ayudaHora = $('#e_horaAyuda');
+  const ayudaOriginal = ayudaHora ? ayudaHora.innerHTML : '';
+  const acomodarHoras = () => {
+    let malo = '';
+    [$('#e_hora'), $('#e_hora_fin')].forEach(campo => {
+      if (!campo) return;
+      const v = leerHora(campo.value);
+      campo.classList.toggle('mal', v === null);
+      if (v === null) { malo = campo.value.trim(); return; }
+      campo.value = v ? horaLegible(v) : '';
+    });
+    if (!ayudaHora) return;
+    const ini = leerHora($('#e_hora').value), fin = leerHora($('#e_hora_fin').value);
+    if (malo) {
+      ayudaHora.innerHTML = `No entendí <b>${esc(malo)}</b>. Prueba con algo como 9:30 am o 14:00.`;
+    } else if (ini && fin && fin <= ini) {
+      ayudaHora.innerHTML = 'La hora de término va antes que la de inicio.';
+    } else if (ini && fin) {
+      ayudaHora.innerHTML = `Dura <b>${esc(duracionEntre(ini, fin))}</b>.`;
+    } else {
+      ayudaHora.innerHTML = ayudaOriginal;
+    }
+  };
+  [$('#e_hora'), $('#e_hora_fin')].forEach(c => {
+    if (c) { c.addEventListener('change', acomodarHoras);
+             c.addEventListener('blur', acomodarHoras); }
+  });
+
   const sel = $('#e_estado');
   if (sel) sel.addEventListener('change', () => {
     const x = ESTADOS_EVENTO.find(s => s.id === sel.value);
@@ -1804,7 +1904,8 @@ function leerEvento() {
   const e = modalCtx.datos;
   e.titulo   = $('#e_titulo').value.trim();
   e.fecha    = $('#e_fecha').value;
-  e.hora     = $('#e_hora').value;
+  e.hora     = leerHora($('#e_hora').value);
+  e.hora_fin = leerHora($('#e_hora_fin').value);
   e.lugar    = $('#e_lugar').value.trim();
   e.solicita = $('#e_solicita').value.trim();
   e.necesita = $$('#e_necesita input:checked').map(x => x.value);
@@ -1813,6 +1914,14 @@ function leerEvento() {
 
   if (!e.titulo) { avisar('El evento necesita un nombre.'); return false; }
   if (!e.fecha)  { avisar('Un evento sin fecha no se puede cubrir. ¿Cuándo es?'); return false; }
+  if (e.hora === null || e.hora_fin === null) {
+    avisar('No entendí una de las horas. Escríbela como 9:30 am o como 14:00.');
+    return false;
+  }
+  if (e.hora && e.hora_fin && e.hora_fin <= e.hora) {
+    avisar('La hora de término va antes que la de inicio.');
+    return false;
+  }
 
   e.actualizado = ahora();
   // Quien lo anota no necesita que le avisen de lo que acaba de
@@ -1847,7 +1956,7 @@ function coberturaDeEvento(e) {
     no_antes: e.fecha,
     notas: [e.titulo,
             e.lugar ? 'Lugar: ' + e.lugar : '',
-            e.hora ? 'Hora: ' + horaLegible(e.hora) : '',
+            e.hora ? 'Hora: ' + rangoHoras(e.hora, e.hora_fin) : '',
             e.notas].filter(Boolean).join('\n'),
     de_evento: e.id,
   });
@@ -5382,6 +5491,7 @@ function abrirPrevia(idPieza) {
   if (!p) return;
 
   previaCtx = { pieza: p };
+  $('#previa').classList.remove('estrecha');
   // Sin laminas no hay nada que llevarse: el boton estorba.
   $('#previaBajarTodo').hidden = !archivosDe(p).length;
   laminaActual = 0;
@@ -5399,6 +5509,9 @@ function abrirFichaEvento(idEvento) {
 
   previaCtx = { evento: e };
   $('#previaBajarTodo').hidden = true;
+  // El panel ancho es para la simulacion del post; un evento no
+  // tiene que enseñar.
+  $('#previa').classList.add('estrecha');
   $('#previa').hidden = false;
   document.addEventListener('keydown', tecladoPrevia);
   pintarPrevia();
@@ -5568,50 +5681,61 @@ function pintarFichaEvento() {
                : dias > 0 ? `en ${dias} días`
                : dias === -1 ? 'ayer' : `hace ${-dias} días`;
 
+  const dura = duracionEntre(e.hora, e.hora_fin);
+
   $('#previaCuerpo').innerHTML = `
-    <div class="previa-rejilla sola">
-      <div class="previa-datos">
-        <div class="previa-titulo">${esc(e.titulo || 'Evento sin nombre')}</div>
+    <div class="ficha-ev">
 
-        <div class="previa-chips">
-          ${selloEstado(etiquetaEvento(e))}
-          ${necesita.map(n => `<span class="chip chip-necesita">${esc(n)}</span>`).join('')}
-        </div>
+      <header class="ficha-ev-cabeza">
+        ${selloEstado(etiquetaEvento(e))}
+        <h4 class="previa-titulo">${esc(e.titulo || 'Evento sin nombre')}</h4>
+        ${est && est.nota ? `<p class="ficha-ev-nota">${esc(est.nota)}</p>` : ''}
+      </header>
 
-        <dl class="previa-lista">
-          <dt>Cuándo</dt><dd>${esc(fechaLegible(e.fecha) || 'sin fecha')}${
-            e.hora ? ' · ' + esc(horaLegible(e.hora)) : ''}${
-            cuando ? ` <span class="tenue">(${esc(cuando)})</span>` : ''}</dd>
-          <dt>Dónde</dt><dd>${esc(e.lugar || 'sin definir')}</dd>
-          <dt>Quién avisa</dt><dd>${esc(e.solicita || 'sin registrar')}</dd>
-          <dt>Cómo va</dt><dd>${esc(est ? est.nombre : '—')}
-            <span class="tenue">· ${esc(est ? est.nota : '')}</span></dd>
-          ${!necesita.length ? '<dt>Qué se necesita</dt><dd class="tenue">todavía sin definir</dd>' : ''}
-          ${quienAnoto(e) ? `<dt>Quién lo anotó</dt><dd class="tenue">${esc(quienAnoto(e))}</dd>` : ''}
-        </dl>
+      <dl class="previa-lista">
+        <dt>Cuándo</dt>
+        <dd>${esc(fechaLegible(e.fecha) || 'sin fecha')}${
+          e.hora ? ' · ' + esc(rangoHoras(e.hora, e.hora_fin)) : ''}
+          ${cuando || dura ? `<span class="tenue">(${
+            esc([cuando, dura].filter(Boolean).join(' · '))})</span>` : ''}</dd>
 
-        ${e.notas ? `<div class="previa-notas"><b>Detalles</b>${
-          esc(e.notas).replace(/\n/g, '<br>')}</div>` : ''}
+        <dt>Dónde</dt>
+        <dd>${e.lugar ? esc(e.lugar) : '<span class="tenue">sin definir</span>'}</dd>
 
-        <div class="ficha-cobertura">
-          <b>Cobertura</b>
-          ${coberturas.length ? `
-            <div class="ficha-piezas">
-              ${coberturas.map(p => `
-                <button class="ficha-pieza" data-pieza="${esc(p.id)}">
-                  ${selloEstado(etiquetaPieza(p))}
-                  <span class="ficha-pieza-titulo">${esc(p.titulo || 'Sin título')}</span>
-                  <span class="tenue">${esc(fechaLegible(p.fecha) || 'sin fecha')}</span>
-                </button>`).join('')}
-            </div>`
-            : `<p class="tenue">Nadie ha programado todavía una pieza para este evento.</p>`}
-          ${soloLectura('parrilla_piezas') ? '' : `
-            <button type="button" class="btn-plano btn-auto ancho" id="fichaCubrir">
-              ◈ Programar ${coberturas.length ? 'otra pieza' : 'la cobertura'}
-            </button>
-            <span class="ayuda">La pieza nace con la fecha acotada: nada de cobertura puede publicarse antes de que el evento ocurra.</span>`}
-        </div>
-      </div>
+        <dt>Quién avisa</dt>
+        <dd>${e.solicita ? esc(e.solicita) : '<span class="tenue">sin registrar</span>'}</dd>
+
+        <dt>Qué se necesita</dt>
+        <dd>${necesita.length
+          ? `<span class="ficha-ev-necesita">${necesita.map(n =>
+              `<span class="chip-necesita">${esc(n)}</span>`).join('')}</span>`
+          : '<span class="tenue">todavía sin definir</span>'}</dd>
+
+        ${quienAnoto(e) ? `<dt>Lo anotó</dt>
+        <dd class="tenue">${esc(quienAnoto(e))}</dd>` : ''}
+      </dl>
+
+      ${e.notas ? `<div class="previa-notas"><b>Detalles</b>${
+        esc(e.notas).replace(/\n/g, '<br>')}</div>` : ''}
+
+      <section class="ficha-cobertura">
+        <b>Cobertura</b>
+        ${coberturas.length ? `
+          <div class="ficha-piezas">
+            ${coberturas.map(p => `
+              <button class="ficha-pieza" data-pieza="${esc(p.id)}">
+                ${selloEstado(etiquetaPieza(p))}
+                <span class="ficha-pieza-titulo">${esc(p.titulo || 'Sin título')}</span>
+                <span class="tenue">${esc(fechaLegible(p.fecha) || 'sin fecha')}</span>
+              </button>`).join('')}
+          </div>`
+          : `<p class="ficha-ev-vacio">Nadie ha programado todavía una pieza para este evento.</p>`}
+        ${soloLectura('parrilla_piezas') ? '' : `
+          <button type="button" class="btn-primario acento-evento ancho" id="fichaCubrir">
+            ◈ Programar ${coberturas.length ? 'otra pieza' : 'la cobertura'}
+          </button>
+          <p class="ficha-ev-pie">Nace con la fecha acotada: nada de cobertura puede publicarse antes de que el evento ocurra.</p>`}
+      </section>
     </div>`;
 
   $('#previaTitulo').textContent = 'Evento por cubrir';
