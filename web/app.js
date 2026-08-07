@@ -1760,7 +1760,7 @@ const TIPOS_EVENTO = [
     estados: [
       { id: 'avisado',    nombre: 'Avisado',    tono: 'var(--tinta-tenue)',      nota: 'Alguien lo reportó; falta confirmar' },
       { id: 'confirmado', nombre: 'Confirmado', tono: 'var(--info)',             nota: 'Va, y sabemos qué se necesita' },
-      { id: 'cubierto',   nombre: 'Cubierto',   tono: 'var(--estado-publicado)', nota: 'Ya se grabó o fotografió', solida: true, cierra: true },
+      { id: 'cubierto',   nombre: 'Cubierto',   tono: 'var(--estado-publicado)', nota: 'Ya se grabó o fotografió', solida: true },
     ],
   },
   {
@@ -1776,7 +1776,7 @@ const TIPOS_EVENTO = [
     },
     estados: [
       { id: 'agendada', nombre: 'Agendada', tono: 'var(--info)',             nota: 'Está en el calendario' },
-      { id: 'hecha',    nombre: 'Hecha',    tono: 'var(--estado-publicado)', nota: 'Ya ocurrió', solida: true, cierra: true },
+      { id: 'hecha',    nombre: 'Hecha',    tono: 'var(--estado-publicado)', nota: 'Ya ocurrió', solida: true },
     ],
   },
   {
@@ -1792,7 +1792,7 @@ const TIPOS_EVENTO = [
     },
     estados: [
       { id: 'pendiente', nombre: 'Pendiente', tono: 'var(--alerta)',           nota: 'Todavía no se entrega' },
-      { id: 'entregada', nombre: 'Entregada', tono: 'var(--estado-publicado)', nota: 'Ya se entregó', solida: true, cierra: true },
+      { id: 'entregada', nombre: 'Entregada', tono: 'var(--estado-publicado)', nota: 'Ya se entregó', solida: true },
     ],
   },
   {
@@ -1806,7 +1806,7 @@ const TIPOS_EVENTO = [
       detalles: 'Quién cubre lo urgente, cómo localizarte…',
     },
     estados: [
-      { id: 'firme', nombre: 'No disponible', tono: 'var(--tinta-tenue)', nota: 'Nadie debería agendarte encima', cierra: true },
+      { id: 'firme', nombre: 'No disponible', tono: 'var(--tinta-tenue)', nota: 'Nadie debería agendarte encima' },
     ],
   },
 ];
@@ -1814,7 +1814,6 @@ const TIPOS_EVENTO = [
 /* Cancelado vale para los cuatro: cualquier cosa se puede caer. */
 const ESTADO_CANCELADO = {
   id: 'cancelado', nombre: 'Cancelado', tono: 'var(--tinta-tenue)', nota: 'Ya no va',
-  cierra: true,
 };
 
 function tipoDe(e) {
@@ -1851,11 +1850,6 @@ function yaPaso(e, ahora) {
   const fin = e.hora_fin || e.hora;
   if (!fin) return false;
   return fin < p(ahora.getHours()) + ':' + p(ahora.getMinutes());
-}
-
-/* Paso y nadie lo cerro. No se tira: se aparta. */
-function pendienteDeCerrar(e, ahora) {
-  return yaPaso(e, ahora) && !estadoDe(e).cierra;
 }
 
 function eventosDe(fecha) {
@@ -2130,21 +2124,11 @@ function pintarEventos() {
   const vivos = (datos.parrilla.eventos || []).filter(e => e.estado !== 'cancelado');
   const orden = (a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || ''));
 
+  // Lo que ya ocurrio no se lista aqui. No se pierde: sigue en el
+  // calendario, en su dia. Esta barra mira hacia adelante.
   const proximos = vivos.filter(e => !yaPaso(e, ahora)).sort(orden).slice(0, 8);
-  // Lo que ocurrio y sigue abierto: fuera de la lista, pero no
-  // perdido. Del mas reciente al mas viejo, que es el orden en que
-  // uno se acuerda de las cosas.
-  const sinCerrar = vivos.filter(e => pendienteDeCerrar(e, ahora))
-                         .sort(orden).reverse().slice(0, 6);
 
-  const aviso = sinCerrar.length ? `
-    <button type="button" class="eventos-pasados${verPasados ? ' abierto' : ''}" id="verPasados">
-      <span class="eventos-pasados-cuenta">${sinCerrar.length}</span>
-      ${sinCerrar.length === 1 ? 'ya ocurrió y sigue sin cerrar' : 'ya ocurrieron y siguen sin cerrar'}
-      <span class="eventos-pasados-flecha" aria-hidden="true">${verPasados ? '▴' : '▾'}</span>
-    </button>` : '';
-
-  if (!proximos.length && !sinCerrar.length) {
+  if (!proximos.length) {
     cont.innerHTML = `<div class="vacio">
       Nada anotado todavía.<br>
       Aquí van los eventos por cubrir, las reuniones, las entregas y los días
@@ -2154,7 +2138,7 @@ function pintarEventos() {
     return;
   }
 
-  const pintar = (e, paso) => {
+  const pintar = (e) => {
     const necesita = necesidadesDe(e)
       .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
       .filter(Boolean).join(' + ');
@@ -2165,7 +2149,7 @@ function pintarEventos() {
                  : dias > 1 ? `En ${dias} días`
                  : `Hace ${-dias} días`;
     return `
-      <div class="evento${paso ? ' paso' : ''}" data-id="${esc(e.id)}" style="--evento-tono:${colorEvento(e)}">
+      <div class="evento" data-id="${esc(e.id)}" style="--evento-tono:${colorEvento(e)}">
         <div class="evento-hora">${esc(horaLegible(e.hora) || '—')}</div>
         <div>
           <div class="evento-titulo">${esc(e.titulo)}</div>
@@ -2178,23 +2162,11 @@ function pintarEventos() {
       </div>`;
   };
 
-  cont.innerHTML = aviso
-    + (verPasados ? sinCerrar.map(e => pintar(e, true)).join('') : '')
-    + proximos.map(e => pintar(e, false)).join('');
-
-  const boton = $('#verPasados');
-  if (boton) boton.addEventListener('click', () => {
-    verPasados = !verPasados;
-    pintarEventos();
-  });
+  cont.innerHTML = proximos.map(pintar).join('');
 
   $$('.evento', cont).forEach(el =>
     el.addEventListener('click', () => abrirFichaEvento(el.dataset.id)));
 }
-
-/* Se recuerda entre repintados: si se cerrara solo cada vez que
-   entra un cambio de Marysol, abrirlo no serviria de nada. */
-let verPasados = false;
 
 /* El tiempo pasa aunque nadie toque nada. Sin esto, una reunion que
    termina a las 12 sigue en "lo que viene" hasta que algo mas

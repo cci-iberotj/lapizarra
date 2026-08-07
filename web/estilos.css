@@ -2113,36 +2113,6 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 }
 .grupo-campo .ayuda { line-height: 1.45; }
 
-/* ── Lo que ya ocurrió y sigue abierto ─────────────────────
-   No se tira de la lista: se aparta detras de un clic. Una reunion
-   que se esfuma a las 12 en punto sin que nadie la marque como
-   Hecha deja el registro abierto para siempre. */
-.eventos-pasados {
-  display: flex; align-items: center; gap: var(--e-3); width: 100%;
-  margin-bottom: var(--e-4); padding: 8px var(--e-4);
-  background: var(--capa-hundida); border: 0; border-radius: var(--r-sm);
-  color: var(--tinta-media); font-size: var(--t-meta);
-  text-align: left; cursor: pointer;
-  transition: color var(--dur-instantanea);
-}
-.eventos-pasados:hover { color: var(--tinta); }
-.eventos-pasados-cuenta {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 18px; height: 18px; padding: 0 5px; flex: none;
-  background: var(--alerta); color: var(--texto-sobre-pilar);
-  border-radius: var(--r-pastilla);
-  font-size: var(--t-sello); font-weight: var(--peso-fuerte);
-}
-.eventos-pasados-flecha { margin-left: auto; font-size: 9px; }
-
-/* Ya ocurrio: se atenua el fondo, no el texto -- el texto es lo
-   que hay que leer para saber que cerrar. */
-.evento.paso {
-  background: var(--capa-hundida);
-  border-style: dashed;
-  border-left-style: solid;
-}
-
 /* ── Qué se está anotando ──────────────────────────────────
    Cuatro opciones visibles de golpe, no un desplegable: el tipo
    decide que campos salen abajo, asi que esconderlo detras de un
