@@ -272,6 +272,7 @@ let datos = {
   inventario: { equipos: [], vuelos: [] },
   expertos: { personas: [] },
   redaccion: { temas: [], equipo: {} },
+  entregas: { lista: [] },
 };
 let anclaSemana = inicioSemana(new Date());
 let anclaMes = new Date();
@@ -480,6 +481,31 @@ function guardar(coleccion) {
 
 /* Repintar todo. Se usa cuando el estado cambió por debajo:
    al deshacer un rechazo o al traer trabajo de los demás. */
+/* Creacion no es del area: le sobra casi toda la aplicacion. Se
+   deja el calendario --para saber cuando sale lo suyo-- y su
+   bandeja. Esto es cosmetico y lo se: quien de verdad cierra la
+   puerta es puede_leer() en Postgres, que ni siquiera manda los
+   datos de las demas secciones. Esconder la pestaña sin eso no
+   habria cerrado nada. */
+const VISTAS_DE_CREACION = ['parrilla', 'entregas'];
+
+function recortarParaCreacion() {
+  const recortar = soyCreacion();
+  $$('.tab').forEach(t => {
+    const v = t.dataset.vista;
+    if (!v) return;
+    const fuera = recortar && !VISTAS_DE_CREACION.includes(v);
+    t.hidden = fuera || (v === 'ajustes' && t.id === 'tabAjustes' && t.hidden);
+    if (fuera && t.classList.contains('activo')) {
+      $('.tab[data-vista="entregas"]').click();
+    }
+  });
+  // Los carriles laterales de la parrilla son de trabajo interno:
+  // el banco de ideas y las efemerides no le sirven a quien entrega.
+  const carriles = $('#carriles');
+  if (carriles) carriles.classList.toggle('sin-rieles', recortar);
+}
+
 function refrescarTodo() {
   aplicarModoParrilla();
   refrescarParrilla();
@@ -487,7 +513,9 @@ function refrescarTodo() {
   refrescarExpertos();
   pintarRedaccion();
   pintarEscritorio();
+  pintarEntregas();
   aplicarPermisos();
+  recortarParaCreacion();
   pintarContadorAvisos();
 }
 
@@ -1186,6 +1214,13 @@ const ROLES_SISTEMA = [
   { id: 'redaccion',   nombre: 'Redacción',   que: 'Notas, temas y expertos' },
   { id: 'publicacion', nombre: 'Publicación', que: 'Piezas y eventos' },
   { id: 'produccion',  nombre: 'Producción',  que: 'Piezas, ideas y eventos' },
+  /* Gente que produce contenido para nosotros sin ser del area.
+     Entrega material y ve el calendario; no mueve la parrilla ni
+     decide cuando sale algo. Se llama por su funcion, como los
+     demas: "agencia" las etiquetaria como de fuera cada vez que
+     entran. El limite de verdad lo pone puede_leer() en Postgres,
+     no esta lista. */
+  { id: 'creacion',    nombre: 'Creación',    que: 'Entrega material y ve el calendario' },
 ];
 
 let usuariosDelSistema = [];
@@ -1872,6 +1907,302 @@ function horaLegible(h) {
   return doce + (mm ? ':' + String(mm).padStart(2, '0') : '') + ' ' + ampm;
 }
 
+
+
+/* ═══════════════════════════════════════════════════════════
+   LO QUE LLEGA
+
+   Dos caras del mismo lugar. Quien crea entrega y ve en qué quedó
+   lo suyo; el área ve lo que entró y decide qué hacer con eso.
+
+   Entregar y programar están separados a proposito: quien entrega
+   no elige cuándo sale. Ése era el requisito.
+   ═══════════════════════════════════════════════════════════ */
+
+const ESTADOS_ENTREGA = [
+  { id: 'entregada', nombre: 'Sin revisar', tono: 'var(--info)',
+    nota: 'Esperando que el área la vea' },
+  { id: 'aceptada',  nombre: 'En el calendario', tono: 'var(--estado-publicado)',
+    nota: 'Ya tiene fecha', solida: true },
+  { id: 'devuelta',  nombre: 'Con cambios', tono: 'var(--alerta)',
+    nota: 'Hay que corregir algo' },
+];
+
+function estadoEntrega(e) {
+  return ESTADOS_ENTREGA.find(x => x.id === e.estado) || ESTADOS_ENTREGA[0];
+}
+
+function soyCreacion() {
+  return Almacen.usuario && Almacen.usuario.rol === 'creacion';
+}
+
+let revisionPendiente = [];   // lo revisado y todavía sin subir
+
+/* ── Revisar antes de subir ──────────────────────────────── */
+
+async function revisarYEnseñar(archivos) {
+  const zona = $('#revisionEntrega');
+  zona.innerHTML = '<div class="revision-cargando">Revisando el material…</div>';
+  // Se acumula: elegir un segundo lote no borra el primero.
+  for (const a of archivos) revisionPendiente.push(await revisarEntrega(a));
+  pintarRevision();
+}
+
+/* Pinta lo que ya se midio. Medir y pintar separados, porque al
+   quitar un archivo de la lista no hay que volver a medir nada. */
+function pintarRevision() {
+  const zona = $('#revisionEntrega');
+  if (!revisionPendiente.length) { zona.innerHTML = ''; return; }
+
+  const hayProblema = revisionPendiente.some(r => r.problemas.length);
+  const listos = revisionPendiente.filter(r => !r.problemas.length);
+
+  zona.innerHTML = `
+    <div class="revision">
+      ${revisionPendiente.map((r, i) => `
+        <div class="revision-archivo${r.problemas.length ? ' mal' : ''}">
+          <div class="revision-cabeza">
+            <span class="revision-marca" aria-hidden="true">${r.problemas.length ? '✕' : '✓'}</span>
+            <b>${esc(r.nombre)}</b>
+            <button type="button" class="btn-icono revision-quitar" data-i="${i}"
+                    title="Quitar de la lista">×</button>
+          </div>
+          <div class="revision-datos">
+            ${r.ancho ? `${r.ancho}×${r.alto}` : ''}
+            ${r.segundos ? ' · ' + esc(segundosLegibles(r.segundos)) : ''}
+            · ${esc(pesoLegible(r.peso))}
+          </div>
+          ${r.problemas.map(t => `<p class="revision-problema">${esc(t)}</p>`).join('')}
+          ${r.avisos.map(t => `<p class="revision-aviso">${esc(t)}</p>`).join('')}
+        </div>`).join('')}
+    </div>
+
+    ${listos.length ? `
+      <div class="grupo-campo">
+        <label for="entregaTitulo">Qué es esto</label>
+        <input class="campo" id="entregaTitulo"
+               placeholder="Reel de las Jornadas de Jardinería, versión 2">
+        <span class="ayuda">Con esto lo van a reconocer sin abrirlo.</span>
+      </div>
+      <div class="grupo-campo">
+        <label for="entregaNotas">Algo que haya que saber</label>
+        <textarea class="campo" id="entregaNotas" rows="2"
+                  placeholder="El audio va con la música original. Hay una versión sin texto si la necesitan."></textarea>
+      </div>
+      <button type="button" class="btn-primario ancho" id="mandarEntrega">
+        Entregar ${listos.length === 1 ? 'el archivo' : 'los ' + listos.length + ' archivos'}
+      </button>` : ''}
+
+    ${hayProblema ? `<p class="revision-pie">
+      Lo marcado con ✕ no se puede subir. Corrígelo y vuelve a elegirlo,
+      o quítalo de la lista.</p>` : ''}
+  `;
+
+  $$('.revision-quitar', zona).forEach(b => b.addEventListener('click', () => {
+    revisionPendiente.splice(+b.dataset.i, 1);
+    pintarRevision();
+  }));
+
+  const mandar = $('#mandarEntrega');
+  if (mandar) mandar.addEventListener('click', mandarEntrega);
+}
+
+async function mandarEntrega() {
+  const listos = revisionPendiente.filter(r => !r.problemas.length);
+  if (!listos.length) return;
+
+  const titulo = ($('#entregaTitulo').value || '').trim();
+  if (!titulo) { avisar('Ponle un nombre para que lo reconozcan.'); $('#entregaTitulo').focus(); return; }
+
+  const boton = $('#mandarEntrega');
+  boton.disabled = true;
+  const original = boton.textContent;
+
+  const e = {
+    id: id(), titulo,
+    notas: ($('#entregaNotas').value || '').trim(),
+    archivos: [], estado: 'entregada',
+    creadoPor: Almacen.usuario ? Almacen.usuario.nombre : '',
+    creado: ahora(), actualizado: ahora(),
+  };
+
+  try {
+    for (let i = 0; i < listos.length; i++) {
+      const r = listos[i];
+      boton.textContent = `Subiendo ${i + 1} de ${listos.length}…`;
+      // El prefijo entregas/ no es decorativo: la politica de Storage
+      // deja escribir a Creacion solo dentro de el.
+      const ruta = await subirArchivo('entregas/' + e.id, r.archivo, r.nombre);
+      e.archivos.push({
+        ruta, nombre: r.nombre, peso: r.peso, tipo: r.tipo,
+        ancho: r.ancho || 0, alto: r.alto || 0, segundos: r.segundos || 0,
+      });
+    }
+    datos.entregas.lista = datos.entregas.lista || [];
+    datos.entregas.lista.push(e);
+    await guardar('entregas');
+
+    revisionPendiente = [];
+    $('#revisionEntrega').innerHTML = '';
+    avisar('Entregado. El área ya lo puede ver.');
+    pintarEntregas();
+  } catch (err) {
+    avisar('No se pudo subir: ' + err.message);
+    boton.disabled = false;
+    boton.textContent = original;
+  }
+}
+
+/* ── La lista ────────────────────────────────────────────── */
+
+function pintarEntregas() {
+  const cont = $('#entregasLista');
+  if (!cont) return;
+  const mio = soyCreacion();
+
+  $('#entregasTitulo').textContent = mio ? 'Lo que entregas' : 'Lo que llega';
+  $('#entregasNota').textContent = mio
+    ? 'Sube aquí el material terminado. El área decide cuándo sale; aquí ves en qué quedó lo tuyo.'
+    : 'Material que entregó quien produce contenido para nosotros. Desde aquí se lleva al calendario.';
+
+  const tab = $('#tabEntregas');
+  if (tab) tab.textContent = mio ? 'Lo que entregas' : 'Lo que llega';
+
+  const subir = $('#entregasSubir');
+  if (subir) subir.hidden = soloLectura('entregas');
+
+  const lista = (datos.entregas && datos.entregas.lista || [])
+    .slice().sort((a, b) => String(b.creado).localeCompare(String(a.creado)));
+
+  if (!lista.length) {
+    cont.innerHTML = `<div class="vacio">
+      <div class="vacio-titulo">${mio ? 'Todavía no has entregado nada' : 'Nada ha llegado todavía'}</div>
+      <div>${mio
+        ? 'Lo que subas aparece aquí con su estado, para que sepas si ya tiene fecha o si hay que corregir algo.'
+        : 'Cuando entreguen material va a aparecer aquí, con sus medidas y su peso a la vista.'}</div>
+    </div>`;
+    return;
+  }
+
+  cont.innerHTML = lista.map(e => {
+    const est = estadoEntrega(e);
+    const arch = e.archivos || [];
+    const pieza = e.pieza && datos.parrilla.piezas.find(p => p.id === e.pieza);
+    return `
+      <article class="entrega" data-id="${esc(e.id)}" style="--entrega-tono:${est.tono}">
+        <div class="entrega-lienzo" data-ruta="${esc((arch[0] || {}).ruta || '')}"
+             data-tipo="${esc((arch[0] || {}).tipo || '')}"></div>
+        <div class="entrega-cuerpo">
+          <div class="entrega-cabeza">
+            ${selloEstado({ texto: est.nombre, tono: est.tono, solida: est.solida, ayuda: est.nota })}
+            <h4>${esc(e.titulo || 'Sin nombre')}</h4>
+          </div>
+          <div class="entrega-meta">
+            ${arch.length} ${arch.length === 1 ? 'archivo' : 'archivos'}
+            ${arch[0] && arch[0].ancho ? ` · ${arch[0].ancho}×${arch[0].alto}` : ''}
+            ${arch[0] && arch[0].segundos ? ' · ' + esc(segundosLegibles(arch[0].segundos)) : ''}
+            · ${esc(pesoLegible(arch.reduce((t, a) => t + (a.peso || 0), 0)))}
+            ${e.creadoPor ? ' · ' + esc(e.creadoPor) : ''}
+            ${e.creado ? ' · ' + esc(fechaLegible(String(e.creado).slice(0, 10))) : ''}
+          </div>
+          ${e.notas ? `<p class="entrega-notas">${esc(e.notas).replace(/\n/g, '<br>')}</p>` : ''}
+          ${e.comentario ? `<p class="entrega-devuelta"><b>Hay que corregir:</b> ${
+            esc(e.comentario).replace(/\n/g, '<br>')}</p>` : ''}
+          ${pieza ? `<p class="entrega-pieza">Está en el calendario como
+            <button type="button" class="enlace-pieza" data-pieza="${esc(pieza.id)}">${
+              esc(pieza.titulo || 'la pieza')}</button>, para el ${
+              esc(fechaLegible(pieza.fecha) || 'sin fecha')}.</p>` : ''}
+        </div>
+        ${mio || soloLectura('parrilla_piezas') ? '' : `
+        <div class="entrega-acciones">
+          ${e.estado === 'aceptada' ? '' : `
+            <button type="button" class="btn-primario" data-llevar="${esc(e.id)}">
+              Llevar al calendario
+            </button>
+            <button type="button" class="btn-plano" data-devolver="${esc(e.id)}">
+              Pedir cambios
+            </button>`}
+          <button type="button" class="btn-plano" data-bajar="${esc(e.id)}">Descargar</button>
+        </div>`}
+      </article>`;
+  }).join('');
+
+  $$('[data-llevar]', cont).forEach(b =>
+    b.addEventListener('click', () => llevarAlCalendario(b.dataset.llevar)));
+  $$('[data-devolver]', cont).forEach(b =>
+    b.addEventListener('click', () => devolverEntrega(b.dataset.devolver)));
+  $$('[data-bajar]', cont).forEach(b =>
+    b.addEventListener('click', () => bajarEntrega(b.dataset.bajar)));
+  $$('.enlace-pieza', cont).forEach(b =>
+    b.addEventListener('click', () => abrirPrevia(b.dataset.pieza)));
+
+  pintarLienzosEntrega(cont);
+}
+
+/* La primera lámina de cada entrega, para reconocerla de un vistazo.
+   El video se enseña como video: un reel sin movimiento no dice si
+   está bien montado. */
+async function pintarLienzosEntrega(cont) {
+  for (const el of $$('.entrega-lienzo', cont)) {
+    const ruta = el.dataset.ruta;
+    if (!ruta) { el.innerHTML = '<span class="tenue">sin archivo</span>'; continue; }
+    try {
+      const url = await urlDeArchivo(ruta);
+      el.innerHTML = /^video\//.test(el.dataset.tipo)
+        ? `<video src="${esc(url)}" muted loop playsinline preload="metadata"></video>`
+        : `<img src="${esc(url)}" alt="">`;
+      const v = el.querySelector('video');
+      if (v) {
+        el.addEventListener('mouseenter', () => v.play().catch(() => {}));
+        el.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
+      }
+    } catch (err) {
+      el.innerHTML = '<span class="tenue">no se pudo abrir</span>';
+    }
+  }
+}
+
+/* ── Del buzón al calendario ─────────────────────────────── */
+
+function llevarAlCalendario(idEntrega) {
+  const e = (datos.entregas.lista || []).find(x => x.id === idEntrega);
+  if (!e) return;
+  const arch = e.archivos || [];
+  const esVideo = arch.length && /^video\//.test(arch[0].tipo || '');
+
+  /* Los archivos NO se copian: la pieza apunta a los mismos objetos
+     que ya estan en Storage. Copiarlos duplicaria el peso en una
+     cuenta donde el espacio es justo lo que escasea. */
+  abrirPieza(null, {
+    titulo: e.titulo,
+    formato: esVideo ? 'Reel' : arch.length > 1 ? 'Carrusel' : 'Foto',
+    archivos: arch.map(a => ({ ruta: a.ruta, nombre: a.nombre, peso: a.peso })),
+    notas: [e.notas, 'Entregado por ' + (e.creadoPor || 'creación') + '.']
+      .filter(Boolean).join('\n'),
+    de_entrega: e.id,
+  });
+}
+
+async function devolverEntrega(idEntrega) {
+  const e = (datos.entregas.lista || []).find(x => x.id === idEntrega);
+  if (!e) return;
+  const que = prompt('¿Qué hay que corregir?\n\nSe lo va a leer quien lo entregó.');
+  if (que === null) return;
+  if (!que.trim()) { avisar('Sin decir qué cambiar, el aviso no sirve de nada.'); return; }
+  e.estado = 'devuelta';
+  e.comentario = que.trim();
+  e.actualizado = ahora();
+  await guardar('entregas');
+  pintarEntregas();
+}
+
+async function bajarEntrega(idEntrega) {
+  const e = (datos.entregas.lista || []).find(x => x.id === idEntrega);
+  if (!e) return;
+  for (const a of (e.archivos || [])) {
+    try { await bajarArchivo(a.ruta); } catch (err) { avisar('No se pudo bajar ' + a.nombre); }
+  }
+}
 
 /* ── Ficha ─────────────────────────────────────────────── */
 
@@ -3082,6 +3413,151 @@ function abrirPieza(idPieza, prellenado) {
 
 const CUBETA = 'piezas';
 
+/* ── Especificación de entrega ─────────────────────────────
+   Instagram RECOMPRIME todo. Un master de 200 MB no llega mejor:
+   llega comprimido dos veces, la del master y la de Instagram
+   encima. Lo que conserva la calidad es entregar ya en su
+   especificación, para que su codificador reciba material limpio y
+   comprima una sola vez.
+
+   Por eso esto no es un trámite de tamaño: es la parte que protege
+   la calidad. Se leen los metadatos REALES del archivo antes de
+   subir nada.
+
+   El tope de 50 MB no lo elegimos: es el máximo por archivo del
+   plan de Supabase donde vive todo. Un reel de 40 s a buena tasa
+   cabe holgado; uno de dos minutos no, y ése no es un reel. */
+const TOPE_ARCHIVO = 50 * 1024 * 1024;
+
+const ESPEC = {
+  video: {
+    tipos: ['video/mp4', 'video/quicktime'],
+    proporcion: 9 / 16,      // vertical
+    anchoIdeal: 1080,
+    anchoMinimo: 720,
+    segundosMax: 90,
+  },
+  imagen: {
+    tipos: ['image/jpeg', 'image/png', 'image/webp'],
+    anchoIdeal: 1080,
+    anchoMinimo: 1080,
+    topeInstagram: 8 * 1024 * 1024,
+  },
+};
+
+/* Ancho, alto y duración de verdad, leídos del archivo. Devuelve
+   null si el navegador no puede abrirlo, que ya es información. */
+function medirVideo(archivo) {
+  return new Promise(listo => {
+    const url = URL.createObjectURL(archivo);
+    const v = document.createElement('video');
+    v.preload = 'metadata';
+    v.muted = true;
+    const fin = (r) => { URL.revokeObjectURL(url); listo(r); };
+    v.onloadedmetadata = () => {
+      /* Un .mov de ProRes carga sus metadatos pero no trae pista que
+         el navegador sepa decodificar: videoWidth queda en 0. Eso no
+         es "no se pudo leer", es un dato -- y de los buenos, porque
+         Instagram tampoco lo va a aceptar. */
+      if (!v.videoWidth) {
+        return fin({ ancho: 0, alto: 0, segundos: v.duration, indescifrable: true });
+      }
+      fin({ ancho: v.videoWidth, alto: v.videoHeight, segundos: v.duration });
+    };
+    v.onerror = () => fin(null);
+    setTimeout(() => fin(null), 15000);   // un archivo roto no cuelga la página
+    v.src = url;
+  });
+}
+
+function medirImagen(archivo) {
+  return new Promise(listo => {
+    const url = URL.createObjectURL(archivo);
+    const i = new Image();
+    const fin = (r) => { URL.revokeObjectURL(url); listo(r); };
+    i.onload = () => fin({ ancho: i.naturalWidth, alto: i.naturalHeight });
+    i.onerror = () => fin(null);
+    i.src = url;
+  });
+}
+
+function segundosLegibles(s) {
+  if (!s || !isFinite(s)) return '';
+  const m = Math.floor(s / 60), r = Math.round(s % 60);
+  return m ? `${m}:${String(r).padStart(2, '0')}` : `${r} s`;
+}
+
+/* Devuelve qué es, qué mide y qué le falta. Los problemas IMPIDEN
+   subir; los avisos no — que algo sea horizontal puede ser
+   intencional, y no me toca a mí decidirlo. */
+async function revisarEntrega(archivo) {
+  const esVideo = /^video\//.test(archivo.type);
+  const esImagen = /^image\//.test(archivo.type);
+  const r = {
+    archivo,                       // el File mismo: sin el no hay que subir
+    nombre: archivo.nombre || archivo.name,
+    peso: archivo.size,
+    tipo: archivo.type,
+    clase: esVideo ? 'video' : esImagen ? 'imagen' : 'otro',
+    problemas: [], avisos: [],
+  };
+
+  if (!esVideo && !esImagen) {
+    r.problemas.push('No es video ni imagen. Sube el material listo para publicar.');
+    return r;
+  }
+
+  const e = esVideo ? ESPEC.video : ESPEC.imagen;
+  if (!e.tipos.includes(archivo.type)) {
+    r.problemas.push(esVideo
+      ? 'Instagram sólo acepta MP4 y MOV. Exporta a MP4 con H.264.'
+      : 'Usa JPG o PNG.');
+  }
+
+  if (archivo.size > TOPE_ARCHIVO) {
+    r.problemas.push(`Pesa ${pesoLegible(archivo.size)} y el máximo son 50 MB. ` +
+      (esVideo ? 'Exporta a 1080×1920 con H.264 a unos 10 Mbps.' : 'Guárdala a 1080 px de ancho.'));
+  }
+
+  const m = esVideo ? await medirVideo(archivo) : await medirImagen(archivo);
+  if (!m) {
+    r.avisos.push('No pude leer sus medidas. Revisa que el archivo abra bien.');
+    return r;
+  }
+  Object.assign(r, m);
+
+  if (m.indescifrable) {
+    r.problemas.push('El navegador no puede decodificar este video. Casi siempre es ' +
+      'ProRes, DNxHD o algún códec de edición: sirve para montar, no para publicar. ' +
+      'Instagram tampoco lo acepta. Exporta a MP4 con H.264.');
+    return r;
+  }
+
+  if (esVideo) {
+    const prop = m.ancho / m.alto;
+    if (prop > 0.75) {
+      r.avisos.push(`Es horizontal (${m.ancho}×${m.alto}). Un reel se ve vertical, 1080×1920.`);
+    } else if (Math.abs(prop - e.proporcion) > 0.06) {
+      r.avisos.push(`La proporción es ${prop.toFixed(2)}:1 y un reel va a 0.56:1 (9:16).`);
+    }
+    if (m.ancho < e.anchoMinimo) {
+      r.avisos.push(`Mide ${m.ancho} px de ancho. Instagram lo va a ver borroso; exporta a 1080.`);
+    }
+    if (m.segundos > e.segundosMax) {
+      r.avisos.push(`Dura ${segundosLegibles(m.segundos)}. Un reel llega a 90 segundos.`);
+    }
+  } else {
+    if (m.ancho < e.anchoMinimo) {
+      r.avisos.push(`Mide ${m.ancho} px de ancho. Instagram pide 1080 para que no se vea suave.`);
+    }
+    if (archivo.size > e.topeInstagram) {
+      r.avisos.push(`Instagram recomprime las fotos de más de 8 MB. Ésta pesa ${pesoLegible(archivo.size)}.`);
+    }
+  }
+
+  return r;
+}
+
 function nombreLimpio(nombre) {
   // Sin acentos ni espacios: un nombre así rompe la petición hoy y
   // rompe a alguien más dentro de seis meses.
@@ -3402,6 +3878,22 @@ function leerPieza() {
     datos.parrilla.piezas.push(p);
   }
   guardar('parrilla');
+
+  /* Si la pieza nacio de una entrega, la entrega deja de estar
+     esperando. Sin esto quien entrego no se entera nunca de que su
+     material ya tiene fecha, que es justo lo que vino a saber. */
+  if (p.de_entrega) {
+    const e = ((datos.entregas && datos.entregas.lista) || [])
+      .find(x => x.id === p.de_entrega);
+    if (e && (e.estado !== 'aceptada' || e.pieza !== p.id)) {
+      e.estado = 'aceptada';
+      e.pieza = p.id;
+      e.comentario = '';
+      e.actualizado = ahora();
+      guardar('entregas');
+      pintarEntregas();
+    }
+  }
   return true;
 }
 
@@ -6472,6 +6964,29 @@ function conectarEventos() {
     $('#marcarTodos').checked = false;
     pintarEquipos();
   });
+
+  /* Elegir archivos y soltarlos encima hacen lo mismo. Se acepta
+     soltar porque una creadora llega con la carpeta abierta al
+     lado, no navegando un cuadro de dialogo. */
+  const zona = $('#soltarEntrega');
+  const campo = $('#archivoEntrega');
+  if (zona && campo) {
+    $('#elegirEntrega').addEventListener('click', () => campo.click());
+    campo.addEventListener('change', () => {
+      if (campo.files.length) revisarYEnseñar([...campo.files]);
+      campo.value = '';        // para poder reelegir el mismo archivo
+    });
+    ['dragenter', 'dragover'].forEach(ev => zona.addEventListener(ev, e => {
+      e.preventDefault(); zona.classList.add('encima');
+    }));
+    ['dragleave', 'drop'].forEach(ev => zona.addEventListener(ev, e => {
+      e.preventDefault(); zona.classList.remove('encima');
+    }));
+    zona.addEventListener('drop', e => {
+      const fs = [...(e.dataTransfer.files || [])];
+      if (fs.length) revisarYEnseñar(fs);
+    });
+  }
 
   $('#nuevaPieza').addEventListener('click', () => abrirPieza(null));
   $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));

@@ -74,6 +74,7 @@
   <nav class="tabs">
     <button class="tab activo" data-vista="parrilla">Parrilla</button>
     <button class="tab" data-vista="escritorio">Mi escritorio</button>
+    <button class="tab" id="tabEntregas" data-vista="entregas">Lo que llega</button>
     <button class="tab" data-vista="inventario">Inventario</button>
     <button class="tab" data-vista="redaccion">Redacción</button>
     <button class="tab" data-vista="expertos">Expertos</button>
@@ -246,6 +247,33 @@
 </main>
 
 <!-- ══════════════════════ INVENTARIO ══════════════════════ -->
+<!-- ══ Lo que llega ══
+     Quien produce contenido para nosotros entrega aqui, y aqui se
+     decide que hacer con eso. Entregar y programar son cosas
+     distintas a proposito: quien entrega no elige cuando sale. -->
+<main id="vista-entregas" class="vista">
+  <section class="entregas-cabecera">
+    <div>
+      <h2 id="entregasTitulo">Lo que llega</h2>
+      <p class="tenue nota" id="entregasNota"></p>
+    </div>
+    <div class="entregas-acciones" id="entregasAcciones"></div>
+  </section>
+
+  <section id="entregasSubir" hidden>
+    <div class="soltar" id="soltarEntrega">
+      <input type="file" id="archivoEntrega" accept="video/mp4,video/quicktime,image/jpeg,image/png,image/webp" multiple hidden>
+      <div class="soltar-icono" aria-hidden="true">&#9633;</div>
+      <div class="soltar-titulo">Suelta aquí el material listo para publicar</div>
+      <div class="soltar-nota">Video vertical 1080&#215;1920 en MP4 con H.264, o fotos de 1080 px. Hasta 50 MB por archivo.</div>
+      <button type="button" class="btn-primario" id="elegirEntrega">Elegir archivos</button>
+    </div>
+    <div id="revisionEntrega"></div>
+  </section>
+
+  <section class="entregas-lista" id="entregasLista"></section>
+</main>
+
 <main id="vista-inventario" class="vista">
 
   <section class="resumen" id="resumenInventario"></section>

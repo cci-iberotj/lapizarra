@@ -2113,6 +2113,108 @@ textarea.campo { min-height: 76px; padding-top: 9px; }
 }
 .grupo-campo .ayuda { line-height: 1.45; }
 
+/* ── Lo que llega ──────────────────────────────────────────
+   La bandeja donde entrega quien produce contenido para nosotros.
+   Un reel se enseña como video y no como foto fija: un montaje sin
+   movimiento no dice si esta bien armado. */
+
+.entregas-cabecera {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--e-5); margin-bottom: var(--e-6);
+}
+.entregas-cabecera h2 { margin: 0 0 4px; font-size: var(--t-vista); }
+.entregas-cabecera .nota { margin: 0; max-width: 60ch; }
+
+/* Soltar archivos encima. Quien entrega llega con la carpeta
+   abierta al lado, no navegando un cuadro de dialogo. */
+.soltar {
+  display: grid; justify-items: center; gap: var(--e-3);
+  padding: var(--e-7) var(--e-5); margin-bottom: var(--e-5);
+  border: 2px dashed var(--linea-control); border-radius: var(--r-lg);
+  background: var(--capa-1); text-align: center;
+  transition: border-color var(--dur-rapida), background var(--dur-rapida);
+}
+.soltar.encima { border-color: var(--marca-tinta); background: var(--marca-velo); }
+.soltar-icono { font-size: 30px; color: var(--tinta-tenue); line-height: 1; }
+.soltar-titulo { font-size: var(--t-guia); font-weight: var(--peso-medio); color: var(--tinta); }
+.soltar-nota { font-size: var(--t-meta); color: var(--tinta-tenue); max-width: 46ch; }
+.soltar .btn-primario { margin-top: var(--e-3); }
+
+/* La revision, antes de subir nada */
+.revision { display: grid; gap: var(--e-3); margin-bottom: var(--e-5); }
+.revision-cargando { color: var(--tinta-tenue); font-size: var(--t-cuerpo); padding: var(--e-4); }
+.revision-archivo {
+  border: 1px solid var(--linea-sutil); border-left: 3px solid var(--ok);
+  border-radius: var(--r-sm); padding: var(--e-4); background: var(--capa-1);
+}
+.revision-archivo.mal { border-left-color: var(--peligro); background: var(--peligro-velo); }
+.revision-cabeza { display: flex; align-items: center; gap: var(--e-3); }
+.revision-cabeza b { flex: 1; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-cuerpo); }
+.revision-marca { color: var(--ok); font-weight: var(--peso-fuerte); flex: none; }
+.revision-archivo.mal .revision-marca { color: var(--peligro); }
+.revision-quitar { flex: none; }
+.revision-datos {
+  font-size: var(--t-meta); color: var(--tinta-tenue);
+  font-variant-numeric: tabular-nums; margin-top: 2px;
+}
+.revision-problema, .revision-aviso {
+  margin: var(--e-3) 0 0; font-size: var(--t-meta); line-height: 1.5;
+}
+.revision-problema { color: var(--peligro); }
+.revision-aviso { color: var(--alerta); }
+.revision-pie {
+  font-size: var(--t-meta); color: var(--tinta-tenue);
+  margin: var(--e-4) 0 0; line-height: 1.5;
+}
+
+/* Cada entrega */
+.entregas-lista { display: grid; gap: var(--e-4); }
+.entrega {
+  display: grid; grid-template-columns: 108px minmax(0, 1fr) auto;
+  gap: var(--e-5); align-items: start;
+  padding: var(--e-5); background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  border-left: 4px solid var(--entrega-tono, var(--info));
+  border-radius: var(--r-lg);
+}
+.entrega-lienzo {
+  width: 108px; aspect-ratio: 9 / 16; border-radius: var(--r-sm);
+  overflow: hidden; background: var(--capa-hundida);
+  display: grid; place-items: center;
+  font-size: var(--t-sello); text-align: center;
+}
+.entrega-lienzo video, .entrega-lienzo img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.entrega-cabeza { display: flex; align-items: center; gap: var(--e-3);
+  flex-wrap: wrap; margin-bottom: var(--e-3); }
+.entrega-cabeza h4 { margin: 0; font-size: var(--t-guia); font-weight: var(--peso-medio); }
+.entrega-meta { font-size: var(--t-meta); color: var(--tinta-tenue); line-height: 1.5; }
+.entrega-notas { margin: var(--e-3) 0 0; font-size: var(--t-cuerpo); color: var(--tinta-media); }
+.entrega-devuelta {
+  margin: var(--e-3) 0 0; padding: var(--e-3) var(--e-4);
+  background: var(--alerta-velo); border-radius: var(--r-sm);
+  font-size: var(--t-meta); color: var(--tinta-media); line-height: 1.5;
+}
+.entrega-pieza { margin: var(--e-3) 0 0; font-size: var(--t-meta); color: var(--tinta-tenue); }
+.enlace-pieza {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--marca-tinta); font: inherit; text-decoration: underline;
+}
+.entrega-acciones { display: grid; gap: 6px; align-content: start; }
+.entrega-acciones button { white-space: nowrap; }
+
+/* Quien entrega no necesita el banco de ideas ni las efemerides */
+.carriles.sin-rieles { grid-template-columns: minmax(0, 1fr); }
+.carriles.sin-rieles .riel { display: none; }
+
+@media (max-width: 760px) {
+  .entrega { grid-template-columns: 72px minmax(0, 1fr); }
+  .entrega-lienzo { width: 72px; }
+  .entrega-acciones { grid-column: 1 / -1; grid-auto-flow: column; }
+}
+
 /* ── Qué se está anotando ──────────────────────────────────
    Cuatro opciones visibles de golpe, no un desplegable: el tipo
    decide que campos salen abajo, asi que esconderlo detras de un

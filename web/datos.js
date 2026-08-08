@@ -31,6 +31,10 @@ const MAPA_COLECCIONES = {
   },
   expertos:   { personas: 'expertos_personas' },
   redaccion:  { temas: 'redaccion_temas' },
+  /* Lo que entrega quien produce contenido para nosotros. Vive
+     aparte de la parrilla a proposito: entregar no es programar.
+     Quien entrega no decide cuando sale. */
+  entregas:   { lista: 'entregas' },
 };
 
 /* Lo que no es lista sino un objeto suelto: se guarda como un
@@ -117,11 +121,13 @@ class SinPermiso extends Error { constructor() { super('Tu rol no puede modifica
 const PERMISOS_UI = {
   admin:       ['*'],
   direccion:   ['parrilla_piezas', 'parrilla_ideas', 'parrilla_eventos',
-                'redaccion_temas', 'expertos_personas', 'ajustes_equipo'],
+                'redaccion_temas', 'expertos_personas', 'ajustes_equipo',
+                'entregas'],
   redaccion:   ['redaccion_temas', 'parrilla_piezas', 'parrilla_ideas',
                 'parrilla_eventos', 'expertos_personas'],
-  publicacion: ['parrilla_piezas', 'parrilla_eventos'],
-  produccion:  ['parrilla_piezas', 'parrilla_ideas', 'parrilla_eventos'],
+  publicacion: ['parrilla_piezas', 'parrilla_eventos', 'entregas'],
+  produccion:  ['parrilla_piezas', 'parrilla_ideas', 'parrilla_eventos', 'entregas'],
+  creacion:    ['entregas'],
 };
 
 const LLAVE_SESION = 'la-pizarra-sesion';
