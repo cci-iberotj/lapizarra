@@ -2234,8 +2234,6 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 }
 
 /* Quien entrega no necesita el banco de ideas ni las efemerides */
-.carriles.sin-rieles { grid-template-columns: minmax(0, 1fr); }
-.carriles.sin-rieles .riel { display: none; }
 
 @media (max-width: 760px) {
   .entrega { grid-template-columns: 72px minmax(0, 1fr); }
@@ -3573,3 +3571,27 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   font-size: .82rem;
   color: var(--texto-tenue);
 }
+
+
+/* ── Sin rieles ────────────────────────────────────────────
+   Para quien crea, el banco de ideas y las efemerides no sirven:
+   son trabajo interno del area. Al esconderlos, el calendario tiene
+   que ocupar el ancho completo.
+
+   Va al final y con #vista-parrilla delante a proposito: la version
+   corta quedaba antes de un @media y de #vista-parrilla .carriles,
+   que le ganaban. El calendario se quedaba en su columna de 565px
+   con media pantalla vacia al lado. */
+#vista-parrilla .carriles.sin-rieles {
+  grid-template-columns: minmax(0, 1fr);
+  display: grid;
+}
+#vista-parrilla .carriles.sin-rieles .riel { display: none; }
+
+/* Las metas de la semana son de gestion interna: cuantas piezas
+   faltan y que tan institucional va la mezcla no es asunto de quien
+   nos entrega material. */
+body.solo-creacion .balance,
+body.solo-creacion .progreso,
+body.solo-creacion #balance,
+body.solo-creacion #progreso { display: none; }

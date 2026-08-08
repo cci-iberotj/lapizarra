@@ -518,6 +518,7 @@ function recortarParaCreacion() {
   // el banco de ideas y las efemerides no le sirven a quien entrega.
   const carriles = $('#carriles');
   if (carriles) carriles.classList.toggle('sin-rieles', recortar);
+  document.body.classList.toggle('solo-creacion', recortar);
 }
 
 function refrescarTodo() {
@@ -7387,7 +7388,8 @@ function aplicarPermisos() {
       const nuevo = document.createElement('div');
       nuevo.className = 'aviso-lectura';
       nuevo.textContent =
-        `Estás viendo esto en modo lectura. Tu rol (${rolUI()}) ` +
+        `Estás viendo esto en modo lectura. Tu rol (${
+          (ROLES_SISTEMA.find(r => r.id === rolUI()) || {}).nombre || rolUI()}) ` +
         'no edita esta sección — puedes consultarla y copiar lo que necesites.';
       main.prepend(nuevo);
     } else if (algoSeEdita && aviso) {
