@@ -87,6 +87,10 @@
       <button class="btn-barra" id="btnRehacer" title="Rehacer (Ctrl+Y)" disabled>↷</button>
       <button class="btn-barra" id="btnAvisos" title="Lo que te toca" hidden>🔔</button>
       <button class="btn-barra ancho" id="btnHistorial" title="Ver historial de cambios">Historial</button>
+      <label class="ver-como" id="verComoCaja" hidden>
+        <span>Ver como</span>
+        <select id="selVerComo" class="campo-mini" aria-label="Ver la aplicación como otro rol"></select>
+      </label>
       <button class="btn-barra" id="btnTema" title="Cambiar entre tema claro y oscuro">◐</button>
       <button class="btn-barra" id="btnAjustes" title="Ajustes" hidden>⚙</button>
       <button class="btn-barra ancho" id="btnSalir" title="Cerrar sesión" hidden>Salir</button>
@@ -118,6 +122,12 @@
 <!-- ══════════════════════ PARRILLA ══════════════════════ -->
 <!-- ══════════════════════ MI ESCRITORIO ══════════════════════
      Lo unico de la aplicacion que es distinto para cada quien. -->
+<!-- Imposible olvidar que estás en la piel de otro. -->
+<div class="aviso-piel" id="avisoVerComo" hidden>
+  <span id="avisoVerComoTexto"></span>
+  <button type="button" class="btn-plano" id="salirVerComo">Volver a lo mío</button>
+</div>
+
 <main id="vista-escritorio" class="vista">
   <section id="escritorio"></section>
 </main>

@@ -494,10 +494,14 @@ function recortarParaCreacion() {
   $$('.tab').forEach(t => {
     const v = t.dataset.vista;
     if (!v) return;
-    const fuera = recortar && !VISTAS_DE_CREACION.includes(v);
-    t.hidden = fuera || (v === 'ajustes' && t.id === 'tabAjustes' && t.hidden);
+    // Ajustes es de quien administra. Se decide con rolUI y no con
+    // el usuario real: si no, al ponerse en la piel de otro seguia
+    // viendose y la simulacion mentia.
+    const fuera = (recortar && !VISTAS_DE_CREACION.includes(v))
+               || (v === 'ajustes' && rolUI() !== 'admin');
+    t.hidden = fuera;
     if (fuera && t.classList.contains('activo')) {
-      $('.tab[data-vista="entregas"]').click();
+      $(`.tab[data-vista="${recortar ? 'entregas' : 'parrilla'}"]`).click();
     }
   });
   // Los carriles laterales de la parrilla son de trabajo interno:
@@ -516,6 +520,8 @@ function refrescarTodo() {
   pintarEntregas();
   aplicarPermisos();
   recortarParaCreacion();
+  const cajaPiel = $('#verComoCaja');
+  if (cajaPiel) cajaPiel.hidden = !(Almacen.usuario && Almacen.usuario.rol === 'admin');
   pintarContadorAvisos();
 }
 
@@ -1933,7 +1939,7 @@ function estadoEntrega(e) {
 }
 
 function soyCreacion() {
-  return Almacen.usuario && Almacen.usuario.rol === 'creacion';
+  return rolUI() === 'creacion';
 }
 
 let revisionPendiente = [];   // lo revisado y todavía sin subir
@@ -5748,8 +5754,44 @@ function puedePublicar() {
   return !Almacen.enLaNube || rol === 'admin' || rol === 'publicacion';
 }
 
+/* ── Ver como otro rol ─────────────────────────────────────
+   Para comprobar cómo le queda la aplicación a cada quien sin
+   pedirle su contraseña a nadie.
+
+   SIMULA LA INTERFAZ, NO EL PERMISO. La sesión sigue siendo la de
+   quien lo enciende, así que el servidor sigue contestando lo que
+   le contesta a esa persona. Sirve para ver cómo se ve; no sirve
+   para comprobar que alguien NO puede leer algo — eso lo decide
+   puede_leer() en Postgres y se revisa aparte.
+
+   No sobrevive a una recarga a propósito: quedarse a medias en la
+   piel de otro sin recordarlo es peor que volver a encenderlo. */
+let verComo = null;
+
+function rolUI() {
+  return verComo || (Almacen.usuario && Almacen.usuario.rol) || '';
+}
+
+function ponerseEnLaPielDe(rol) {
+  verComo = rol || null;
+  const sel = $('#selVerComo');
+  if (sel) sel.value = verComo || '';
+  const aviso = $('#avisoVerComo');
+  if (aviso) {
+    aviso.hidden = !verComo;
+    if (verComo) {
+      const nombreDe = id => (ROLES_SISTEMA.find(x => x.id === id) || {}).nombre || id;
+      $('#avisoVerComoTexto').textContent =
+        `Estás viendo la aplicación como ${nombreDe(verComo)}. Es la interfaz, ` +
+        `no el permiso: el servidor te sigue contestando como ${nombreDe(Almacen.usuario.rol)}.`;
+    }
+  }
+  document.body.classList.toggle('en-otra-piel', !!verComo);
+  refrescarTodo();
+}
+
 function puedeAprobar() {
-  const rol = Almacen.usuario && Almacen.usuario.rol;
+  const rol = rolUI();
   return !Almacen.enLaNube || rol === 'admin' || rol === 'direccion';
 }
 
@@ -6991,6 +7033,16 @@ function conectarEventos() {
   $('#nuevaPieza').addEventListener('click', () => abrirPieza(null));
   $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));
 
+  /* Sólo quien administra: es una herramienta para comprobar la
+     aplicación, no una forma de asomarse a la cuenta de otro. */
+  const selPiel = $('#selVerComo');
+  if (selPiel) {
+    selPiel.innerHTML = '<option value="">yo mismo</option>' +
+      ROLES_SISTEMA.map(r => `<option value="${r.id}">${esc(r.nombre)}</option>`).join('');
+    selPiel.addEventListener('change', () => ponerseEnLaPielDe(selPiel.value));
+    $('#salirVerComo').addEventListener('click', () => ponerseEnLaPielDe(null));
+  }
+
   $('#previaCerrar').addEventListener('click', cerrarPrevia);
   $('#previaBajarTodo').addEventListener('click', bajarPostCompleto);
   $('#previaEditar').addEventListener('click', () => {
@@ -7219,7 +7271,11 @@ const COLECCION_DE_MODAL = {
 
 function soloLectura(coleccion) {
   if (!Almacen.enLaNube || !Almacen.usuario) return false;
-  return !Almacen.puedeEscribir(coleccion);
+  // De PERMISOS_UI y no de usuario.escribe, para que "ver como"
+  // pase también por aquí. La restricción de verdad la aplica
+  // Postgres; esto sólo atenúa botones.
+  const permitidas = PERMISOS_UI[rolUI()] || [];
+  return !(permitidas.includes('*') || permitidas.includes(coleccion));
 }
 
 function aplicarPermisos() {
@@ -7249,7 +7305,7 @@ function aplicarPermisos() {
       const nuevo = document.createElement('div');
       nuevo.className = 'aviso-lectura';
       nuevo.textContent =
-        `Estás viendo esto en modo lectura. Tu rol (${Almacen.usuario.rol}) ` +
+        `Estás viendo esto en modo lectura. Tu rol (${rolUI()}) ` +
         'no edita esta sección — puedes consultarla y copiar lo que necesites.';
       main.prepend(nuevo);
     } else if (algoSeEdita && aviso) {
