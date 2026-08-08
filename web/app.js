@@ -504,6 +504,16 @@ function recortarParaCreacion() {
       $(`.tab[data-vista="${recortar ? 'entregas' : 'parrilla'}"]`).click();
     }
   });
+
+  /* Para quien crea, la aplicación ES su bandeja: el calendario lo
+     mira de vez en cuando, pero llega aquí a mandar algo. Sólo la
+     primera vez -- después manda lo que el usuario haya picado. */
+  if (recortar && !recortarParaCreacion.yaAterrizo) {
+    recortarParaCreacion.yaAterrizo = true;
+    const t = $('.tab[data-vista="entregas"]');
+    if (t && !t.classList.contains('activo')) t.click();
+  }
+  if (!recortar) recortarParaCreacion.yaAterrizo = false;
   // Los carriles laterales de la parrilla son de trabajo interno:
   // el banco de ideas y las efemerides no le sirven a quien entrega.
   const carriles = $('#carriles');
@@ -1996,7 +2006,7 @@ function pintarRevision() {
                   placeholder="El audio va con la música original. Hay una versión sin texto si la necesitan."></textarea>
       </div>
       <button type="button" class="btn-primario ancho" id="mandarEntrega">
-        Entregar ${listos.length === 1 ? 'el archivo' : 'los ' + listos.length + ' archivos'}
+        Enviar ${listos.length === 1 ? 'el archivo' : 'los ' + listos.length + ' archivos'}
       </button>` : ''}
 
     ${hayProblema ? `<p class="revision-pie">
@@ -2050,7 +2060,7 @@ async function mandarEntrega() {
 
     revisionPendiente = [];
     $('#revisionEntrega').innerHTML = '';
-    avisar('Entregado. El área ya lo puede ver.');
+    avisar('Enviado. El área ya lo puede ver.');
     pintarEntregas();
   } catch (err) {
     avisar('No se pudo subir: ' + err.message);
@@ -2066,13 +2076,13 @@ function pintarEntregas() {
   if (!cont) return;
   const mio = soyCreacion();
 
-  $('#entregasTitulo').textContent = mio ? 'Lo que entregas' : 'Lo que llega';
+  $('#entregasTitulo').textContent = mio ? 'Mis envíos' : 'Lo que llega';
   $('#entregasNota').textContent = mio
-    ? 'Sube aquí el material terminado. El área decide cuándo sale; aquí ves en qué quedó lo tuyo.'
-    : 'Material que entregó quien produce contenido para nosotros. Desde aquí se lleva al calendario.';
+    ? 'Manda aquí el material terminado. El área decide cuándo sale; aquí ves en qué quedó lo tuyo.'
+    : 'Material que mandó quien produce contenido para nosotros. Desde aquí se lleva al calendario.';
 
   const tab = $('#tabEntregas');
-  if (tab) tab.textContent = mio ? 'Lo que entregas' : 'Lo que llega';
+  if (tab) tab.textContent = mio ? 'Mis envíos' : 'Lo que llega';
 
   const subir = $('#entregasSubir');
   if (subir) subir.hidden = soloLectura('entregas');
@@ -2082,10 +2092,10 @@ function pintarEntregas() {
 
   if (!lista.length) {
     cont.innerHTML = `<div class="vacio">
-      <div class="vacio-titulo">${mio ? 'Todavía no has entregado nada' : 'Nada ha llegado todavía'}</div>
+      <div class="vacio-titulo">${mio ? 'Todavía no has enviado nada' : 'Nada ha llegado todavía'}</div>
       <div>${mio
-        ? 'Lo que subas aparece aquí con su estado, para que sepas si ya tiene fecha o si hay que corregir algo.'
-        : 'Cuando entreguen material va a aparecer aquí, con sus medidas y su peso a la vista.'}</div>
+        ? 'Lo que mandes aparece aquí con su estado, para que sepas si ya tiene fecha o si hay que corregir algo.'
+        : 'Cuando manden material va a aparecer aquí, con sus medidas y su peso a la vista.'}</div>
     </div>`;
     return;
   }
@@ -2119,7 +2129,14 @@ function pintarEntregas() {
               esc(pieza.titulo || 'la pieza')}</button>, para el ${
               esc(fechaLegible(pieza.fecha) || 'sin fecha')}.</p>` : ''}
         </div>
-        ${mio || soloLectura('parrilla_piezas') ? '' : `
+        ${mio ? `
+        <div class="entrega-acciones">
+          ${e.estado === 'aceptada' ? `
+            <span class="entrega-cerrada">Ya está programado.<br>Si hay que cambiarlo, avísale al área.</span>`
+          : `
+            <button type="button" class="btn-plano" data-renombrar="${esc(e.id)}">Cambiar el nombre</button>
+            <button type="button" class="btn-peligro" data-retirar="${esc(e.id)}">Retirar</button>`}
+        </div>` : soloLectura('parrilla_piezas') ? '' : `
         <div class="entrega-acciones">
           ${e.estado === 'aceptada' ? '' : `
             <button type="button" class="btn-primario" data-llevar="${esc(e.id)}">
@@ -2139,6 +2156,10 @@ function pintarEntregas() {
     b.addEventListener('click', () => devolverEntrega(b.dataset.devolver)));
   $$('[data-bajar]', cont).forEach(b =>
     b.addEventListener('click', () => bajarEntrega(b.dataset.bajar)));
+  $$('[data-retirar]', cont).forEach(b =>
+    b.addEventListener('click', () => retirarEnvio(b.dataset.retirar)));
+  $$('[data-renombrar]', cont).forEach(b =>
+    b.addEventListener('click', () => renombrarEnvio(b.dataset.renombrar)));
   $$('.enlace-pieza', cont).forEach(b =>
     b.addEventListener('click', () => abrirPrevia(b.dataset.pieza)));
 
@@ -2197,6 +2218,50 @@ async function devolverEntrega(idEntrega) {
   if (!que.trim()) { avisar('Sin decir qué cambiar, el aviso no sirve de nada.'); return; }
   e.estado = 'devuelta';
   e.comentario = que.trim();
+  e.actualizado = ahora();
+  await guardar('entregas');
+  pintarEntregas();
+}
+
+/* Retirar lo propio.
+   Se puede mientras no esté programado. Una vez que el área lo
+   llevó al calendario, la pieza apunta a estos mismos archivos:
+   borrarlos rompería un post que ya tiene hora. Por eso ahí se
+   bloquea y se dice a quién avisarle, en vez de fallar después. */
+async function retirarEnvio(idEntrega) {
+  const lista = (datos.entregas && datos.entregas.lista) || [];
+  const e = lista.find(x => x.id === idEntrega);
+  if (!e) return;
+  if (e.estado === 'aceptada') {
+    avisar('Ya está programado. Avísale al área para cambiarlo.');
+    return;
+  }
+  if (!confirm(`¿Retirar «${e.titulo}»?
+
+` +
+      `Se borran ${(e.archivos || []).length} archivo(s) y no se puede deshacer.`)) return;
+
+  for (const a of (e.archivos || [])) {
+    try { await borrarArchivo(a.ruta); }
+    catch (err) { /* si ya no está, da igual: lo que importa es el registro */ }
+  }
+  const i = lista.indexOf(e);
+  if (i >= 0) lista.splice(i, 1);
+  await guardar('entregas');
+  avisar('Retirado.');
+  pintarEntregas();
+}
+
+async function renombrarEnvio(idEntrega) {
+  const e = ((datos.entregas && datos.entregas.lista) || []).find(x => x.id === idEntrega);
+  if (!e) return;
+  const nuevo = prompt('¿Cómo se llama esto?', e.titulo || '');
+  if (nuevo === null) return;
+  if (!nuevo.trim()) { avisar('Necesita un nombre para que lo reconozcan.'); return; }
+  e.titulo = nuevo.trim();
+  // Volvió a tocarlo: si le habían pedido cambios, deja de estar
+  // devuelto y vuelve a la fila.
+  if (e.estado === 'devuelta') { e.estado = 'entregada'; e.comentario = ''; }
   e.actualizado = ahora();
   await guardar('entregas');
   pintarEntregas();
@@ -3696,6 +3761,23 @@ async function subirLamina(idPieza, f) {
   const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
   if (sello) lamina.mini = await subirArchivo(idPieza, sello, 'mini-' + raiz + '.jpg');
   return lamina;
+}
+
+/* Quitar un archivo de Storage. La politica solo deja borrar
+   dentro de entregas/ a quien no maneja la parrilla, asi que un
+   intento de mas rebota en el servidor y no aqui. */
+async function borrarArchivo(ruta) {
+  const token = await Almacen.motor._token();
+  const r = await fetch(
+    `${CONFIG.supabase.url}/storage/v1/object/${CUBETA}/${encodeURI(ruta)}`, {
+      method: 'DELETE',
+      headers: { apikey: CONFIG.supabase.llave, Authorization: 'Bearer ' + token },
+    });
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    throw new Error(d.message || d.error || 'No se pudo borrar el archivo.');
+  }
+  cacheArchivos.delete(ruta);
 }
 
 async function subirArchivo(idPieza, archivo, nombre) {

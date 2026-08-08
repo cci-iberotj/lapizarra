@@ -2228,6 +2228,10 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 }
 .entrega-acciones { display: grid; gap: 6px; align-content: start; }
 .entrega-acciones button { white-space: nowrap; }
+.entrega-cerrada {
+  font-size: var(--t-sello); color: var(--tinta-tenue);
+  line-height: 1.5; max-width: 20ch; text-align: right;
+}
 
 /* Quien entrega no necesita el banco de ideas ni las efemerides */
 .carriles.sin-rieles { grid-template-columns: minmax(0, 1fr); }
