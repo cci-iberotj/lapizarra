@@ -74,7 +74,13 @@ async function quienLlama(peticion: Request) {
   return { id: usuario.id, correo: usuario.email, rol: perfil.rol, nombre: perfil.nombre };
 }
 
-const ROLES = ['admin', 'direccion', 'redaccion', 'publicacion', 'produccion'];
+/* Tiene que ir a la par de perfiles_rol_check en la base y de
+   ROLES_SISTEMA en la pagina. Son tres listas del mismo hecho: la
+   de aqui es la que decide, las otras dos son espejo. Al agregar
+   'creacion' se me paso esta y dar de alta la cuenta rebotaba con
+   "Ese rol no existe". */
+const ROLES = ['admin', 'direccion', 'redaccion', 'publicacion',
+               'produccion', 'creacion'];
 
 Deno.serve(async (peticion) => {
   if (peticion.method === 'OPTIONS') return new Response('ok', { headers: CORS });

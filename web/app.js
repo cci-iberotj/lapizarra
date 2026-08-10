@@ -1601,8 +1601,9 @@ function abrirAltaDeUsuario() {
         <input class="campo" id="u_nombre" placeholder="Como quieres que aparezca">
       </div>
       <div class="grupo-campo">
-        <label for="u_correo">Correo institucional</label>
+        <label for="u_correo">Correo</label>
         <input type="email" class="campo" id="u_correo" placeholder="nombre@tijuana.ibero.mx">
+        <span class="ayuda" id="u_correoAyuda">Del dominio de la universidad.</span>
       </div>
     </div>
 
@@ -1624,6 +1625,21 @@ function abrirAltaDeUsuario() {
       </span>
     </div>
   `;
+
+  /* Creación es gente de fuera: no tiene correo de la universidad,
+     y prometerle uno institucional al capturarla confunde a quien
+     da de alta la cuenta. */
+  const selRol = $('#u_rol'), ayudaCorreo = $('#u_correoAyuda'), campoCorreo = $('#u_correo');
+  const acomodarCorreo = () => {
+    const fuera = selRol.value === 'creacion';
+    ayudaCorreo.textContent = fuera
+      ? 'El suyo, el que ya usa. No necesita ser de la universidad.'
+      : 'Del dominio de la universidad.';
+    campoCorreo.placeholder = fuera ? 'nombre@correo.com' : 'nombre@tijuana.ibero.mx';
+  };
+  selRol.addEventListener('change', acomodarCorreo);
+  acomodarCorreo();
+
   mostrarModal();
 }
 
