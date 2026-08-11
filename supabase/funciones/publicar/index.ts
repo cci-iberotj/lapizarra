@@ -245,12 +245,42 @@ async function enlaceFirmado(ruta: string) {
    entera. Si el puntero de la versión de pantalla no corresponde a
    su ruta, se usa el original — más vale pesado que la foto
    equivocada. */
-function paraPublicar(a: any) {
+const TOPE_FOTO_META = 8 * 1024 * 1024;
+
+/* El puntero de una variante tiene que corresponder a su ruta. Si
+   no, se ensucio en algun lado y publicariamos la foto equivocada
+   -- ya paso una vez con los sellos del carrusel. */
+function varianteCoherente(a: any, prefijo: string) {
   const ruta = a.ruta || '';
+  const guardado = a[prefijo];
+  if (!guardado) return '';
   const barra = ruta.lastIndexOf('/');
   const base = ruta.slice(barra + 1).replace(/\.[^.]+$/, '');
-  const debeSer = ruta.slice(0, barra + 1) + 'previa-' + base + '.jpg';
-  return a.previa === debeSer ? a.previa : ruta;
+  const debeSer = ruta.slice(0, barra + 1) + prefijo + '-' + base + '.jpg';
+  return guardado === debeSer ? guardado : '';
+}
+
+/* QUE FOTO SE LE MANDA A META
+
+   Meta recomprime todo lo que recibe, asi que lo unico que
+   controlamos es cuantas compresiones van ANTES de la suya.
+
+   1. La version de publicacion, si existe. Se genera a 1440 y al
+      94% solo cuando el original no cabe en el limite de Meta.
+   2. El ORIGINAL, cuando cabe. Una sola compresion, la de Meta.
+      Es lo mejor posible.
+   3. La de pantalla, para laminas viejas sin peso registrado. Es
+      lo que se mandaba siempre hasta ahora: 1600 al 82%, hecha
+      para MIRAR el post, no para publicarlo. Se conserva como
+      ultimo recurso porque un original de camara puede pasarse
+      del limite y tumbar la publicacion entera. */
+function paraPublicar(a: any) {
+  const alta = varianteCoherente(a, 'publicar');
+  if (alta) return alta;
+  if (typeof a.peso === 'number' && a.peso > 0 && a.peso <= TOPE_FOTO_META) {
+    return a.ruta || '';
+  }
+  return varianteCoherente(a, 'previa') || a.ruta || '';
 }
 
 /* REVISAR EL ARTE ANTES DE MANDARLO

@@ -3665,6 +3665,31 @@ function nombreLimpio(nombre) {
 const ANCHO_PREVIA = 1600;   // para mirar el post
 const ANCHO_SELLO = 480;     // para el collage de la tarjeta
 
+/* ── La que se publica ─────────────────────────────────────
+   Meta recomprime toda foto que recibe. Hasta aquí se le mandaba la
+   de 1600 al 82%, que se hizo para MIRAR el post en el celular sin
+   gastar datos. Como material de publicación es mala: el 82% ya
+   dejó artefactos, y encima va la compresión de Meta. Dos pérdidas
+   donde debería haber una.
+
+   Lo mejor es mandarle el ORIGINAL y que comprima una sola vez.
+   Sólo cuando el original no cabe en su límite se hace una versión
+   propia — a 1440, que es donde Meta redimensiona de todos modos, y
+   con calidad de publicación, no de vista previa.
+
+   Esa versión se genera únicamente cuando hace falta: un archivo de
+   más por lámina, en una cuenta donde el espacio es lo que escasea,
+   se paga sin dar nada a cambio. */
+const TOPE_FOTO_META = 8 * 1024 * 1024;
+const ANCHO_PUBLICAR = 1440;
+const CALIDAD_PUBLICAR = 0.94;
+
+/* Meta acepta JPEG para publicar. Un PNG grande o un HEIC hay que
+   convertirlos igual, aunque pesen poco. */
+function metaLaPuedeUsarTalCual(f) {
+  return f.type === 'image/jpeg' && f.size <= TOPE_FOTO_META;
+}
+
 async function versionLigera(archivo, ancho, calidad) {
   if (!/^image\//.test(archivo.type)) return null;
   let bm;
@@ -3777,6 +3802,16 @@ async function subirLamina(idPieza, f) {
   }
   const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
   if (sello) lamina.mini = await subirArchivo(idPieza, sello, 'mini-' + raiz + '.jpg');
+
+  /* Si Meta puede con el original, no se genera nada: se publica el
+     original y se ahorra el archivo. Si no, ésta es la que va. */
+  if (/^image\//.test(f.type) && !metaLaPuedeUsarTalCual(f)) {
+    const alta = await versionLigera(f, ANCHO_PUBLICAR, CALIDAD_PUBLICAR);
+    if (alta) {
+      lamina.publicar = await subirArchivo(idPieza, alta, 'publicar-' + raiz + '.jpg');
+      lamina.pesoPublicar = alta.size;
+    }
+  }
   return lamina;
 }
 
