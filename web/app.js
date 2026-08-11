@@ -3362,17 +3362,12 @@ function abrirPieza(idPieza, prellenado) {
       </div>
     </div>`}
 
-    <div class="grupo-campo">
-      <label for="f_produccion">Cómo se hace
-        <button type="button" class="btn-mini" id="btnGuia" title="Traer la guía del formato seleccionado">Sugerir</button>
-      </label>
-      <textarea class="campo alto" id="f_produccion" placeholder="Qué lleva la pieza, cómo se graba, qué tomas hacen falta">${esc(p.produccion || '')}</textarea>
-      <span class="ayuda">Sugerir trae la guía del formato y del pilar que tengas elegidos. Edítala a tu criterio.</span>
-    </div>
+    
 
     <div class="grupo-campo">
-      <label for="f_notas">Notas sueltas</label>
-      <textarea class="campo" id="f_notas" placeholder="Locación, material necesario, pendientes">${esc(p.notas)}</textarea>
+      <label for="f_notas">De dónde viene</label>
+      <textarea class="campo" id="f_notas" placeholder="Lo que ya trae: la idea original, los detalles del evento, lo que dijo quien la entregó">${esc(p.notas)}</textarea>
+      <span class="ayuda">Se llena solo cuando la pieza nace de una idea, de un evento por cubrir o de algo que entregó Creación.</span>
     </div>
 
     <div class="grupo-campo">
@@ -3431,7 +3426,6 @@ function abrirPieza(idPieza, prellenado) {
     p.estado      = leer('f_estado') ?? p.estado;
     p.pilar       = leer('f_pilar')  ?? p.pilar;
     p.responsable = (leer('f_responsable') || '').trim();
-    p.produccion  = leer('f_produccion') ?? p.produccion;
     p.notas       = leer('f_notas')  ?? p.notas;
     p.copy        = leer('f_copy')   ?? p.copy;
     if ($('#f_copy_fb')) p.copy_fb = $('#f_copy_fb').value;
@@ -3620,15 +3614,6 @@ function abrirPieza(idPieza, prellenado) {
     asentarLaminas(`«${fuera.nombre || 'Lámina'}» fuera del post.`);
   });
   $$('[data-quitar]').forEach(conectarQuitar);
-
-  $('#btnGuia').addEventListener('click', () => {
-    const pasos = guiaDeProduccion($('#f_formato').value, $('#f_pilar').value);
-    if (!pasos.length) { avisar('No tengo guía para ese formato.'); return; }
-    const caja = $('#f_produccion');
-    const nuevo = pasos.map(p => '· ' + p).join('\n');
-    caja.value = caja.value.trim() ? caja.value.trim() + '\n\n' + nuevo : nuevo;
-    caja.focus();
-  });
 
   mostrarModal();
 }
@@ -4135,7 +4120,7 @@ function leerPieza() {
   p.copy        = $('#f_copy').value;
   if ($('#f_copy_fb')) p.copy_fb = $('#f_copy_fb').value.trim();
   p.notas       = $('#f_notas').value;
-  p.produccion  = $('#f_produccion').value;
+  // El campo se quito de la ficha; lo ya capturado no se toca.
   p.no_antes    = $('#f_no_antes').value;
   p.no_despues  = $('#f_no_despues').value;
 
