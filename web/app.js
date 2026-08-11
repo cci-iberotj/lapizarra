@@ -150,6 +150,80 @@ const CANALES = [
 
 const FORMATOS = ['Nota', 'Reel', 'Short', 'Carrusel', 'Foto', 'Video', 'Story', 'Texto'];
 
+/* ── Qué pide cada formato ─────────────────────────────────
+   FORMATOS era una lista de palabras: el formulario nunca supo qué
+   significaba ninguna. Daba igual elegir Carrusel o Nota — pedía lo
+   mismo, incluida UNA imagen provisional para un carrusel, que no
+   tiene ningún sentido.
+
+   Esta tabla manda sobre el bloque de arte, sobre qué campos salen
+   y sobre qué se le dice a quien produce. Un formato nuevo es un
+   renglón, no una cacería por el archivo.
+
+   'quiere' dice qué material espera:
+     laminas → varias imágenes en orden
+     imagen  → una sola
+     video   → un archivo de video
+     ninguno → no lleva arte
+
+   La clave sigue siendo el nombre en texto, como estaba guardado
+   desde antes: nada de lo ya capturado se rompe. */
+const FORMATOS_INFO = {
+  Carrusel: {
+    icono: '▤', quiere: 'laminas', minimo: 2, copyFb: true,
+    arte: 'Las láminas del carrusel',
+    espec: '1080×1350 (4:5) o 1080×1080. De 2 a 20 láminas.',
+    ayuda: 'El orden importa: la primera es la que detiene el pulgar.',
+    canales: ['ig', 'fb'],
+  },
+  Foto: {
+    icono: '▣', quiere: 'imagen', copyFb: true,
+    arte: 'La foto',
+    espec: '1080×1350 (4:5) para que ocupe lo más posible del feed.',
+    canales: ['ig', 'fb'],
+  },
+  Reel: {
+    icono: '▶', quiere: 'video', copyFb: true, experto: true,
+    arte: 'El reel',
+    espec: '1080×1920 vertical, MP4 con H.264, hasta 90 s y 50 MB.',
+    canales: ['ig', 'fb', 'yt'],
+  },
+  Short: {
+    icono: '▶', quiere: 'video', experto: true,
+    arte: 'El short',
+    espec: '1080×1920 vertical, hasta 60 s.',
+    canales: ['yt'],
+  },
+  Story: {
+    icono: '▢', quiere: 'imagen',
+    arte: 'La historia',
+    espec: '1080×1920 vertical. Dura 24 horas.',
+    canales: ['ig'],
+  },
+  Video: {
+    icono: '▬', quiere: 'video', copyFb: true, experto: true,
+    arte: 'El video',
+    espec: '1920×1080 horizontal, MP4 con H.264.',
+    canales: ['fb', 'yt'],
+  },
+  Nota: {
+    icono: '▤', quiere: 'imagen', experto: true, cuerpo: true,
+    arte: 'La imagen de cabecera',
+    espec: '1600 px de ancho o más, horizontal.',
+    ayuda: 'La nota se escribe en Redacción; aquí va la imagen que la encabeza.',
+    canales: ['web'],
+  },
+  Texto: {
+    icono: '▭', quiere: 'ninguno', copyFb: true,
+    arte: '', espec: '',
+    canales: ['fb', 'li'],
+  },
+};
+
+function infoFormato(f) {
+  return FORMATOS_INFO[f] || FORMATOS_INFO.Foto;
+}
+
 // El color acompaña la progresión del flujo: gris → ámbar → azul → verde.
 const ESTADOS = [
   { id: 'idea',       nombre: 'Idea',               color: 'var(--estado-idea)' },
@@ -3129,6 +3203,9 @@ function abrirPieza(idPieza, prellenado) {
     estado_nota: '',
   }, prellenado || {});
 
+  if (!p.formato) p.formato = 'Foto';
+  const info = infoFormato(p.formato);
+
   modalCtx = { tipo: 'pieza', datos: p, esNuevo: !existente };
 
   $('#modalTitulo').textContent = existente ? 'Editar pieza' : 'Nueva pieza';
@@ -3140,6 +3217,20 @@ function abrirPieza(idPieza, prellenado) {
       <input class="campo" id="f_titulo" value="${esc(p.titulo)}" placeholder="Ej. Carrusel talleres culturales otoño">
     </div>
 
+    <div class="grupo-campo">
+      <label>Qué es</label>
+      <div class="tipos-evento" id="f_formato" role="radiogroup">
+        ${FORMATOS.map(x => {
+          const i = infoFormato(x);
+          return `<button type="button" class="tipo-op${x === (p.formato || 'Foto') ? ' activo' : ''}"
+                  data-formato="${esc(x)}" role="radio" aria-checked="${x === p.formato}">
+            <span class="tipo-icono" aria-hidden="true">${i.icono}</span>${esc(x)}
+          </button>`;
+        }).join('')}
+      </div>
+      ${info.espec ? `<span class="ayuda">${esc(info.espec)}</span>` : ''}
+    </div>
+
     <div class="fila-campos">
       <div class="grupo-campo">
         <label for="f_pilar">Pilar</label>
@@ -3147,12 +3238,6 @@ function abrirPieza(idPieza, prellenado) {
           ${PILARES.map(x => `<option value="${x.id}"${x.id === p.pilar ? ' selected' : ''}>${esc(x.nombre)}</option>`).join('')}
         </select>
         <span class="ayuda" id="ayudaPilar"></span>
-      </div>
-      <div class="grupo-campo">
-        <label for="f_formato">Formato</label>
-        <select class="campo" id="f_formato">
-          ${FORMATOS.map(x => `<option${x === p.formato ? ' selected' : ''}>${esc(x)}</option>`).join('')}
-        </select>
       </div>
     </div>
 
@@ -3220,6 +3305,7 @@ function abrirPieza(idPieza, prellenado) {
         </datalist>
         <span class="ayuda">Escribe o elige de la lista.</span>
       </div>
+      ${!info.experto ? '' : `
       <div class="grupo-campo">
         <label for="f_experto">Experto que participa</label>
         <select class="campo" id="f_experto">
@@ -3227,13 +3313,15 @@ function abrirPieza(idPieza, prellenado) {
           ${(datos.expertos.personas || []).map(x =>
             `<option value="${esc(x.id)}"${x.id === p.experto ? ' selected' : ''}>${esc(x.nombre)}${x.departamento ? ' · ' + esc(x.departamento) : ''}</option>`).join('')}
         </select>
-        <span class="ayuda">Sólo para notas y reels académicos.</span>
-      </div>
+        <span class="ayuda">Lleva la cuenta de a quién ya recurriste.</span>
+      </div>`}
     </div>
 
-    ${archivosDe(p).length && !p.imagen ? '' : `
-    <div class="grupo-campo">
-      <label>Miniatura provisional${archivosDe(p).length ? ' <span class="tenue">· ya no se usa, el arte manda</span>' : ''}</label>
+    ${info.quiere === 'ninguno' || (archivosDe(p).length && !p.imagen) ? '' : `
+    <div class="grupo-campo sangrado">
+      <label>${archivosDe(p).length
+        ? 'Miniatura provisional <span class="tenue">· ya no se usa, el arte manda</span>'
+        : 'Mientras no hay arte'}</label>
       <div class="zona-imagen${p.imagen ? ' con-imagen' : ''}" id="zonaImagen">
         ${p.imagen
           ? `<img src="${esc(p.imagen)}" alt="Vista previa">`
@@ -3245,23 +3333,34 @@ function abrirPieza(idPieza, prellenado) {
         ${p.imagen ? '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>' : ''}
       </div>
       <span class="ayuda">${archivosDe(p).length
-        ? 'Ya hay arte final, así que el calendario enseña el arte. Puedes quitarla.'
-        : 'Para que la pieza no se vea vacía en el calendario mientras no hay arte. En cuanto subas el arte final, se usa ése.'}</span>
+        ? 'Ya hay arte, así que el calendario enseña el arte. Puedes quitarla.'
+        : 'Opcional. Una imagen cualquiera para que la pieza no se vea vacía en el calendario; en cuanto subas lo de arriba, se usa eso.'}</span>
     </div>`}
 
+    ${info.quiere === 'ninguno' ? '' : `
     <div class="grupo-campo">
-      <label>Arte final${archivosDe(p).length > 1 ? ' · ' + archivosDe(p).length + ' láminas' : ''}</label>
+      <label>${esc(info.arte)}${
+        info.quiere === 'laminas' && archivosDe(p).length ? ' · ' + archivosDe(p).length : ''}</label>
       <div class="laminas" id="listaLaminas">
         ${archivosDe(p).map(dibujarLamina).join('')}
       </div>
-      ${!archivosDe(p).length ? '<span class="ayuda">Todavía no hay arte. Subelo aquí y el equipo lo podrá bajar en calidad completa — y se verá en la vista previa como va a salir.</span>'
-        : '<span class="ayuda">El orden importa: la primera lámina es la que detiene el pulgar. Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.</span>'}
-      <input type="file" id="f_archivo" multiple hidden>
+      ${archivosDe(p).length
+        ? (info.quiere === 'laminas'
+            ? `<span class="ayuda">${esc(info.ayuda || '')} Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.</span>`
+            : '<span class="ayuda">Se guarda tal cual llegó. La vista previa lo enseña como va a salir.</span>')
+        : `<span class="ayuda">${esc(info.espec)}${info.ayuda ? ' ' + esc(info.ayuda) : ''}</span>`}
+      ${info.minimo && archivosDe(p).length && archivosDe(p).length < info.minimo
+        ? `<span class="ayuda alerta-campo">Un carrusel necesita al menos ${info.minimo} láminas. Llevas ${archivosDe(p).length}.</span>` : ''}
+      <input type="file" id="f_archivo" ${info.quiere === 'laminas' ? 'multiple' : ''} hidden>
       <input type="file" id="f_reemplazo" hidden>
       <div class="imagen-acciones">
-        <button type="button" class="btn-plano" id="btnSubirArchivo">${archivosDe(p).length ? '+ Agregar láminas' : 'Subir arte final'}</button>
+        <button type="button" class="btn-plano" id="btnSubirArchivo">${
+          archivosDe(p).length
+            ? (info.quiere === 'laminas' ? '+ Agregar láminas' : 'Reemplazar')
+            : 'Subir ' + (info.quiere === 'laminas' ? 'las láminas'
+                        : info.quiere === 'video' ? 'el video' : 'la imagen')}</button>
       </div>
-    </div>
+    </div>`}
 
     <div class="grupo-campo">
       <label for="f_produccion">Cómo se hace
@@ -3281,13 +3380,14 @@ function abrirPieza(idPieza, prellenado) {
       <textarea class="campo" id="f_copy" placeholder="El texto que acompaña la publicación">${esc(p.copy)}</textarea>
     </div>
 
+    ${!info.copyFb ? '' : `
     <div class="grupo-campo">
       <label for="f_copy_fb">Copy para Facebook <span class="tenue">· opcional</span></label>
       <textarea class="campo" id="f_copy_fb" rows="3"
         placeholder="Déjalo vacío y sale el mismo de arriba">${esc(p.copy_fb || '')}</textarea>
       <span class="ayuda">En Instagram el copy va largo y con etiquetas al final; en Facebook las etiquetas estorban y se lee mejor corto. Si aquí no escribes nada, Facebook usa el de arriba.</span>
       <span class="ayuda">El copy se trabaja en sesión con Claude, donde puedes iterarlo. Aquí se guarda el resultado.</span>
-    </div>
+    </div>`}
 
     <div id="resultadoIA"></div>
   `;
@@ -3318,6 +3418,28 @@ function abrirPieza(idPieza, prellenado) {
       l.classList.toggle('marcado', e.target.checked);
     });
   });
+
+  /* Cambiar de formato vuelve a armar la ficha, porque cambia lo
+     que se pide. Antes se recoge lo escrito: perder el título por
+     picar "Carrusel" sería un castigo por elegir bien. */
+  $$('#f_formato .tipo-op').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.formato === p.formato) return;
+    const leer = id => { const el = $('#' + id); return el ? el.value : undefined; };
+    p.titulo      = (leer('f_titulo') || '').trim();
+    p.fecha       = leer('f_fecha')  ?? p.fecha;
+    p.hora        = leer('f_hora')   ?? p.hora;
+    p.estado      = leer('f_estado') ?? p.estado;
+    p.pilar       = leer('f_pilar')  ?? p.pilar;
+    p.responsable = (leer('f_responsable') || '').trim();
+    p.produccion  = leer('f_produccion') ?? p.produccion;
+    p.notas       = leer('f_notas')  ?? p.notas;
+    p.copy        = leer('f_copy')   ?? p.copy;
+    if ($('#f_copy_fb')) p.copy_fb = $('#f_copy_fb').value;
+    if ($('#f_experto')) p.experto = $('#f_experto').value;
+    if ($('#f_canales')) p.canales = $$('#f_canales input:checked').map(x => x.value);
+    p.formato = b.dataset.formato;
+    abrirPieza(existente ? p.id : null, existente ? null : p);
+  }));
 
   /* Miniatura provisional. El bloque ya no se dibuja cuando hay
      arte final y no hay miniatura vieja, asi que puede no existir. */
@@ -3352,6 +3474,9 @@ function abrirPieza(idPieza, prellenado) {
      puede dar. */
   /* Varias laminas de una vez. Se suben en el orden en que se
      eligieron, que es el que la gente espera. */
+  /* El formato Texto no lleva arte, asi que este bloque puede no
+     existir. Se guarda entero en vez de campo por campo. */
+  if ($('#f_archivo')) {
   $('#f_archivo').addEventListener('change', async ev => {
     const elegidos = [...ev.target.files];
     if (!elegidos.length) return;
@@ -3471,6 +3596,7 @@ function abrirPieza(idPieza, prellenado) {
     $('#f_reemplazo').click();
   });
   $$('[data-reemplazar]').forEach(conectarReemplazar);
+  }
 
   const laminas = () => { const d = modalCtx.datos; d.archivos = archivosDe(d); return d.archivos; };
 
@@ -3996,16 +4122,18 @@ function leerPieza() {
   const p = modalCtx.datos;
   p.titulo      = $('#f_titulo').value.trim();
   p.pilar       = $('#f_pilar').value;
-  p.formato     = $('#f_formato').value;
+  // El formato ya no es un <select>: lo lleva el botón activo.
+  p.formato     = ($('#f_formato .tipo-op.activo') || {}).dataset?.formato || p.formato || 'Foto';
   p.canales     = $$('#f_canales input:checked').map(i => i.value);
   p.fecha       = $('#f_fecha').value;
   p.hora        = $('#f_hora').value;
   p.autopublicar = $('#f_autopublicar').checked;
   p.estado      = $('#f_estado').value;
   p.responsable = $('#f_responsable').value.trim();
-  p.experto     = $('#f_experto').value;
+  // Estos dos campos ya no salen en todo formato.
+  if ($('#f_experto')) p.experto = $('#f_experto').value;
   p.copy        = $('#f_copy').value;
-  p.copy_fb     = $('#f_copy_fb').value.trim();
+  if ($('#f_copy_fb')) p.copy_fb = $('#f_copy_fb').value.trim();
   p.notas       = $('#f_notas').value;
   p.produccion  = $('#f_produccion').value;
   p.no_antes    = $('#f_no_antes').value;
