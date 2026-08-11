@@ -3649,3 +3649,77 @@ body.solo-creacion .balance,
 body.solo-creacion .progreso,
 body.solo-creacion #balance,
 body.solo-creacion #progreso { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   LA FICHA DE LA PIEZA
+
+   Eran doce campos en fila con el mismo peso: el titulo de la
+   pieza pesaba igual que el copy opcional de Facebook. Nada guiaba
+   la vista, asi que había que leerla entera cada vez.
+
+   Quien la llena contesta cuatro preguntas en un orden natural
+   --que es, cuando sale, con que, que dice-- y ahora la ficha esta
+   organizada por esas cuatro y no por campo suelto.
+   ═══════════════════════════════════════════════════════════ */
+
+.ficha-pieza { display: grid; gap: var(--e-6); }
+
+/* ── El resumen vivo ───────────────────────────────────────
+   Una frase arriba que dice lo que va a pasar. Antes había que
+   juntar formato, fecha, hora, canales y estado de cinco controles
+   distintos para saberlo. */
+.pieza-resumen {
+  display: flex; align-items: center; gap: var(--e-4);
+  padding: var(--e-4) var(--e-5);
+  background: var(--capa-hundida); border-radius: var(--r-md);
+  font-size: var(--t-cuerpo); line-height: 1.45;
+}
+.pieza-resumen .forma { flex: none; color: var(--tinta-media); }
+.pieza-resumen-texto { flex: 1; min-width: 0; color: var(--tinta-media); }
+.pieza-resumen-texto b { color: var(--tinta); font-weight: var(--peso-medio); }
+.pieza-resumen .sello { flex: none; }
+
+/* ── El titulo es el asunto ────────────────────────────────
+   Sin etiqueta en versalitas: se ve que es el titulo porque es lo
+   mas grande de la ficha, no porque un rotulo lo diga. */
+.campo-titulo {
+  font-size: var(--t-titulo); font-weight: var(--peso-medio);
+  padding: 12px 14px; width: 100%;
+  letter-spacing: -.01em;
+}
+.campo-titulo::placeholder { font-weight: var(--peso-normal); color: var(--tinta-tenue); }
+
+/* ── Los cuatro bloques ────────────────────────────────────
+   Con numero y regla: el numero dice que hay un orden, la regla
+   separa sin encerrar. Nada esta plegado salvo lo que casi nunca
+   se usa -- esconder cosas hace que se olviden. */
+.bloque { display: grid; gap: var(--e-5); }
+.bloque > h4 {
+  display: flex; align-items: center; gap: var(--e-3);
+  margin: 0; padding-bottom: var(--e-3);
+  border-bottom: 1px solid var(--linea-sutil);
+  font-size: var(--t-sello); font-weight: var(--peso-fuerte);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--tinta-media);
+}
+.bloque-num {
+  display: grid; place-items: center;
+  width: 17px; height: 17px; flex: none;
+  border-radius: 50%; background: var(--marca-velo);
+  color: var(--marca-tinta);
+  font-size: 9.5px; letter-spacing: 0;
+}
+
+/* Las etiquetas de campo bajan de rango: ya no compiten con los
+   encabezados de bloque. */
+.ficha-pieza .grupo-campo > label {
+  font-size: var(--t-sello); letter-spacing: .05em;
+  text-transform: none; font-weight: var(--peso-medio);
+  color: var(--tinta-media);
+}
+.ficha-pieza .ayuda { font-size: var(--t-sello); }
+
+/* El pie: quien responde y de donde salio. Es contexto, no algo
+   que se llene -- va al final y en tono menor. */
+.bloque-pie { gap: var(--e-4); }
+.bloque-pie > h4 { color: var(--tinta-tenue); }

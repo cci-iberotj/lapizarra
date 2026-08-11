@@ -3194,6 +3194,30 @@ function conectarArrastre(cont) {
 
 /* ── Modal de pieza ────────────────────────────────────── */
 
+/* Una frase que dice lo que va a pasar con esta pieza. Antes ese
+   dato habia que armarlo juntando formato, fecha, hora, canales y
+   estado de cinco controles repartidos por la ficha. */
+function resumenDePieza(p) {
+  const i = infoFormato(p.formato);
+  const est = ESTADOS.find(x => x.id === estadoDePieza(p));
+  const canales = (p.canales || [])
+    .map(id => (CANALES.find(c => c.id === id) || {}).nombre).filter(Boolean);
+  const partes = [];
+  if (p.fecha) {
+    partes.push('sale <b>' + esc(fechaLegible(p.fecha)) + '</b>');
+    if (p.hora) partes.push('a las <b>' + esc(horaLegible(p.hora)) + '</b>');
+  } else {
+    partes.push('<span class="tenue">sin fecha todavía</span>');
+  }
+  if (canales.length) {
+    partes.push('en ' + esc(canales.slice(0, -1).join(', ') +
+      (canales.length > 1 ? ' y ' : '') + canales[canales.length - 1]));
+  }
+  return `<span class="forma forma-${i.forma}" aria-hidden="true"></span>
+    <span class="pieza-resumen-texto"><b>${esc(p.formato || 'Pieza')}</b> · ${partes.join(' ')}</span>
+    ${selloEstado(etiquetaPieza(p))}`;
+}
+
 function abrirPieza(idPieza, prellenado) {
   const existente = idPieza ? datos.parrilla.piezas.find(p => p.id === idPieza) : null;
   const p = existente || Object.assign({
@@ -3224,10 +3248,15 @@ function abrirPieza(idPieza, prellenado) {
   $('#modalEliminar').hidden = !existente;
 
   $('#modalCuerpo').innerHTML = `
-    <div class="grupo-campo">
-      <label for="f_titulo">Título de la pieza</label>
-      <input class="campo" id="f_titulo" value="${esc(p.titulo)}" placeholder="Ej. Carrusel talleres culturales otoño">
-    </div>
+    <div class="ficha-pieza">
+
+    <div class="pieza-resumen" id="piezaResumen">${resumenDePieza(p)}</div>
+
+    <input class="campo campo-titulo" id="f_titulo" value="${esc(p.titulo)}"
+           placeholder="Ponle nombre a esta pieza">
+
+    <section class="bloque">
+      <h4><span class="bloque-num">1</span> Qué es</h4>
 
     <div class="grupo-campo">
       <label>Qué es</label>
@@ -3252,6 +3281,11 @@ function abrirPieza(idPieza, prellenado) {
         <span class="ayuda" id="ayudaPilar"></span>
       </div>
     </div>
+
+    </section>
+
+    <section class="bloque">
+      <h4><span class="bloque-num">2</span> Cuándo sale</h4>
 
     <div class="grupo-campo">
       <label>Canales</label>
@@ -3306,28 +3340,12 @@ function abrirPieza(idPieza, prellenado) {
       <span class="ayuda">Acomodar pendientes y el arrastre en el calendario los respetan.</span>
     </div>
 
-    <div class="fila-campos">
-      <div class="grupo-campo">
-        <label for="f_responsable">Responsable</label>
-        <input class="campo" id="f_responsable" list="lista_responsables"
-               value="${esc(p.responsable)}" placeholder="Quién produce esta pieza"
-               autocomplete="off">
-        <datalist id="lista_responsables">
-          ${equipoConocido().map(n => `<option value="${esc(n)}"></option>`).join('')}
-        </datalist>
-        <span class="ayuda">Escribe o elige de la lista.</span>
-      </div>
-      ${!info.experto ? '' : `
-      <div class="grupo-campo">
-        <label for="f_experto">Experto que participa</label>
-        <select class="campo" id="f_experto">
-          <option value="">Ninguno</option>
-          ${(datos.expertos.personas || []).map(x =>
-            `<option value="${esc(x.id)}"${x.id === p.experto ? ' selected' : ''}>${esc(x.nombre)}${x.departamento ? ' · ' + esc(x.departamento) : ''}</option>`).join('')}
-        </select>
-        <span class="ayuda">Lleva la cuenta de a quién ya recurriste.</span>
-      </div>`}
-    </div>
+    
+
+    </section>
+
+    ${info.quiere === 'ninguno' ? '' : `<section class="bloque">
+      <h4><span class="bloque-num">3</span> Con qué</h4>`}
 
     ${info.quiere === 'ninguno' || (archivosDe(p).length && !p.imagen) ? '' : `
     <div class="grupo-campo sangrado">
@@ -3376,11 +3394,12 @@ function abrirPieza(idPieza, prellenado) {
 
     
 
-    <div class="grupo-campo">
-      <label for="f_notas">De dónde viene</label>
-      <textarea class="campo" id="f_notas" placeholder="Lo que ya trae: la idea original, los detalles del evento, lo que dijo quien la entregó">${esc(p.notas)}</textarea>
-      <span class="ayuda">Se llena solo cuando la pieza nace de una idea, de un evento por cubrir o de algo que entregó Creación.</span>
-    </div>
+    
+
+    ${info.quiere === 'ninguno' ? '' : '</section>'}
+
+    <section class="bloque">
+      <h4><span class="bloque-num">4</span> Qué dice</h4>
 
     <div class="grupo-campo">
       <label for="f_copy">Copy</label>
@@ -3397,6 +3416,40 @@ function abrirPieza(idPieza, prellenado) {
     </div>`}
 
     <div id="resultadoIA"></div>
+  
+    </section>
+
+    <section class="bloque bloque-pie">
+      <h4>Quién responde</h4>
+<div class="fila-campos">
+      <div class="grupo-campo">
+        <label for="f_responsable">Responsable</label>
+        <input class="campo" id="f_responsable" list="lista_responsables"
+               value="${esc(p.responsable)}" placeholder="Quién produce esta pieza"
+               autocomplete="off">
+        <datalist id="lista_responsables">
+          ${equipoConocido().map(n => `<option value="${esc(n)}"></option>`).join('')}
+        </datalist>
+        <span class="ayuda">Escribe o elige de la lista.</span>
+      </div>
+      ${!info.experto ? '' : `
+      <div class="grupo-campo">
+        <label for="f_experto">Experto que participa</label>
+        <select class="campo" id="f_experto">
+          <option value="">Ninguno</option>
+          ${(datos.expertos.personas || []).map(x =>
+            `<option value="${esc(x.id)}"${x.id === p.experto ? ' selected' : ''}>${esc(x.nombre)}${x.departamento ? ' · ' + esc(x.departamento) : ''}</option>`).join('')}
+        </select>
+        <span class="ayuda">Lleva la cuenta de a quién ya recurriste.</span>
+      </div>`}
+    </div><div class="grupo-campo">
+      <label for="f_notas">De dónde viene</label>
+      <textarea class="campo" id="f_notas" placeholder="Lo que ya trae: la idea original, los detalles del evento, lo que dijo quien la entregó">${esc(p.notas)}</textarea>
+      <span class="ayuda">Se llena solo cuando la pieza nace de una idea, de un evento por cubrir o de algo que entregó Creación.</span>
+    </div>
+    </section>
+
+    </div>
   `;
 
   const pintarAyuda = () => {
@@ -3425,6 +3478,22 @@ function abrirPieza(idPieza, prellenado) {
       l.classList.toggle('marcado', e.target.checked);
     });
   });
+
+  /* El resumen de arriba sigue lo que se toca abajo: si no, dice
+     una cosa mientras la ficha ya dice otra. */
+  const refrescarResumen = () => {
+    const d = modalCtx.datos;
+    d.fecha  = ($('#f_fecha')  || {}).value ?? d.fecha;
+    d.hora   = ($('#f_hora')   || {}).value ?? d.hora;
+    d.estado = ($('#f_estado') || {}).value ?? d.estado;
+    if ($('#f_canales')) d.canales = $$('#f_canales input:checked').map(x => x.value);
+    const caja = $('#piezaResumen');
+    if (caja) caja.innerHTML = resumenDePieza(d);
+  };
+  ['#f_fecha', '#f_hora', '#f_estado'].forEach(q => {
+    const el = $(q); if (el) el.addEventListener('change', refrescarResumen);
+  });
+  if ($('#f_canales')) $('#f_canales').addEventListener('change', refrescarResumen);
 
   /* Cambiar de formato vuelve a armar la ficha, porque cambia lo
      que se pide. Antes se recoge lo escrito: perder el título por
