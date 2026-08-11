@@ -170,51 +170,51 @@ const FORMATOS = ['Nota', 'Reel', 'Short', 'Carrusel', 'Foto', 'Video', 'Story',
    desde antes: nada de lo ya capturado se rompe. */
 const FORMATOS_INFO = {
   Carrusel: {
-    icono: '▤', quiere: 'laminas', minimo: 2, copyFb: true,
+    forma: 'laminas', quiere: 'laminas', minimo: 2, copyFb: true,
     arte: 'Las láminas del carrusel',
     espec: '1080×1350 (4:5) o 1080×1080. De 2 a 20 láminas.',
     ayuda: 'El orden importa: la primera es la que detiene el pulgar.',
     canales: ['ig', 'fb'],
   },
   Foto: {
-    icono: '▣', quiere: 'imagen', copyFb: true,
+    forma: 'vertical-45', quiere: 'imagen', copyFb: true,
     arte: 'La foto',
     espec: '1080×1350 (4:5) para que ocupe lo más posible del feed.',
     canales: ['ig', 'fb'],
   },
   Reel: {
-    icono: '▶', quiere: 'video', copyFb: true, experto: true,
+    forma: 'vertical', quiere: 'video', copyFb: true, experto: true,
     arte: 'El reel',
     espec: '1080×1920 vertical, MP4 con H.264, hasta 90 s y 50 MB.',
     canales: ['ig', 'fb', 'yt'],
   },
   Short: {
-    icono: '▶', quiere: 'video', experto: true,
+    forma: 'vertical', quiere: 'video', experto: true,
     arte: 'El short',
     espec: '1080×1920 vertical, hasta 60 s.',
     canales: ['yt'],
   },
   Story: {
-    icono: '▢', quiere: 'imagen',
+    forma: 'vertical', quiere: 'imagen',
     arte: 'La historia',
     espec: '1080×1920 vertical. Dura 24 horas.',
     canales: ['ig'],
   },
   Video: {
-    icono: '▬', quiere: 'video', copyFb: true, experto: true,
+    forma: 'horizontal', quiere: 'video', copyFb: true, experto: true,
     arte: 'El video',
     espec: '1920×1080 horizontal, MP4 con H.264.',
     canales: ['fb', 'yt'],
   },
   Nota: {
-    icono: '▤', quiere: 'imagen', experto: true, cuerpo: true,
+    forma: 'texto', quiere: 'imagen', experto: true, cuerpo: true,
     arte: 'La imagen de cabecera',
     espec: '1600 px de ancho o más, horizontal.',
     ayuda: 'La nota se escribe en Redacción; aquí va la imagen que la encabeza.',
     canales: ['web'],
   },
   Texto: {
-    icono: '▭', quiere: 'ninguno', copyFb: true,
+    forma: 'texto', quiere: 'ninguno', copyFb: true,
     arte: '', espec: '',
     canales: ['fb', 'li'],
   },
@@ -3236,7 +3236,7 @@ function abrirPieza(idPieza, prellenado) {
           const i = infoFormato(x);
           return `<button type="button" class="tipo-op${x === (p.formato || 'Foto') ? ' activo' : ''}"
                   data-formato="${esc(x)}" role="radio" aria-checked="${x === p.formato}">
-            <span class="tipo-icono" aria-hidden="true">${i.icono}</span>${esc(x)}
+            <span class="forma forma-${i.forma}" aria-hidden="true"></span>${esc(x)}
           </button>`;
         }).join('')}
       </div>
