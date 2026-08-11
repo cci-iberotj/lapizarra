@@ -2775,9 +2775,13 @@ function pintarCalendario() {
    tamano de una estampilla, y el contador tiene que cuadrar con
    lo que se ve. */
       const collage = collageDe(p, 2);
-      const img = p.imagen
-        ? `<img class="cal-miniatura" src="${esc(p.imagen)}" alt="" loading="lazy">`
-        : collage;
+      /* El arte manda. Antes ganaba p.imagen, que es la miniatura
+         provisional: quien subia una referencia y despues el arte
+         de verdad seguia viendo la referencia en el calendario, y
+         no habia forma de entender por que. */
+      const img = collage
+        ? collage
+        : p.imagen ? `<img class="cal-miniatura" src="${esc(p.imagen)}" alt="" loading="lazy">` : '';
       const acotada = p.no_antes || p.no_despues;
       const rotulo = p.no_antes ? `Sólo a partir del ${fechaLegible(p.no_antes)}`
                    : p.no_despues ? `Sólo hasta el ${fechaLegible(p.no_despues)}` : '';
@@ -3187,7 +3191,10 @@ function abrirPieza(idPieza, prellenado) {
       <span class="ayuda">Si está aprobada y tiene arte, sale sin que nadie apriete nada — a la hora de arriba, hora de Tijuana. Aprobar y armar la salida son dos actos distintos: por eso esto se enciende aparte.</span>
     </div>
 
-    <div class="grupo-campo">
+    <div class="grupo-campo ventana${p.no_antes || p.no_despues ? '' : ' guardada'}" id="grupoVentana">
+      <button type="button" class="abrir-ventana" id="abrirVentana">
+        Acotar en qué fechas puede salir <span aria-hidden="true">▾</span>
+      </button>
       <label>Ventana válida de publicación</label>
       <div class="fila-campos">
         <div class="grupo-campo">
@@ -3199,7 +3206,7 @@ function abrirPieza(idPieza, prellenado) {
           <span class="ayuda">No después de — para anuncios y convocatorias</span>
         </div>
       </div>
-      <span class="ayuda">Déjalos vacíos si la pieza puede salir cualquier día. Acomodar pendientes y el arrastre en el calendario los respetan.</span>
+      <span class="ayuda">Acomodar pendientes y el arrastre en el calendario los respetan.</span>
     </div>
 
     <div class="fila-campos">
@@ -3211,7 +3218,7 @@ function abrirPieza(idPieza, prellenado) {
         <datalist id="lista_responsables">
           ${equipoConocido().map(n => `<option value="${esc(n)}"></option>`).join('')}
         </datalist>
-        <span class="ayuda">Escribe o elige de la lista. Aparecen quienes tienen cuenta y quienes ya has anotado antes.</span>
+        <span class="ayuda">Escribe o elige de la lista.</span>
       </div>
       <div class="grupo-campo">
         <label for="f_experto">Experto que participa</label>
@@ -3220,12 +3227,13 @@ function abrirPieza(idPieza, prellenado) {
           ${(datos.expertos.personas || []).map(x =>
             `<option value="${esc(x.id)}"${x.id === p.experto ? ' selected' : ''}>${esc(x.nombre)}${x.departamento ? ' · ' + esc(x.departamento) : ''}</option>`).join('')}
         </select>
-        <span class="ayuda">Para notas y reels académicos. Lleva la cuenta de a quién ya recurriste.</span>
+        <span class="ayuda">Sólo para notas y reels académicos.</span>
       </div>
     </div>
 
+    ${archivosDe(p).length && !p.imagen ? '' : `
     <div class="grupo-campo">
-      <label>Imagen de referencia</label>
+      <label>Miniatura provisional${archivosDe(p).length ? ' <span class="tenue">· ya no se usa, el arte manda</span>' : ''}</label>
       <div class="zona-imagen${p.imagen ? ' con-imagen' : ''}" id="zonaImagen">
         ${p.imagen
           ? `<img src="${esc(p.imagen)}" alt="Vista previa">`
@@ -3236,11 +3244,10 @@ function abrirPieza(idPieza, prellenado) {
         <button type="button" class="btn-plano" id="btnCambiarImagen">${p.imagen ? 'Cambiar' : 'Subir imagen'}</button>
         ${p.imagen ? '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>' : ''}
       </div>
-      <span class="ayuda">
-        Lo que se ve en el calendario es una miniatura de 480&nbsp;px. El
-        archivo original se guarda aparte y se baja completo desde aquí abajo.
-      </span>
-    </div>
+      <span class="ayuda">${archivosDe(p).length
+        ? 'Ya hay arte final, así que el calendario enseña el arte. Puedes quitarla.'
+        : 'Para que la pieza no se vea vacía en el calendario mientras no hay arte. En cuanto subas el arte final, se usa ése.'}</span>
+    </div>`}
 
     <div class="grupo-campo">
       <label>Arte final${archivosDe(p).length > 1 ? ' · ' + archivosDe(p).length + ' láminas' : ''}</label>
@@ -3312,10 +3319,14 @@ function abrirPieza(idPieza, prellenado) {
     });
   });
 
-  // Imagen de referencia
+  /* Miniatura provisional. El bloque ya no se dibuja cuando hay
+     arte final y no hay miniatura vieja, asi que puede no existir. */
+  const zonaImg = $('#zonaImagen');
   const abrirSelector = () => $('#f_imagen').click();
-  $('#zonaImagen').addEventListener('click', abrirSelector);
+  if (zonaImg) {
+  zonaImg.addEventListener('click', abrirSelector);
   $('#btnCambiarImagen').addEventListener('click', abrirSelector);
+  $('#f_imagen').addEventListener('change', e => subirImagen(e.target.files[0]));
   const btnQuitar = $('#btnQuitarImagen');
   if (btnQuitar) btnQuitar.addEventListener('click', () => {
     modalCtx.datos.imagen = '';
@@ -3325,7 +3336,16 @@ function abrirPieza(idPieza, prellenado) {
     btnQuitar.remove();
     $('#btnCambiarImagen').textContent = 'Subir imagen';
   });
-  $('#f_imagen').addEventListener('change', e => subirImagen(e.target.files[0]));
+  }
+
+  /* Acotar fechas se pide poco: arranca guardado y se abre de un
+     clic. Antes ocupaba dos selectores de fecha y tres renglones de
+     explicacion en TODA pieza, se usaran o no. */
+  const abrirVentana = $('#abrirVentana');
+  if (abrirVentana) abrirVentana.addEventListener('click', () => {
+    $('#grupoVentana').classList.remove('guardada');
+    $('#f_no_antes').focus();
+  });
 
   /* El archivo final. Sube el original tal cual -- sin reducir --
      porque el punto de este bloque es justo lo que la miniatura no
