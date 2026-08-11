@@ -300,29 +300,54 @@ function extension(ruta: string) {
   return punto < 0 ? '' : ruta.slice(punto).toLowerCase();
 }
 
-function esVideo(a: any) { return VIDEOS.includes(extension(a?.ruta || '')); }
+function esVideo(a: any) {
+  const t = String(a?.tipo || '');
+  if (t) return t.startsWith('video/');
+  return VIDEOS.includes(extension(a?.ruta || ''));
+}
 
-/* Una pieza es de video o es de fotos, no las dos. Un carrusel de
-   Instagram admite mezclar, pero aqui no hay forma de decir en que
-   orden ni cual es la portada, y publicar algo a medias entender no
-   es mejor que negarse. */
+/* MEZCLAR VIDEO Y FOTOS
+
+   Instagram SI admite carruseles mixtos, y el orden y la portada ya
+   los decide el acomodo de las laminas -- que era la objecion por la
+   que esto estaba prohibido, y dejo de valer cuando se pudo
+   arrastrar para reacomodar.
+
+   Facebook no: attached_media solo toma fotos, no hay forma de
+   colgar un video de una publicacion de /feed. Ahi se niega y se
+   dice que hacer, en vez de publicar el carrusel sin el video y
+   dejar que alguien lo descubra despues.
+
+   Un video SUELTO sigue yendo por su propio camino (Reel), que
+   tiene otro contenedor y otra espera. */
 function revisarArte(pieza: any, red: 'ig' | 'fb') {
   const archivos = archivosDe(pieza);
   const nombre = (a: any) => a.nombre || (a.ruta || '').split('/').pop();
   const videos = archivos.filter(esVideo);
 
-  if (videos.length && videos.length !== archivos.length) {
+  const mezcla = videos.length > 0 && videos.length !== archivos.length;
+
+  if (mezcla && red === 'fb') {
     throw new Error(
-      'Esta pieza mezcla video y fotos. Separa el video en su propia pieza.');
+      'Facebook no acepta carruseles que mezclen video y fotos. ' +
+      'Quita Facebook de los canales de esta pieza, o saca el video ' +
+      'a una pieza aparte.');
   }
-  if (videos.length > 1) {
+  // Un video solo va como Reel; dos o mas sin fotos no es nada que
+  // Instagram sepa publicar.
+  if (!mezcla && videos.length > 1) {
     throw new Error(`Un solo video por pieza, y esta tiene ${videos.length}.`);
   }
+  if (mezcla && archivos.length < 2) {
+    throw new Error('Un carrusel necesita al menos dos láminas.');
+  }
 
-  if (red === 'ig' && !videos.length) {
+  // Sólo las láminas de foto: en un carrusel mixto el video no
+  // tiene por qué ser JPEG.
+  if (red === 'ig') {
     // Instagram solo acepta JPEG. No es negociable ni convertible
     // desde aqui: el archivo se sube tal cual desde el navegador.
-    const malos = archivos.filter((a: any) => {
+    const malos = archivos.filter((a: any) => !esVideo(a)).filter((a: any) => {
       const e = extension(paraPublicar(a));
       return e !== '.jpg' && e !== '.jpeg';
     });
@@ -412,15 +437,24 @@ async function publicarEnInstagram(pieza: any) {
     contenedor = d.id;
     await esperarContenedor(contenedor);
   } else {
-    // Cada lámina primero, y después el carrusel que las junta.
+    /* Cada lámina primero, y después el carrusel que las junta.
+
+       Una lámina puede ser video: Instagram acepta carruseles
+       mixtos. Antes iban TODAS por image_url, así que meter un mp4
+       tumbaba la publicación entera -- y no en el momento de
+       subirlo, sino el día que tocaba salir. */
     const hijos: string[] = [];
     for (const a of archivos) {
+      const video = esVideo(a);
       const d = await aMetaPost(`${IG}/${idIG}/media`, {
-        image_url: await enlaceFirmado(paraPublicar(a)),
+        ...(video
+          ? { media_type: 'VIDEO', video_url: await enlaceFirmado(a.ruta) }
+          : { image_url: await enlaceFirmado(paraPublicar(a)) }),
         is_carousel_item: 'true',
         access_token: TOKEN_IG,
       });
-      await esperarContenedor(d.id);
+      // El video tarda mucho más en quedar listo que una imagen.
+      await esperarContenedor(d.id, video);
       hijos.push(d.id);
     }
     const d = await aMetaPost(`${IG}/${idIG}/media`, {

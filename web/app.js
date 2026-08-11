@@ -3381,7 +3381,23 @@ function abrirPieza(idPieza, prellenado) {
         : `<span class="ayuda">${esc(info.espec)}${info.ayuda ? ' ' + esc(info.ayuda) : ''}</span>`}
       ${info.minimo && archivosDe(p).length && archivosDe(p).length < info.minimo
         ? `<span class="ayuda alerta-campo">Un carrusel necesita al menos ${info.minimo} láminas. Llevas ${archivosDe(p).length}.</span>` : ''}
-      <input type="file" id="f_archivo" ${info.quiere === 'laminas' ? 'multiple' : ''} hidden>
+      ${(() => {
+        /* Instagram acepta carruseles mixtos; Facebook no. Decirlo
+           aquí y no el día que toca publicar. */
+        const a = archivosDe(p);
+        const vids = a.filter(x => /^video\//.test(x.tipo || '') || /\.(mp4|mov|m4v)$/i.test(x.ruta || ''));
+        if (!vids.length || vids.length === a.length) return '';
+        return (p.canales || []).includes('fb')
+          ? `<span class="ayuda alerta-campo">Este carrusel mezcla video y fotos.
+             Instagram lo acepta, <b>Facebook no</b>: quita Facebook de los canales
+             o saca el video a una pieza aparte.</span>`
+          : `<span class="ayuda">Carrusel mixto: ${vids.length} de video y ${
+             a.length - vids.length} de foto. Instagram lo acepta.</span>`;
+      })()}
+      <input type="file" id="f_archivo" accept="${
+        info.quiere === 'video' ? 'video/mp4,video/quicktime'
+        : info.quiere === 'laminas' ? 'image/jpeg,image/png,video/mp4,video/quicktime'
+        : 'image/jpeg,image/png'}" ${info.quiere === 'laminas' ? 'multiple' : ''} hidden>
       <input type="file" id="f_reemplazo" hidden>
       <div class="imagen-acciones">
         <button type="button" class="btn-plano" id="btnSubirArchivo">${

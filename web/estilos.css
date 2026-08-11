@@ -3723,3 +3723,12 @@ body.solo-creacion #progreso { display: none; }
    que se llene -- va al final y en tono menor. */
 .bloque-pie { gap: var(--e-4); }
 .bloque-pie > h4 { color: var(--tinta-tenue); }
+
+/* Un aviso dentro de un campo: no impide guardar, avisa de algo que
+   va a fallar despues si nadie lo mira. */
+.ayuda.alerta-campo {
+  color: var(--alerta);
+  background: var(--alerta-velo);
+  border-radius: var(--r-sm);
+  padding: 6px 9px;
+}
