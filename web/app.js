@@ -225,15 +225,28 @@ function infoFormato(f) {
 }
 
 // El color acompaña la progresión del flujo: gris → ámbar → azul → verde.
+/* Eran siete y dos sobraban. "Brief" y "Producción" son el mismo
+   momento: la pieza se está haciendo. Y "Revisión Leo" y "VoBo
+   institucional" partían en dos algo que en la práctica es un solo
+   acto -- alguien tiene que dar el visto bueno -- y encima ninguno
+   de los dos hacía nada: la fila de aprobación nunca los miró.
+
+   Cinco, y cada uno significa algo distinto de verdad. */
 const ESTADOS = [
-  { id: 'idea',       nombre: 'Idea',               color: 'var(--estado-idea)' },
-  { id: 'brief',      nombre: 'Brief',              color: 'var(--estado-brief)' },
-  { id: 'produccion', nombre: 'Producción',         color: 'var(--estado-produccion)' },
-  { id: 'revision',   nombre: 'Revisión Leo',       color: 'var(--estado-revision)' },
-  { id: 'vobo',       nombre: 'VoBo institucional', color: 'var(--estado-vobo)' },
-  { id: 'programado', nombre: 'Programado',         color: 'var(--estado-programado)' },
-  { id: 'publicado',  nombre: 'Publicado',          color: 'var(--estado-publicado)' },
+  { id: 'idea',       nombre: 'Idea',          color: 'var(--estado-idea)' },
+  { id: 'produccion', nombre: 'En producción', color: 'var(--estado-produccion)' },
+  { id: 'revision',   nombre: 'Revisión',      color: 'var(--estado-revision)' },
+  { id: 'programado', nombre: 'Programada',    color: 'var(--estado-programado)' },
+  { id: 'publicado',  nombre: 'Publicada',     color: 'var(--estado-publicado)' },
 ];
+
+/* Lo capturado antes trae 'brief' y 'vobo'. Se traducen al vuelo
+   para que nada quede sin nombre mientras la base se migra. */
+const ESTADOS_VIEJOS = { brief: 'produccion', vobo: 'revision' };
+function estadoDePieza(p) {
+  const e = (p && p.estado) || 'idea';
+  return ESTADOS_VIEJOS[e] || e;
+}
 
 /* Lo que ya esta resuelto se pinta LLENO; lo que sigue en camino
    se queda en blanco. Asi el calendario se lee de un vistazo: el
@@ -271,15 +284,14 @@ function marcaAprobacion(p) {
    están medidos contra los dos temas. */
 const ETIQUETAS = {
   idea:       { texto: 'Idea',        tono: 'var(--estado-idea)',       ayuda: 'Anotada, sin trabajar todavía' },
-  brief:      { texto: 'Brief',       tono: 'var(--estado-brief)',      ayuda: 'Ya se sabe qué lleva' },
   produccion: { texto: 'Produciendo', tono: 'var(--estado-produccion)', ayuda: 'En manos de diseño' },
-  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   ayuda: 'Esperando revisión de Leo' },
-  vobo:       { texto: 'Por aprobar', tono: 'var(--estado-vobo)',       ayuda: 'Esperando el visto bueno institucional' },
+  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   ayuda: 'Esperando el visto bueno' },
   publicado:  { texto: 'Publicado',   tono: 'var(--estado-publicado)',  ayuda: 'Ya salió', solida: true },
 };
 
 function etiquetaPieza(p) {
-  if (p.estado === 'programado') {
+  const est = estadoDePieza(p);
+  if (est === 'programado') {
     /* Ésta es la distinción que importa y la que no se veía: una
        cosa es estar listo y otra que se vaya a disparar solo. Sin
        esto hay que abrir la pieza para saber si alguien tiene que
@@ -291,7 +303,7 @@ function etiquetaPieza(p) {
       : { texto: 'Listo', tono: 'var(--estado-programado)',
           ayuda: impedimento || 'Listo, pero alguien tiene que publicarlo a mano' };
   }
-  return ETIQUETAS[p.estado] || ETIQUETAS.idea;
+  return ETIQUETAS[est] || ETIQUETAS.idea;
 }
 
 /* El icono dice QUE es --evento, reunión, entrega, bloqueo-- y la
@@ -971,10 +983,10 @@ function pintarIdeas() {
       const s = clasificarTexto(idea.texto);
       abrirPieza(null, {
         vieneDeIdea: idea.id,
-        // 'brief' y no 'idea': Mi escritorio excluye las que siguen
+        // 'produccion' y no 'idea': Mi escritorio excluye las que siguen
         // siendo idea, asi que programarlas y no verlas ahi era
         // exactamente lo contrario de lo que se espera.
-        estado: 'brief',
+        estado: 'produccion',
         titulo: s.titulo, pilar: s.pilar, formato: s.formato, canales: s.canales,
         notas: idea.texto, no_antes: s.no_antes, no_despues: s.no_despues,
         produccion: (idea.produccion && idea.produccion.length ? idea.produccion : s.produccion)
@@ -2726,7 +2738,7 @@ function conectarArrastreDeIdeas() {
 
       abrirPieza(null, {
         vieneDeIdea: idea.id,
-        estado: 'brief',
+        estado: 'produccion',
         titulo: c.titulo, pilar: c.pilar, formato: c.formato, canales: c.canales,
         fecha, notas: idea.texto, no_antes: c.no_antes, no_despues: c.no_despues,
         produccion: (idea.produccion && idea.produccion.length ? idea.produccion : c.produccion)
@@ -4765,7 +4777,7 @@ function encargarDesdeTema(idTema) {
     pilar: 'academia',
     formato: 'Nota',
     canales: ['web', 'fb', 'li'],
-    estado: 'brief',
+    estado: 'produccion',
     estado_nota: 'encargada',
     experto: t.experto || '',
     notas: t.angulo,
@@ -6304,8 +6316,24 @@ function avisosPara(yo) {
       meter(p, 'caduca', 'revisa', 'Cambió después de que la revisaste',
             'La aprobación ya no aplica a lo que hay ahora.', p.actualizado);
     }
-    // A quien revisa: sale pronto y nadie la ha visto
+    /* A quien revisa: se la mandaron.
+       Poner una pieza en Revisión es pedir el visto bueno, y hasta
+       ahora no hacia nada: el estado y la fila de aprobacion eran
+       dos mundos que no se hablaban. Leo puso un carrusel en "VoBo
+       institucional" dando por hecho que con eso le llegaba a
+       Marysol, y no le llegaba por eso -- le llegaba de casualidad,
+       porque salia ese mismo dia. */
     if (r.estado === 'pendiente' && !r.caducada && apruebo
+        && estadoDePieza(p) === 'revision') {
+      meter(p, 'pidenvobo', 'revisa', 'Te la mandaron a revisar',
+            archivosDe(p).length
+              ? `Sale ${fechaLegible(p.fecha) || 'sin fecha'}.`
+              : 'Todavía no tiene arte.', p.actualizado);
+    }
+    /* Y la red de seguridad para lo que nadie marco a mano: sale
+       pronto y sigue sin que nadie la vea. */
+    if (r.estado === 'pendiente' && !r.caducada && apruebo
+        && estadoDePieza(p) !== 'revision'
         && archivosDe(p).length && p.fecha && p.fecha <= cerca && p.fecha >= hoy) {
       meter(p, 'sinver', 'revisa', 'Sale pronto y nadie la ha revisado',
             `Sale ${fechaLegible(p.fecha)}.`, p.fecha);
@@ -7223,7 +7251,7 @@ function conectarEventos() {
   $('#nuevaNota').addEventListener('click', () => {
     abrirPieza(null, {
       pilar: 'academia', formato: 'Nota', canales: ['web', 'fb', 'li'],
-      estado: 'brief', estado_nota: 'encargada',
+      estado: 'produccion', estado_nota: 'encargada',
       produccion: guiaDeProduccion('Nota', 'academia').map(x => '· ' + x).join('\n'),
     });
   });
