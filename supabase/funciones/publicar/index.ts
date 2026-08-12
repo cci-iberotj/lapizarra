@@ -327,11 +327,16 @@ function revisarArte(pieza: any, red: 'ig' | 'fb') {
 
   const mezcla = videos.length > 0 && videos.length !== archivos.length;
 
-  if (mezcla && red === 'fb') {
+  /* Facebook no puede con el video, pero si con las fotos. En vez
+     de negarse, publica el carrusel sin el video -- decision de
+     Leo. Se avisa en la ficha ANTES y queda escrito en el registro
+     DESPUES: lo que no se puede es que salga distinto en cada red
+     y que nadie se entere.
+
+     Lo unico que si se niega es quedarse sin nada que publicar. */
+  if (mezcla && red === 'fb' && archivos.length - videos.length === 0) {
     throw new Error(
-      'Facebook no acepta carruseles que mezclen video y fotos. ' +
-      'Quita Facebook de los canales de esta pieza, o saca el video ' +
-      'a una pieza aparte.');
+      'En Facebook este carrusel se queda sin nada: todas sus láminas son video.');
   }
   // Un video solo va como Reel; dos o mas sin fotos no es nada que
   // Instagram sepa publicar.
@@ -519,8 +524,12 @@ async function publicarEnFacebook(pieza: any) {
 
        Esto valia para varias fotos desde el principio; la de una
        sola era la que estaba mal. */
+    /* Sin los videos: Facebook no los puede colgar de una
+       publicacion de /feed. El aviso de que salio sin ellos va en
+       el registro, mas abajo. */
+    const soloFotos = archivos.filter((a: any) => !esVideo(a));
     const fotos: string[] = [];
-    for (const a of archivos) {
+    for (const a of soloFotos) {
       const d = await aMetaPost(`${FB}/${pagina.id}/photos`, {
         url: await enlaceFirmado(paraPublicar(a)),
         published: 'false', temporary: 'true', access_token: TOKEN_FB });
@@ -540,7 +549,15 @@ async function publicarEnFacebook(pieza: any) {
     enlace = m.permalink_url || null;
   } catch { /* el enlace es un extra: ya se publico */ }
 
-  return { id: idPost, enlace, laminas: archivos.length };
+  /* Si se quedaron videos fuera, se dice AQUI, en el registro que
+     ve el equipo -- no solo en la ficha antes de publicar. Que
+     Facebook e Instagram salgan distintos es una decision tomada,
+     no un accidente que haya que reconstruir despues. */
+  const dejados = archivos.filter((a: any) => esVideo(a)).length;
+  return {
+    id: idPost, enlace, laminas: archivos.length - dejados,
+    ...(dejados ? { sinVideo: dejados } : {}),
+  };
 }
 
 /* Se guarda con la llave de dueño: quien publica no necesariamente

@@ -3387,12 +3387,14 @@ function abrirPieza(idPieza, prellenado) {
         const a = archivosDe(p);
         const vids = a.filter(x => /^video\//.test(x.tipo || '') || /\.(mp4|mov|m4v)$/i.test(x.ruta || ''));
         if (!vids.length || vids.length === a.length) return '';
+        const fotos = a.length - vids.length;
         return (p.canales || []).includes('fb')
-          ? `<span class="ayuda alerta-campo">Este carrusel mezcla video y fotos.
-             Instagram lo acepta, <b>Facebook no</b>: quita Facebook de los canales
-             o saca el video a una pieza aparte.</span>`
-          : `<span class="ayuda">Carrusel mixto: ${vids.length} de video y ${
-             a.length - vids.length} de foto. Instagram lo acepta.</span>`;
+          ? `<span class="ayuda alerta-campo">Carrusel mixto: ${vids.length} de video y
+             ${fotos} de foto. En Instagram sale completo; <b>en Facebook sale sin el
+             video</b>, sólo con ${fotos === 1 ? 'la foto' : 'las ' + fotos + ' fotos'} —
+             Facebook no puede colgar video de un carrusel.</span>`
+          : `<span class="ayuda">Carrusel mixto: ${vids.length} de video y ${fotos} de foto.
+             Instagram lo acepta.</span>`;
       })()}
       <input type="file" id="f_archivo" accept="${
         info.quiere === 'video' ? 'video/mp4,video/quicktime'
