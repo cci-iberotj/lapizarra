@@ -172,7 +172,7 @@ const FORMATOS_INFO = {
   Carrusel: {
     forma: 'laminas', quiere: 'laminas', minimo: 2, copyFb: true,
     arte: 'Las láminas del carrusel',
-    espec: '1080×1350 (4:5) o 1080×1080. De 2 a 20 láminas.',
+    espec: '1080×1350 (4:5) o 1080×1080. De 2 a 10 láminas.', maximo: 10,
     ayuda: 'El orden importa: la primera es la que detiene el pulgar.',
     canales: ['ig', 'fb'],
   },
@@ -3379,6 +3379,12 @@ function abrirPieza(idPieza, prellenado) {
             ? `<span class="ayuda">${esc(info.ayuda || '')} Arrastra para reacomodar — o con el teclado, ← y → sobre la lámina. El acomodo se guarda solo.</span>`
             : '<span class="ayuda">Se guarda tal cual llegó. La vista previa lo enseña como va a salir.</span>')
         : `<span class="ayuda">${esc(info.espec)}${info.ayuda ? ' ' + esc(info.ayuda) : ''}</span>`}
+      ${info.maximo && archivosDe(p).length > info.maximo
+        ? `<span class="ayuda alerta-campo">Llevas ${archivosDe(p).length} láminas y por aquí
+           salen <b>${info.maximo}</b>. La app de Instagram admite 20, pero publicando desde
+           fuera no: Instagram web topa en 10, y veinte llamadas seguidas agotan la cuota de
+           la API a media tanda. Quita ${archivosDe(p).length - info.maximo} o pártelo en dos
+           publicaciones.</span>` : ''}
       ${info.minimo && archivosDe(p).length && archivosDe(p).length < info.minimo
         ? `<span class="ayuda alerta-campo">Un carrusel necesita al menos ${info.minimo} láminas. Llevas ${archivosDe(p).length}.</span>` : ''}
       ${(() => {
@@ -6736,6 +6742,29 @@ function pintarPrevia() {
               ${s.enlace ? `<a href="${esc(s.enlace)}" target="_blank" rel="noopener">Ver el post ↗</a>` : ''}
             </div>`; }).join('')}
 
+          ${p.autoerror ? `<div class="ap-fallo">
+            <b>No salió sola.</b> ${esc(p.autoerror.texto || 'sin detalle')}
+            ${/rate.?limit|cuota/i.test(p.autoerror.texto || '')
+              ? '<br><span class="tenue">Es cuota de la API, no un problema de la pieza: se repone sola. Espera una hora y vuelve a darle.</span>'
+              : ''}
+          </div>` : ''}
+
+          ${(() => {
+            /* Decir "ya lo publiqué a mano". Sin esto, una pieza
+               publicada por fuera sigue armada y sin registro: el
+               reloj la ve pendiente y la publica otra vez. Paso hoy
+               y lo evite escribiendo en la base a mano, que no es
+               forma. */
+            if (soloLectura('parrilla_piezas')) return '';
+            const faltan = redesDe(p).filter(x => !(p.publicaciones || {})[x.id]);
+            if (!faltan.length || !archivosDe(p).length) return '';
+            return `<div class="ap-amano">
+              ${faltan.map(x => `<button type="button" class="btn-plano" data-amano="${x.id}">
+                Ya lo publiqué en ${esc(x.nombre)}</button>`).join('')}
+              <span class="ayuda">Si lo subiste por fuera, dilo aquí: si no, el reloj lo vuelve a publicar.</span>
+            </div>`;
+          })()}
+
           ${rev.caducada ? (() => {
             const qs = queCambio(p);
             const lista = qs.length
@@ -6929,6 +6958,30 @@ async function pintarLaminas() {
 
 function conectarPrevia() {
   const p = previaCtx.pieza;
+
+  /* "Ya lo publiqué en X". Queda el registro por red, que es lo que
+     el reloj mira para no repetir. No se inventa enlace: quien lo
+     subió sabe dónde está, y un enlace falso es peor que ninguno. */
+  $$('[data-amano]', $('#previaCuerpo')).forEach(b => b.addEventListener('click', async () => {
+    const red = REDES_AUTOMATICAS.find(x => x.id === b.dataset.amano);
+    if (!red) return;
+    if (!confirm(`¿Marcar esta pieza como ya publicada en ${red.nombre}?
+
+` +
+                 'Sirve para que no se vuelva a publicar sola. No sube nada.')) return;
+    p.publicaciones = p.publicaciones || {};
+    p.publicaciones[red.id] = {
+      id: 'manual',
+      por: (Almacen.usuario ? Almacen.usuario.nombre : '') + ' (a mano)',
+      cuando: ahora(),
+    };
+    delete p.autoerror;
+    p.actualizado = ahora();
+    await guardar('parrilla');
+    avisar(`Anotado: ${red.nombre} ya no se va a publicar sola.`);
+    pintarPrevia();
+    refrescarParrilla();
+  }));
 
   const registrarAprobacion = (estado) => {
     const texto = ($('#apTexto').value || '').trim();

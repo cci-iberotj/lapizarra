@@ -3750,3 +3750,15 @@ body.solo-creacion #progreso { display: none; }
   pointer-events: none;
 }
 .sim-lienzo video { width: 100%; display: block; background: #000; }
+
+/* No salio sola: el motivo de Meta con sus palabras, no un
+   "no se pudo completar" que no dice que hacer. */
+.ap-fallo {
+  margin-top: var(--e-4); padding: var(--e-4);
+  background: var(--peligro-velo); border-radius: var(--r-sm);
+  font-size: var(--t-meta); color: var(--tinta-media); line-height: 1.5;
+}
+.ap-fallo b { color: var(--peligro); }
+
+.ap-amano { display: grid; gap: 6px; margin-top: var(--e-4); }
+.ap-amano .ayuda { font-size: var(--t-sello); }

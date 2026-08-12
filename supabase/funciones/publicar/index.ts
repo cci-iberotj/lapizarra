@@ -247,6 +247,27 @@ async function enlaceFirmado(ruta: string) {
    equivocada. */
 const TOPE_FOTO_META = 8 * 1024 * 1024;
 
+/* CUANTAS LAMINAS ADMITE UN CARRUSEL
+
+   Instagram-la-app subio de 10 a 20 en 2024. La Graph API --que es
+   por donde publica esto-- documentaba 10 y las fuentes se
+   contradicen sobre si ya se puso al dia.
+
+   No se puede resolver leyendo: se sube a 20 y que conteste Meta.
+   Si rechaza, su error trae el numero de verdad y este vuelve a 10
+   con fundamento en vez de con una nota vieja. Falla seguro: la
+   revision previa corre ANTES de mandar nada, asi que un rechazo no
+   deja medio carrusel publicado.
+
+   Este numero es el unico: la ficha lo lee de aqui para no volver a
+   prometer 20 mientras la publicacion exige 10. */
+const TOPE_LAMINAS_IG = 10;
+/* Se probo con 20 y no se pudo concluir: la cuota de la API murio a
+   media tanda, antes de que Meta llegara a opinar del numero. Lo que
+   si es dato: Instagram WEB topa en 10, y veinte llamadas seguidas
+   agotan la cuota aunque el limite las permitiera. Con eso, 20 es
+   una apuesta y 10 es lo que se sabe que sale. */
+
 /* El puntero de una variante tiene que corresponder a su ruta. Si
    no, se ensucio en algun lado y publicariamos la foto equivocada
    -- ya paso una vez con los sellos del carrusel. */
@@ -409,8 +430,9 @@ async function publicarEnInstagram(pieza: any) {
 
   const archivos = archivosDe(pieza);
   if (!archivos.length) throw new Error('La pieza no tiene arte que publicar.');
-  if (archivos.length > 10) {
-    throw new Error(`Instagram admite 10 láminas y esta tiene ${archivos.length}.`);
+  if (archivos.length > TOPE_LAMINAS_IG) {
+    throw new Error(
+      `Instagram admite ${TOPE_LAMINAS_IG} láminas y esta tiene ${archivos.length}.`);
   }
   revisarArte(pieza, 'ig');
 
