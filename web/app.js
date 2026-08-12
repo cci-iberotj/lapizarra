@@ -3975,10 +3975,20 @@ function selloDe(a) { return varianteDe(a, 'mini') !== a.ruta ? varianteDe(a, 'm
 
 /* Una lamina se dibuja en un solo sitio. Se usa al abrir la ficha y
    al agregar mas sin reconstruirla. */
+/* Una lamina puede ser video desde que los carruseles aceptan
+   mezcla. El tipo se guarda al subirla; la extension es el respaldo
+   para lo capturado antes de que existiera ese campo. */
+function laminaEsVideo(a) {
+  const t = String((a && a.tipo) || '');
+  if (t) return t.startsWith('video/');
+  return /\.(mp4|mov|m4v)$/i.test(String((a && a.ruta) || ''));
+}
+
 function dibujarLamina(a, i) {
   return `<div class="lamina" data-lamina="${i}" tabindex="0"
        title="${esc(a.nombre || a.ruta.split('/').pop())} — arrástrala para moverla">
-    <span class="lamina-foto" data-sello="${esc(selloDe(a))}"></span>
+    <span class="lamina-foto${laminaEsVideo(a) ? ' es-video' : ''}"
+          data-${laminaEsVideo(a) ? 'video' : 'sello'}="${esc(laminaEsVideo(a) ? a.ruta : selloDe(a))}"></span>
     <span class="lamina-n">${i + 1}</span>
     <span class="lamina-acciones">
       <button type="button" class="btn-mini" data-reemplazar="${i}" title="Cambiar esta lámina por otra">⇄</button>
@@ -3997,7 +4007,9 @@ function collageDe(pieza, cuantas) {
   const muestra = todas.slice(0, cuantas);
   const resto = todas.length - muestra.length;
   return `<div class="collage n${muestra.length}">
-    ${muestra.map(a => `<span class="collage-foto" data-sello="${esc(selloDe(a))}"></span>`).join('')}
+    ${muestra.map(a => `<span class="collage-foto${laminaEsVideo(a) ? ' es-video' : ''}"
+        data-${laminaEsVideo(a) ? 'video' : 'sello'}="${
+        esc(laminaEsVideo(a) ? a.ruta : selloDe(a))}"></span>`).join('')}
     ${resto > 0 ? `<span class="collage-mas">+${resto}</span>` : ''}
   </div>`;
 }
@@ -4013,6 +4025,25 @@ function pintarMiniaturas(raiz) {
     try {
       el.style.backgroundImage = `url("${await urlDeArchivo(el.dataset.sello)}")`;
       el.classList.add('cargada');
+    } catch (e) {
+      el.classList.add('rota');
+    }
+  });
+
+  /* Un video no tiene version de imagen que poner de fondo: se
+     mete el video mismo, mudo y en su primer fotograma. Antes se
+     le daba el .mp4 a background-image y no pintaba nada -- una
+     lamina en blanco sin explicacion. */
+  $$('[data-video]', raiz || document).forEach(async el => {
+    if (el.dataset.puesto) return;
+    el.dataset.puesto = '1';
+    try {
+      const url = await urlDeArchivo(el.dataset.video);
+      el.innerHTML = `<video src="${esc(url)}#t=0.1" muted playsinline preload="metadata"></video>`;
+      el.classList.add('cargada');
+      const v = el.querySelector('video');
+      el.addEventListener('mouseenter', () => { v.loop = true; v.play().catch(() => {}); });
+      el.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0.1; });
     } catch (e) {
       el.classList.add('rota');
     }
@@ -6870,12 +6901,18 @@ async function pintarLaminas() {
   const a = archivos[laminaActual] || archivos[0];
   lienzo.innerHTML = '<div class="sim-cargando">Cargando…</div>';
   try {
-    const url = await urlDeArchivo(varianteDe(a, 'previa'));
+    /* El video se pide entero: no tiene version de pantalla, y
+       ademas es lo que hay que ver moverse para juzgarlo. */
+    const video = laminaEsVideo(a);
+    const url = await urlDeArchivo(video ? a.ruta : varianteDe(a, 'previa'));
     const flechas = archivos.length > 1 ? `
       <button class="sim-flecha izq" id="simAtras" aria-label="Lámina anterior">‹</button>
       <button class="sim-flecha der" id="simAdelante" aria-label="Lámina siguiente">›</button>
       <span class="sim-cuenta">${laminaActual + 1}/${archivos.length}</span>` : '';
-    lienzo.innerHTML = `<img src="${url}" alt="${esc(a.nombre || '')}">${flechas}`;
+    lienzo.innerHTML = (video
+      ? `<video src="${url}" controls playsinline preload="metadata"
+                aria-label="${esc(a.nombre || '')}"></video>`
+      : `<img src="${url}" alt="${esc(a.nombre || '')}">`) + flechas;
 
     if (archivos.length > 1) {
       $('#simAtras').addEventListener('click', () => {
