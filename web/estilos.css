@@ -3762,3 +3762,72 @@ body.solo-creacion #progreso { display: none; }
 
 .ap-amano { display: grid; gap: 6px; margin-top: var(--e-4); }
 .ap-amano .ayuda { font-size: var(--t-sello); }
+
+/* ── Cuenta regresiva ──────────────────────────────────────
+   Los dias que faltan, en grande. Una fecha obliga a restar de
+   cabeza; un numero se lee de un vistazo. Lo de hoy no lleva
+   numero: lleva la hora, que es lo que importa cuando faltan horas
+   y no dias. */
+.cuenta-regresiva {
+  display: grid; gap: var(--e-4);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-bottom: var(--e-5);
+}
+.cuenta-tarjeta {
+  display: grid; gap: 2px; text-align: left; cursor: pointer;
+  padding: var(--e-4) var(--e-5);
+  background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  border-left: 4px solid var(--cuenta-tono, var(--info));
+  border-radius: var(--r-lg);
+  transition: transform var(--dur-instantanea), box-shadow var(--dur-rapida);
+}
+.cuenta-tarjeta:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-2);
+}
+.cuenta-cifra {
+  font-size: var(--t-dato); font-weight: var(--peso-fuerte);
+  line-height: 1; letter-spacing: -.02em;
+  color: var(--cuenta-tono, var(--info));
+  font-variant-numeric: tabular-nums;
+}
+.cuenta-unidad {
+  font-size: var(--t-sello); text-transform: uppercase;
+  letter-spacing: .09em; color: var(--tinta-tenue);
+  font-weight: var(--peso-medio);
+}
+.cuenta-titulo {
+  margin-top: 6px; font-size: var(--t-cuerpo);
+  font-weight: var(--peso-medio); color: var(--tinta);
+  line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.cuenta-pie {
+  font-size: var(--t-sello); color: var(--tinta-tenue);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Hoy pesa mas: es el unico que ya no se puede reprogramar. */
+.cuenta-tarjeta.es-hoy {
+  background: var(--marca-velo);
+  border-color: var(--marca-tinta);
+  border-left-color: var(--marca-tinta);
+}
+/* HOY y MAÑANA son palabras, no cifras: a 28px MAÑANA se comia la
+   tarjeta y hacia que HOY --que es lo urgente-- se viera menos.
+   La jerarquia la marca el color, no el tamaño. */
+.cuenta-cifra.palabra { font-size: var(--t-guia); letter-spacing: .01em; }
+.cuenta-tarjeta.es-hoy .cuenta-cifra { color: var(--marca-tinta); }
+.cuenta-tarjeta.es-hoy .cuenta-unidad { color: var(--marca-tinta); }
+
+/* ── La cola del mes siguiente ─────────────────────────────
+   Se dibuja siempre y recibe lo que se le suelte: mover una pieza
+   al mes que viene no deberia obligar a cambiar de vista. */
+.celda.del-siguiente {
+  background: var(--capa-hundida);
+  border-style: dashed;
+}
+.celda.del-siguiente .celda-numero span {
+  color: var(--tinta-tenue); font-weight: var(--peso-medio);
+}

@@ -615,6 +615,7 @@ function refrescarTodo() {
   pintarRedaccion();
   pintarEscritorio();
   pintarEntregas();
+  pintarCuenta();
   aplicarPermisos();
   recortarParaCreacion();
   const cajaPiel = $('#verComoCaja');
@@ -2621,6 +2622,50 @@ function coberturaDeEvento(e) {
 
 /* ── Lo que viene ──────────────────────────────────────── */
 
+/* ── La cuenta regresiva ───────────────────────────────────
+   Lo que viene, con los dias que faltan en grande. Existe porque
+   "Fri 04/09" no le dice a nadie cuanto falta: hay que restar de
+   cabeza cada vez. Un numero grande sí.
+
+   Lo de hoy no lleva numero: lleva la hora, que es el dato que
+   importa cuando el evento es en unas horas. */
+function pintarCuenta() {
+  const cont = $('#cuentaRegresiva');
+  if (!cont) return;
+
+  const ahora = new Date();
+  const hoy = aTexto(ahora);
+  const proximos = (datos.parrilla.eventos || [])
+    .filter(e => e.estado !== 'cancelado' && e.fecha && !yaPaso(e, ahora))
+    .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')))
+    .slice(0, 4);
+
+  if (!proximos.length) { cont.hidden = true; cont.innerHTML = ''; return; }
+  cont.hidden = false;
+
+  cont.innerHTML = proximos.map(e => {
+    const dias = Math.round((aFecha(e.fecha) - aFecha(hoy)) / 86400000);
+    const et = etiquetaEvento(e);
+    const esHoy = dias === 0;
+    return `
+      <button type="button" class="cuenta-tarjeta${esHoy ? ' es-hoy' : ''}"
+              data-evento="${esc(e.id)}" style="--cuenta-tono:${et.tono}">
+        <span class="cuenta-cifra${dias <= 1 ? ' palabra' : ''}">${esHoy
+          ? 'HOY'
+          : dias === 1 ? 'MAÑANA' : dias}</span>
+        <span class="cuenta-unidad">${esHoy
+          ? (e.hora ? esc(horaLegible(e.hora)) : 'sin hora')
+          : dias === 1 ? (e.hora ? esc(horaLegible(e.hora)) : '') : 'días'}</span>
+        <span class="cuenta-titulo">${esc(e.titulo || 'Sin nombre')}</span>
+        <span class="cuenta-pie">${esc(fechaLegible(e.fecha))}${
+          e.lugar ? ' · ' + esc(e.lugar) : ''}</span>
+      </button>`;
+  }).join('');
+
+  $$('.cuenta-tarjeta', cont).forEach(b =>
+    b.addEventListener('click', () => abrirFichaEvento(b.dataset.evento)));
+}
+
 function pintarEventos() {
   const cont = $('#listaEventos');
   if (!cont) return;
@@ -2680,6 +2725,7 @@ setInterval(() => {
   if (document.hidden) return;
   if (!$('#modalFondo').hidden || !$('#previa').hidden) return;
   pintarEventos();
+  pintarCuenta();
 }, 120000);
 
 
@@ -2711,7 +2757,9 @@ function conectarArrastreDeIdeas() {
   });
 
   $$('.celda').forEach(celda => {
-    if (celda.classList.contains('fuera')) return;
+    // Los dias del mes que viene tambien reciben: eran justo los
+    // que no dejaban mover una pieza al mes siguiente.
+    if (celda.classList.contains('fuera') && !celda.classList.contains('del-siguiente')) return;
 
     celda.addEventListener('dragover', ev => {
       if (!ideaArrastrada) return;
@@ -2849,7 +2897,13 @@ function pintarCalendario() {
     const dia = sumarDias(arranque, i);
     const txt = aTexto(dia);
     const fuera = dia.getMonth() !== mes;
-    if (fuera && i >= 35) continue; // no pintes una sexta fila vacía
+    /* La sexta fila se dibujaba solo si el mes la usaba, asi que
+       cuando el mes cerraba en domingo no quedaba ni un dia del
+       siguiente donde soltar algo. Ahora siempre hay cola: mover una
+       pieza al mes que viene no deberia obligar a cambiar de vista y
+       perder de vista de donde venia. */
+    const despues = fuera && dia > primero;
+    if (fuera && i >= 35 && !despues) continue;
 
     const piezas = (porFecha[txt] || []).map(p => {
       const pil = PILARES.find(x => x.id === p.pilar);
@@ -2902,9 +2956,11 @@ function pintarCalendario() {
 
     const finde = dia.getDay() === 0 || dia.getDay() === 6;
     celdas.push(`
-      <div class="celda${fuera ? ' fuera' : ''}${txt === hoy ? ' hoy' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
+      <div class="celda${fuera ? ' fuera' : ''}${despues ? ' del-siguiente' : ''}${txt === hoy ? ' hoy' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
         <div class="celda-numero">
-          <span>${dia.getDate()}</span>
+          <span>${dia.getDate() === 1 && fuera
+            ? MESES[dia.getMonth()].slice(0, 3) + ' 1'
+            : dia.getDate()}</span>
           <button class="celda-agregar" data-fecha="${txt}" title="Agregar pieza este día">+</button>
         </div>
         ${eventos}
@@ -3136,7 +3192,7 @@ function conectarArrastre(cont) {
       // Pinta de una vez qué días aceptan esta pieza y cuáles no
       if (piezaArrastrada) {
         $$('.celda', cont).forEach(c => {
-          if (c.classList.contains('fuera')) return;
+          if (c.classList.contains('fuera') && !c.classList.contains('del-siguiente')) return;
           const f = c.dataset.fecha;
           const ocupada = datos.parrilla.piezas.some(p => p.fecha === f && p.id !== piezaArrastrada.id);
           c.classList.add(fueraDeVentana(piezaArrastrada, f) || ocupada ? 'veta' : 'acepta');
@@ -3152,7 +3208,10 @@ function conectarArrastre(cont) {
   });
 
   $$('.celda', cont).forEach(celda => {
-    if (celda.classList.contains('fuera')) return;
+    // Este es el que de verdad recibe el soltar; el de arriba solo
+    // pinta el resaltado. Se me habia escapado, y la celda se
+    // iluminaba sin aceptar nada -- peor que no iluminarse.
+    if (celda.classList.contains('fuera') && !celda.classList.contains('del-siguiente')) return;
 
     celda.addEventListener('dragover', ev => {
       if (!piezaArrastrada) return;
