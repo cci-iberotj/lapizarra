@@ -1289,6 +1289,7 @@ textarea.campo.alto { min-height: 132px; }
 
   /* Las pestañas al final, en su propio renglon completo. Se
      deslizan de lado en vez de encimarse o cortarse. */
+  .barra { flex-wrap: wrap; }
   .tabs {
     order: 5; flex: 1 0 100%;
     overflow-x: auto; scrollbar-width: none;
@@ -3830,4 +3831,92 @@ body.solo-creacion #progreso { display: none; }
 }
 .celda.del-siguiente .celda-numero span {
   color: var(--tinta-tenue); font-weight: var(--peso-medio);
+}
+
+/* ══════════════════════════════════════════════════════════
+   QUE NADA SE SALGA DE SU CAJA
+
+   En una laptop las pestañas se apretaban, partian su texto en dos
+   o tres renglones y se salian de la barra --que tiene altura
+   fija-- encimandose con el contenido de abajo. El colapso a
+   renglon propio solo entraba por debajo de 980px, y el problema
+   empieza mucho antes.
+   ══════════════════════════════════════════════════════════ */
+
+/* Una pestaña nunca parte su nombre. */
+.tab { white-space: nowrap; }
+
+/* Y si no caben, se deslizan de lado en vez de amontonarse. Vale
+   para cualquier ancho, no solo para telefono. */
+.tabs {
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* El elemento que cede es este: la marca y los controles de la
+     derecha tienen tamaño propio, las pestañas no. Sin flex-shrink
+     no cabian los tres y los controles saltaban a un segundo
+     renglon, dejando la barra en 103px de alto. */
+  flex: 1 1 auto; min-width: 0;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab { flex: 0 0 auto; }
+
+/* La barra crece en vez de dejar que se le salga el contenido. La
+   altura fija era la que convertia un aprieton en un encimado. */
+/* Sin envolver: con flex-wrap los hijos SALTAN de renglon antes de
+   encogerse, y la barra crecia a 103px en vez de dejar que las
+   pestañas cedieran. El min-height queda de red por si algun dia
+   algo no puede encoger mas. */
+.barra { height: auto; min-height: 62px; flex-wrap: nowrap; }
+.barra > * { min-width: 0; }
+
+/* El nombre del sistema cede espacio antes que las pestañas: se
+   puede adivinar, y ellas no. */
+.marca { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+
+/* En la caja del mes el sello del evento se cortaba a la mitad.
+   Que se acorte con puntos suspensivos, no a mordida. */
+.cal-evento .sello { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Con tres carriles el calendario se queda con celdas de 90px.
+   Debajo de 1500 los rieles ceden ancho antes que el calendario,
+   que es donde de verdad se trabaja. */
+@media (min-width: 1100px) and (max-width: 1500px) {
+  #vista-parrilla .carriles {
+    grid-template-columns: minmax(200px, 250px) minmax(0, 1fr) minmax(200px, 260px);
+  }
+}
+
+/* "Ver como" es una herramienta de comprobacion, no algo de uso
+   diario: no tiene por que ocupar 200px de la barra. */
+.ver-como .campo-mini { min-width: 0; max-width: 120px; }
+
+/* Los tres carriles entraban desde 1100px, y ahi el calendario se
+   quedaba con celdas de 63px y el cuerpo desbordaba de lado. Tres
+   columnas necesitan mas aire: por debajo de 1250 los rieles se
+   apilan encima del calendario, que sigue siendo utilizable. */
+@media (max-width: 1250px) {
+  #vista-parrilla .carriles { grid-template-columns: minmax(0, 1fr); }
+  #vista-parrilla .riel { position: static; max-height: none; }
+}
+
+/* El lado derecho de la barra no encogia y se salia de la pantalla.
+   Encoge, y en pantallas chicas cede lo que no se usa a diario:
+   el letrero de "guardado" --que ya se ve en el historial-- y el
+   selector de "Ver como", que es una herramienta de comprobacion.
+   Deshacer, avisos y Salir no se tocan. */
+/* NO encoge: sus hijos son botones de tamaño fijo, asi que al
+   apretarla el contenido se le salia por la derecha en vez de
+   acomodarse. Quien cede es la tira de pestañas, que puede
+   deslizarse. */
+.barra-derecha { flex: 0 0 auto; }
+
+/* Las pestañas se deslizan de lado a CUALQUIER ancho, no solo en
+   telefono. Esto deja sin efecto la regla de mas arriba que las
+   mandaba a su propio renglon debajo de 980px: un solo
+   comportamiento es mas facil de tener en la cabeza que dos, y
+   deslizar no mueve el resto de la barra de sitio. */
+.tabs { flex: 1 1 0; }
+@media (max-width: 1250px) {
+  #estadoGuardado { display: none; }
+  .ver-como { display: none; }
 }
