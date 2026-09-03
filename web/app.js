@@ -146,9 +146,15 @@ const CANALES = [
   { id: 'fb',  nombre: 'Facebook',    corto: 'FB',  color: 'var(--canal-fb)' },
   { id: 'li',  nombre: 'LinkedIn',    corto: 'LI',  color: 'var(--canal-li)' },
   { id: 'yt',  nombre: 'YouTube',     corto: 'YT',  color: 'var(--canal-yt)' },
+  /* Prensa no es una red: es una lista de correos a la que alguien
+     manda el boletin a mano. Esta aqui para que un boletin pueda
+     vivir en el calendario con los demas, no porque se publique
+     solo. La validacion de "salir sola" ya exige Instagram o
+     Facebook, asi que nada de prensa se dispara por su cuenta. */
+  { id: 'prensa', nombre: 'Prensa', corto: 'PRENSA', color: 'var(--canal-prensa)' },
 ];
 
-const FORMATOS = ['Nota', 'Reel', 'Short', 'Carrusel', 'Foto', 'Video', 'Story', 'Texto'];
+const FORMATOS = ['Boletín', 'Nota', 'Reel', 'Short', 'Carrusel', 'Foto', 'Video', 'Story', 'Texto'];
 
 /* ── Qué pide cada formato ─────────────────────────────────
    FORMATOS era una lista de palabras: el formulario nunca supo qué
@@ -217,6 +223,18 @@ const FORMATOS_INFO = {
     forma: 'texto', quiere: 'ninguno', copyFb: true,
     arte: '', espec: '',
     canales: ['fb', 'li'],
+  },
+  /* El boletin es un DOCUMENTO, no una imagen: se manda por correo
+     a prensa, no se publica en una red. Vive aqui para que tenga
+     fecha, revision y lugar en el calendario como todo lo demas --
+     que era lo que pedia Marysol. Lo que NO hace es enviarse solo:
+     eso sigue siendo un correo que alguien manda. */
+  'Boletín': {
+    forma: 'documento', quiere: 'documento', experto: true,
+    arte: 'El boletín',
+    espec: 'Word o PDF. El que se le manda a prensa tal cual.',
+    ayuda: 'Súbelo aquí y queda con su fecha en el calendario.',
+    canales: ['prensa'],
   },
 };
 
@@ -3462,7 +3480,8 @@ function abrirPieza(idPieza, prellenado) {
              Instagram lo acepta.</span>`;
       })()}
       <input type="file" id="f_archivo" accept="${
-        info.quiere === 'video' ? 'video/mp4,video/quicktime'
+        info.quiere === 'documento' ? '.doc,.docx,.pdf,.odt,.rtf,.txt'
+        : info.quiere === 'video' ? 'video/mp4,video/quicktime'
         : info.quiere === 'laminas' ? 'image/jpeg,image/png,video/mp4,video/quicktime'
         : 'image/jpeg,image/png'}" ${info.quiere === 'laminas' ? 'multiple' : ''} hidden>
       <input type="file" id="f_reemplazo" hidden>
@@ -3471,7 +3490,8 @@ function abrirPieza(idPieza, prellenado) {
           archivosDe(p).length
             ? (info.quiere === 'laminas' ? '+ Agregar láminas' : 'Reemplazar')
             : 'Subir ' + (info.quiere === 'laminas' ? 'las láminas'
-                        : info.quiere === 'video' ? 'el video' : 'la imagen')}</button>
+                        : info.quiere === 'video' ? 'el video'
+                        : info.quiere === 'documento' ? 'el boletín' : 'la imagen')}</button>
       </div>
     </div>`}
 
@@ -4049,11 +4069,35 @@ function laminaEsVideo(a) {
   return /\.(mp4|mov|m4v)$/i.test(String((a && a.ruta) || ''));
 }
 
+
+/* Un boletin no es foto ni video: es un documento. No tiene
+   miniatura que poner de fondo, asi que la teja enseña su
+   extension y su peso. */
+const EXT_DOC = ['.doc', '.docx', '.pdf', '.odt', '.rtf', '.txt'];
+
+function laminaEsDocumento(a) {
+  const t = String((a && a.tipo) || '');
+  if (/^image\//.test(t) || /^video\//.test(t)) return false;
+  const ruta = String((a && a.ruta) || '').toLowerCase();
+  return EXT_DOC.some(x => ruta.endsWith(x));
+}
+
+function extensionDe(a) {
+  const r = String((a && a.ruta) || '');
+  const p = r.lastIndexOf('.');
+  return p < 0 ? 'DOC' : r.slice(p + 1).toUpperCase();
+}
+
 function dibujarLamina(a, i) {
   return `<div class="lamina" data-lamina="${i}" tabindex="0"
        title="${esc(a.nombre || a.ruta.split('/').pop())} — arrástrala para moverla">
-    <span class="lamina-foto${laminaEsVideo(a) ? ' es-video' : ''}"
-          data-${laminaEsVideo(a) ? 'video' : 'sello'}="${esc(laminaEsVideo(a) ? a.ruta : selloDe(a))}"></span>
+    ${laminaEsDocumento(a)
+      ? `<span class="lamina-foto es-doc">
+           <span class="doc-ext">${esc(extensionDe(a))}</span>
+           <span>${esc(pesoLegible(a.peso || 0))}</span>
+         </span>`
+      : `<span class="lamina-foto${laminaEsVideo(a) ? ' es-video' : ''}"
+          data-${laminaEsVideo(a) ? 'video' : 'sello'}="${esc(laminaEsVideo(a) ? a.ruta : selloDe(a))}"></span>`}
     <span class="lamina-n">${i + 1}</span>
     <span class="lamina-acciones">
       <button type="button" class="btn-mini" data-reemplazar="${i}" title="Cambiar esta lámina por otra">⇄</button>
@@ -6991,6 +7035,17 @@ async function pintarLaminas() {
   try {
     /* El video se pide entero: no tiene version de pantalla, y
        ademas es lo que hay que ver moverse para juzgarlo. */
+    /* Un documento no se puede enseñar aqui: la previa simula un
+       post de red social y un boletin no es eso. Se ofrece bajarlo,
+       que es lo unico util. */
+    if (laminaEsDocumento(a)) {
+      lienzo.innerHTML = `<div class="sim-vacio">
+        <b>${esc(a.nombre || extensionDe(a))}</b><br>
+        ${esc(pesoLegible(a.peso || 0))}
+        <br><span class="tenue">Un boletín se lee bajándolo. Usa Descargar, abajo.</span>
+      </div>`;
+      return;
+    }
     const video = laminaEsVideo(a);
     const url = await urlDeArchivo(video ? a.ruta : varianteDe(a, 'previa'));
     const flechas = archivos.length > 1 ? `

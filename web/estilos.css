@@ -102,6 +102,7 @@
   --canal-fb:  #33507F;
   --canal-li:  #0A5AA8;
   --canal-yt:  #96231F;
+  --canal-prensa: #4A5568;  /* blanco encima = 7.53 */
 
   /* ══ TIPOGRAFÍA ══
      Antes el 69% de la interfaz vivía en 12px o 10.5px y el paso de
@@ -229,6 +230,7 @@
   --canal-fb:  #8FA9DC;
   --canal-li:  #79B4EE;
   --canal-yt:  #EC8B87;
+  --canal-prensa: #9AA8BC;  /* tinta oscura encima = 7.61 */
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3919,4 +3921,31 @@ body.solo-creacion #progreso { display: none; }
 @media (max-width: 1250px) {
   #estadoGuardado { display: none; }
   .ver-como { display: none; }
+}
+
+/* Un boletin es un documento: no tiene imagen que enseñar. La forma
+   son renglones con la esquina doblada. */
+.forma-documento {
+  width: 11px; height: 14px; border: 1.5px solid currentColor;
+  border-radius: 1.5px; position: relative;
+}
+.forma-documento::after {
+  content: ""; position: absolute; top: -1.5px; right: -1.5px;
+  width: 5px; height: 5px;
+  border-left: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  background: var(--capa-hundida);
+}
+.tipo-op.activo .forma-documento::after { background: var(--capa-2); }
+
+/* La teja de un documento enseña su nombre y su peso, no una foto
+   rota. */
+.lamina-foto.es-doc, .collage-foto.es-doc {
+  display: grid; place-items: center; gap: 3px;
+  background: var(--capa-hundida); padding: 6px;
+  font-size: var(--t-sello); color: var(--tinta-media);
+  text-align: center; overflow: hidden;
+}
+.lamina-foto.es-doc .doc-ext {
+  font-weight: var(--peso-fuerte); letter-spacing: .08em;
+  color: var(--canal-prensa);
 }
