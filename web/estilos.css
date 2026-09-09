@@ -3949,3 +3949,30 @@ body.solo-creacion #progreso { display: none; }
   font-weight: var(--peso-fuerte); letter-spacing: .08em;
   color: var(--canal-prensa);
 }
+
+/* ── Acceso a las herramientas ───────────────────────────
+   El generador de piezas vive en web/herramientas/ y se abre
+   en otra pestaña: es una herramienta aparte, no una vista
+   de LA PIZARRA. */
+
+.btn-herramienta {
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 34px; padding: 0 10px 0 14px; border-radius: 7px;
+  background: var(--barra-acento); color: var(--barra-base);
+  font-family: inherit; font-size: var(--t-mini); font-weight: 700;
+  text-decoration: none; white-space: nowrap;
+  transition: filter .15s, transform .15s;
+}
+.btn-herramienta:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.btn-herramienta:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+.pin-nuevo {
+  background: var(--barra-base); color: var(--barra-acento);
+  font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; padding: 3px 6px; border-radius: 4px;
+}
+
+@media (max-width: 1180px) {
+  .btn-herramienta { padding: 0 10px; }
+  .btn-herramienta .pin-nuevo { display: none; }
+}
