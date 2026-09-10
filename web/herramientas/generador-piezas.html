@@ -80,6 +80,7 @@ input:focus,textarea:focus,select:focus{
 textarea{resize:vertical; min-height:76px; line-height:1.5}
 select{appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%237A7671'/></svg>"); background-repeat:no-repeat; background-position:right 11px center; padding-right:28px}
 .contador{font-size:11.5px; color:var(--ui-suave); text-align:right; margin-top:5px}
+.valor{color:var(--rojo); font-weight:700; font-variant-numeric:tabular-nums}
 .contador.exceso{color:var(--rojo); font-weight:600}
 
 /* Rejillas de opción visual */
@@ -342,8 +343,10 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .p-regla{display:none}
 .p-subtitulo:empty{display:none}
 .p-texto{
-  font-size:calc(var(--u) * 1.8 * var(--esc-texto, 1)); line-height:1.45; color:var(--gris);
+  font-size:calc(var(--u) * 1.8 * var(--esc-texto, 1) * var(--esc-manual, 1));
+  line-height:1.45; color:var(--gris);
   margin:calc(var(--u)*1.1) 0 0; white-space:pre-wrap;
+  max-width:calc(var(--ancho-texto, 62) * 1ch);
 }
 .p-texto:empty{display:none}
 .p-fecha{font-size:calc(var(--u)*2.7); font-weight:700; line-height:1.15}
@@ -563,9 +566,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   display:block; width:calc(var(--u)*10); height:calc(var(--u)*.42);
   background:var(--acento); margin:calc(var(--u)*2.6) auto 0;
 }
-.d-aviso .p-texto{
-  max-width:34ch; margin-left:auto; margin-right:auto; text-wrap:balance;
-}
+.d-aviso .p-texto{margin-left:auto; margin-right:auto; text-wrap:balance}
 .d-aviso .p-fecha{max-width:21ch; margin:0 auto; text-wrap:balance}
 .d-aviso .p-lugar{
   font-family:'MyriadIbero',sans-serif; max-width:34ch; margin:calc(var(--u)*.9) auto 0;
@@ -607,7 +608,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-pantalla .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1))}
 .f-pantalla .p-ante{font-size:calc(var(--u)*2.3)}
 .f-pantalla .p-subtitulo,.f-pantalla .p-fecha{font-size:calc(var(--u)*3)}
-.f-pantalla .p-texto{font-size:calc(var(--u) * 2.15 * var(--esc-texto, 1))}
+.f-pantalla .p-texto{font-size:calc(var(--u) * 2.15 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-pantalla .p-lugar{font-size:calc(var(--u)*2.4)}
 .f-pantalla .p-liga{font-size:calc(var(--u) * 2.2 * var(--esc-liga, 1))}
 .f-pantalla .p-liga-et,.f-pantalla .p-informes,
@@ -631,7 +632,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-historia .p-titulo{font-size:calc(var(--u) * 6 * var(--esc-titulo, 1))}
 .f-historia .p-ante{font-size:calc(var(--u)*3)}
 .f-historia .p-subtitulo,.f-historia .p-fecha{font-size:calc(var(--u)*3.2)}
-.f-historia .p-texto{font-size:calc(var(--u) * 2.5 * var(--esc-texto, 1))}
+.f-historia .p-texto{font-size:calc(var(--u) * 2.5 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-historia .p-lugar{font-size:calc(var(--u)*2.5)}
 .f-historia .p-liga{font-size:calc(var(--u) * 2.4 * var(--esc-liga, 1))}
 .f-historia .p-liga-et,.f-historia .p-informes,
@@ -654,7 +655,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-post .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1))}
 .f-post .p-ante{font-size:calc(var(--u)*2.6)}
 .f-post .p-subtitulo,.f-post .p-fecha{font-size:calc(var(--u)*3)}
-.f-post .p-texto{font-size:calc(var(--u) * 2.1 * var(--esc-texto, 1))}
+.f-post .p-texto{font-size:calc(var(--u) * 2.1 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-post .p-lugar{font-size:calc(var(--u)*2.3)}
 .f-post .p-liga{font-size:calc(var(--u) * 2.2 * var(--esc-liga, 1))}
 .f-post .p-liga-et,.f-post .p-informes,
@@ -670,7 +671,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-publicacion .p-titulo{font-size:calc(var(--u) * 4.6 * var(--esc-titulo, 1))}
 .f-publicacion .p-ante{font-size:calc(var(--u)*2.4)}
 .f-publicacion .p-subtitulo,.f-publicacion .p-fecha{font-size:calc(var(--u)*2.8)}
-.f-publicacion .p-texto{font-size:calc(var(--u) * 2 * var(--esc-texto, 1))}
+.f-publicacion .p-texto{font-size:calc(var(--u) * 2 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-publicacion .p-lugar{font-size:calc(var(--u)*2.2)}
 .f-publicacion .p-liga{font-size:calc(var(--u) * 2.1 * var(--esc-liga, 1))}
 .f-publicacion{--logo-h:8}
@@ -785,10 +786,19 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
       <input type="text" id="subtitulo" maxlength="60" placeholder="Una línea que amplía el título">
       <div class="contador" data-para="subtitulo"></div>
     </div>
-    <div class="campo">
+    <div class="campo" id="campo-texto">
       <label for="texto">Información general</label>
-      <textarea id="texto" rows="4" maxlength="600" placeholder="El párrafo que explica de qué se trata"></textarea>
+      <textarea id="texto" rows="5" maxlength="900" placeholder="El párrafo que explica de qué se trata"></textarea>
       <div class="contador" data-para="texto"></div>
+      <div class="campo" style="margin:16px 0 0">
+        <label for="anchoTexto">Ancho de la caja <b class="valor" id="valAncho"></b></label>
+        <input type="range" id="anchoTexto" min="22" max="70" step="2">
+      </div>
+      <div class="campo" style="margin:0">
+        <label for="escalaTexto">Tamaño del texto <b class="valor" id="valEscala"></b></label>
+        <input type="range" id="escalaTexto" min="80" max="130" step="5">
+      </div>
+      <p class="pista">Si el párrafo queda apretado, ensancha la caja antes de bajarle el tamaño.</p>
     </div>
   </section>
 
@@ -1081,7 +1091,7 @@ const EJEMPLOS = {
   }
 };
 
-const LIMITES = {ante:60, titulo:90, subtitulo:60, texto:600};
+const LIMITES = {ante:60, titulo:90, subtitulo:60, texto:900};
 
 /* ---------- Estado ---------- */
 const inicial = () => ({
@@ -1090,7 +1100,8 @@ const inicial = () => ({
   liga:'', informes:'', ponentes:[],
   usarFoto:true, mostrarCuando:true, usarPonentes:false, usarLiga:true, qr:false,
   ligaTexto:true,
-  imagen:null, fx:50, fy:50, fz:100
+  imagen:null, fx:50, fy:50, fz:100,
+  anchoTexto:44, escalaTexto:100
 });
 let E = inicial();
 let zoom = null;                 // null = ajustar solo
@@ -1254,6 +1265,11 @@ function render(){
      tenga que encogerse la pieza entera. */
   pieza.style.setProperty('--esc-titulo', porLargo(E.titulo.length, 30, 90, .60));
   pieza.style.setProperty('--esc-texto',  porLargo(E.texto.length, 200, 600, .78));
+  /* Lo que el usuario decida manda sobre el cálculo automático. */
+  pieza.style.setProperty('--ancho-texto', E.anchoTexto);
+  pieza.style.setProperty('--esc-manual', (E.escalaTexto / 100).toFixed(2));
+  $('#valAncho').textContent = E.anchoTexto + ' caracteres';
+  $('#valEscala').textContent = E.escalaTexto + ' %';
 
   ajustarLiga();
   ajustarTexto();
@@ -1319,12 +1335,27 @@ function avisarLargo(){
   }
 }
 
+/* ¿Se sale algo de la pieza?
+   `scrollHeight` no sirve aquí: cuando un bloque lleva `margin:auto` el
+   sobrante no aumenta el alto de desplazamiento y el texto se recortaba
+   sin que nadie se enterara. Se miden los bloques uno por uno. */
+function seSale(){
+  if(pieza.scrollHeight > pieza.clientHeight + 1) return true;
+  const caja = pieza.getBoundingClientRect();
+  return [...pieza.querySelectorAll('.p-pleca,.p-datos,.p-ponentes,.p-pie')]
+    .some(el => {
+      if(!el.offsetParent && el.offsetHeight === 0) return false;
+      const r = el.getBoundingClientRect();
+      return r.bottom > caja.bottom + 1 || r.top < caja.top - 1;
+    });
+}
+
 /* Reduce la pieza entera hasta que el contenido quepa. Nunca se corta. */
 function ajustarTexto(){
   pieza.style.setProperty('--fit', 1);
-  if(pieza.scrollHeight <= pieza.clientHeight + 1) return;
+  if(!seSale()) return;
   let k = 1;
-  while(k > 0.55 && pieza.scrollHeight > pieza.clientHeight + 1){
+  while(k > 0.5 && seSale()){
     k -= 0.02;
     pieza.style.setProperty('--fit', k.toFixed(2));
   }
@@ -1477,6 +1508,7 @@ const CAMPOS = ['ante','titulo','subtitulo','texto','fecha','lugar','liga','info
 function sincronizar(){
   CAMPOS.forEach(k => $('#' + k).value = E[k] ?? '');
   $('#fx').value = E.fx; $('#fy').value = E.fy; $('#fz').value = E.fz;
+  $('#anchoTexto').value = E.anchoTexto; $('#escalaTexto').value = E.escalaTexto;
   $('#sw-foto').classList.toggle('on', E.usarFoto);
   $('#sw-cuando').classList.toggle('on', E.mostrarCuando);
   $('#sw-ponentes').classList.toggle('on', E.usarPonentes);
@@ -1650,7 +1682,7 @@ function conectar(){
     if(e.dataTransfer.files[0]) leerImagen(e.dataTransfer.files[0]);
   });
   $('#archivo').addEventListener('change', e=>{ if(e.target.files[0]) leerImagen(e.target.files[0]); });
-  ['fx','fy','fz'].forEach(k=>{
+  ['fx','fy','fz','anchoTexto','escalaTexto'].forEach(k=>{
     $('#'+k).addEventListener('input', e=>{ E[k] = +e.target.value; render(); });
   });
   $('#quitar-imagen').addEventListener('click', ()=>{
