@@ -1578,11 +1578,18 @@ function abrirProyecto(archivo){
   };
   fr.readAsText(archivo);
 }
-const CLAVE = 'ibero-generador-piezas-v2';
+/* Un borrador por herramienta: abriendo una no se pisa lo que quedó a medias
+   en la otra. La clave vieja se lee una sola vez, para no perder el comunicado
+   que estaba empezado cuando las dos compartían gaveta. */
+const CLAVE_VIEJA = 'ibero-generador-piezas-v2';
+const CLAVE = MODO === 'comunicados' ? 'ibero-generador-comunicados-v1' : CLAVE_VIEJA;
 function guardarLocal(){ try{ localStorage.setItem(CLAVE, JSON.stringify(E)); }catch(e){} }
 function leerLocal(){
-  try{ const d = localStorage.getItem(CLAVE); if(d) E = Object.assign(inicial(), JSON.parse(d)); }
-  catch(e){}
+  try{
+    const d = localStorage.getItem(CLAVE)
+           ?? (MODO === 'comunicados' ? localStorage.getItem(CLAVE_VIEJA) : null);
+    if(d) E = Object.assign(inicial(), JSON.parse(d));
+  }catch(e){}
 }
 
 const CAMPOS = ['ante','titulo','subtitulo','texto','fecha','lugar','liga','informes'];
