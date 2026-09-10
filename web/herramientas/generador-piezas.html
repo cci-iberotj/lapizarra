@@ -182,6 +182,22 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .ponente .quitar:hover{color:var(--rojo)}
 .ponente input{margin-bottom:8px}
 .ponente input:last-child{margin-bottom:0}
+.ponente-fila{display:flex; gap:12px; align-items:flex-start}
+.ponente-campos{flex:1 1 auto; min-width:0}
+.retrato-btn{
+  flex:0 0 auto; width:58px; height:58px; border-radius:50%; padding:0;
+  border:1px dashed var(--ui-linea); background:#fff; cursor:pointer;
+  color:var(--ui-suave); font-size:21px; line-height:1; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+}
+.retrato-btn:hover{border-color:var(--rojo); color:var(--rojo)}
+.retrato-btn.tiene{border-style:solid; border-color:var(--ui-linea)}
+.retrato-btn img{width:100%; height:100%; object-fit:cover; object-position:center top}
+.quita-retrato{
+  border:none; background:none; padding:2px 0 0; cursor:pointer;
+  color:var(--ui-suave); font-size:12px; text-decoration:underline;
+}
+.quita-retrato:hover{color:var(--rojo)}
 
 /* ---- Lienzo ---- */
 .lienzo{
@@ -366,10 +382,16 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   max-width:calc(var(--ancho-texto, 62) * 1ch);
 }
 .p-texto:empty{display:none}
-.p-fecha{font-size:calc(var(--u)*2.7); font-weight:700; line-height:1.15}
+.p-fecha{
+  font-size:calc(var(--u)*2.7); font-weight:700; line-height:1.15;
+  /* Respeta el salto que escriba quien redacta: una fecha con hora
+     partida sola deja la barra colgando al final del renglón. */
+  white-space:pre-line;
+}
 .p-fecha:empty{display:none}
 .p-lugar{
   font-size:calc(var(--u)*2.1); line-height:1.25; color:var(--gris);
+  white-space:pre-line;
   margin-top:calc(var(--u)*.7);
 }
 .p-lugar:empty{display:none}
@@ -384,6 +406,26 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .p-ponentes:empty{display:none}
 .p-ponentes:has(> :only-child){grid-template-columns:1fr}
 .ponente-i .nom{font-size:calc(var(--u)*2.1); font-weight:700; line-height:1.15; display:block}
+.ponente-i .retrato{
+  display:block; width:calc(var(--u)*12.5); height:calc(var(--u)*12.5);
+  border-radius:50%; object-fit:cover; object-position:center top;
+  margin:0 auto calc(var(--u)*1.1);
+  /* El aro es lo que hace que lean como conjunto: las fotos llegan con
+     fondos distintos y sin él las de fondo claro flotan sin borde. */
+  border:calc(var(--u)*.16) solid var(--gris-50);
+}
+
+/* Con retrato el bloque cambia de rejilla a fila centrada: así el último
+   renglón queda centrado solo, que con `grid` no sale sin trampas. */
+.con-retratos .p-ponentes{
+  display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start;
+  gap:calc(var(--u)*2.4) calc(var(--u)*1.8);
+}
+.con-retratos .ponente-i{
+  flex:0 0 calc(var(--u)*19.5); text-align:center;
+}
+.con-retratos .ponente-i .nom{font-size:calc(var(--u)*1.8); text-wrap:balance}
+.con-retratos .ponente-i .car{font-size:calc(var(--u)*1.35)}
 .ponente-i .car{
   font-family:'MyriadIbero',sans-serif; font-size:calc(var(--u)*1.5);
   line-height:1.25; color:var(--gris); display:block; margin-top:calc(var(--u)*.3);
@@ -495,6 +537,10 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
    entre la pleca y el pie, y la pleca gana cuerpo para que el título
    ocupe el lugar que dejó la imagen. */
 .sin-foto .p-datos{margin-top:auto; margin-bottom:auto}
+/* Con retratos el sobrante se parte en dos —antes del texto y después
+   del cuadro de ponentes— en vez de acumularse todo arriba. */
+.sin-foto.con-retratos .p-datos{margin-bottom:calc(var(--u)*3.5)}
+.sin-foto.con-retratos .p-ponentes{margin-bottom:auto}
 .sin-foto .p-pie{margin-top:0}
 .sin-foto .p-pleca{
   padding-top:calc(var(--u)*5.5); padding-bottom:calc(var(--u)*5.5);
@@ -578,6 +624,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-pantalla .p-liga{font-size:calc(var(--u) * 2.2 * var(--esc-liga, 1))}
 .f-pantalla .p-liga-et,.f-pantalla .p-informes,
 .f-pantalla .p-informes-t{font-size:calc(var(--u)*1.7)}
+.f-pantalla.con-retratos .ponente-i{flex:0 0 calc(var(--u)*19)}
 .f-pantalla .ponente-i .nom{font-size:calc(var(--u)*2.4)}
 .f-pantalla .ponente-i .car{font-size:calc(var(--u)*1.7)}
 .f-pantalla{--logo-h:7.8}
@@ -603,6 +650,14 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-historia .p-liga{font-size:calc(var(--u) * 2.4 * var(--esc-liga, 1))}
 .f-historia .p-liga-et,.f-historia .p-informes,
 .f-historia .p-informes-t{font-size:calc(var(--u)*1.8)}
+/* En 9:16 sobra alto y falta ancho: caben tres por renglón, y más
+   grandes, que es como se ven en el teléfono. */
+.f-historia.con-retratos .ponente-i{flex:0 0 calc(var(--u)*27)}
+.f-historia.con-retratos .retrato{
+  width:calc(var(--u)*17); height:calc(var(--u)*17);
+}
+.f-historia.con-retratos .ponente-i .nom{font-size:calc(var(--u)*2.2)}
+.f-historia.con-retratos .ponente-i .car{font-size:calc(var(--u)*1.7)}
 .f-historia .ponente-i .nom{font-size:calc(var(--u)*2.6)}
 .f-historia .ponente-i .car{font-size:calc(var(--u)*1.9)}
 .f-historia{--logo-h:8.6}
@@ -855,13 +910,14 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     <div class="switch">
       <div class="switch-txt">
         <span>Incluir ponentes</span>
-        <small>Hasta cuatro, con su cargo o institución.</small>
+        <small>Hasta ocho, con su retrato, cargo o institución.</small>
       </div>
       <div class="palanca" id="sw-ponentes" role="switch" tabindex="0"></div>
     </div>
     <div id="bloque-ponentes">
       <div id="ponentes"></div>
       <button class="btn btn-secundario" id="mas-ponente">Agregar ponente</button>
+      <input type="file" id="archivo-retrato" accept="image/*" hidden>
     </div>
   </section>
 
@@ -1212,14 +1268,51 @@ function pintarEjemplos(){
   $('#tipo').innerHTML = Object.entries(EJEMPLOS)
     .map(([id,e])=>`<option value="${id}">${e.nom}</option>`).join('');
 }
+const TOPE_PONENTES = 8;
+
 function pintarPonentes(){
   $('#ponentes').innerHTML = E.ponentes.map((p,i)=>`
     <div class="ponente">
       <button class="quitar" data-quita="${i}" title="Quitar">×</button>
-      <input type="text" data-pon-nom="${i}" value="${esc(p.nom)}" placeholder="Nombre" maxlength="46">
-      <input type="text" data-pon-car="${i}" value="${esc(p.car)}" placeholder="Cargo o institución" maxlength="70">
+      <div class="ponente-fila">
+        <button class="retrato-btn${p.foto?' tiene':''}" data-retrato="${i}"
+                title="${p.foto?'Cambiar retrato':'Poner retrato'}">
+          ${p.foto ? `<img src="${p.foto}" alt="">` : '+'}
+        </button>
+        <div class="ponente-campos">
+          <input type="text" data-pon-nom="${i}" value="${esc(p.nom)}" placeholder="Nombre" maxlength="46">
+          <input type="text" data-pon-car="${i}" value="${esc(p.car)}" placeholder="Cargo o institución" maxlength="70">
+          ${p.foto ? `<button class="quita-retrato" data-quita-foto="${i}">Quitar retrato</button>` : ''}
+        </div>
+      </div>
     </div>`).join('');
-  $('#mas-ponente').style.display = E.ponentes.length >= 4 ? 'none' : '';
+  $('#mas-ponente').style.display = E.ponentes.length >= TOPE_PONENTES ? 'none' : '';
+}
+
+/* El retrato se guarda ya reducido: siete fotos de cámara no caben en el
+   guardado del navegador y tampoco hacen falta, se ven a dos centímetros. */
+let retratoDe = null;
+function leerRetrato(archivo){
+  const fr = new FileReader();
+  fr.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const lado = Math.min(im.naturalWidth, im.naturalHeight, 520);
+      const c = document.createElement('canvas');
+      c.width = c.height = lado;
+      const g = c.getContext('2d');
+      /* recorte cuadrado centrado, pesando hacia arriba: en un retrato la
+         cara vive en la mitad de arriba */
+      const corte = Math.min(im.naturalWidth, im.naturalHeight);
+      const sx = (im.naturalWidth - corte) / 2;
+      const sy = Math.min((im.naturalHeight - corte) / 2, im.naturalHeight * 0.08);
+      g.drawImage(im, sx, sy, corte, corte, 0, 0, lado, lado);
+      E.ponentes[retratoDe].foto = c.toDataURL('image/jpeg', 0.86);
+      pintarPonentes(); render();
+    };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(archivo);
 }
 
 /* ============================================================
@@ -1251,11 +1344,15 @@ function render(){
   $('#v-fecha').textContent = E.mostrarCuando ? E.fecha : '';
   $('#v-lugar').textContent = E.mostrarCuando ? E.lugar : '';
 
+  const conRetratos = E.usarPonentes && E.ponentes.some(p=>p.foto && (p.nom||p.car));
   $('#v-ponentes').innerHTML = E.usarPonentes
     ? E.ponentes.filter(p=>p.nom||p.car).map(p=>
-        `<div class="ponente-i"><span class="nom">${esc(p.nom)}</span>` +
+        `<div class="ponente-i">` +
+        (p.foto?`<img class="retrato" src="${p.foto}" alt="">`:'') +
+        `<span class="nom">${esc(p.nom)}</span>` +
         (p.car?`<span class="car">${esc(p.car)}</span>`:'') + `</div>`).join('')
     : '';
+  pieza.classList.toggle('con-retratos', conRetratos);
 
   /* Liga, informes y QR.
      En la pieza se escribe la dirección limpia, sin protocolo ni www, que es
@@ -1653,7 +1750,11 @@ function irACampo(id){
    referencia, así que guardar cincuenta pasos no pesa nada.
    ============================================================ */
 const clonar = e => ({...e, ponentes: e.ponentes.map(p=>({...p}))});
-const firma  = e => JSON.stringify({...e, imagen: e.imagen ? e.imagen.length : null});
+/* Para comparar dos estados basta el tamano de las imagenes: meterlas
+   enteras haria que cada tecleo serializara medio mega. */
+const firma  = e => JSON.stringify({...e,
+  imagen: e.imagen ? e.imagen.length : null,
+  ponentes: (e.ponentes||[]).map(p=>({...p, foto: p.foto ? p.foto.length : null}))});
 let pasado = [], futuro = [], restaurando = false, tRegistro;
 
 function registrar(){
@@ -1747,8 +1848,19 @@ function conectar(){
     const b = e.target.closest('[data-quita]'); if(!b) return;
     E.ponentes.splice(+b.dataset.quita, 1); pintarPonentes(); render();
   });
+  $('#ponentes').addEventListener('click', e=>{
+    const r = e.target.closest('[data-retrato]');
+    if(r){ retratoDe = +r.dataset.retrato; $('#archivo-retrato').value = '';
+           $('#archivo-retrato').click(); return; }
+    const q = e.target.closest('[data-quita-foto]');
+    if(q){ E.ponentes[+q.dataset.quitaFoto].foto = '';
+           pintarPonentes(); render(); }
+  });
+  $('#archivo-retrato').addEventListener('change', e=>{
+    if(e.target.files[0] && retratoDe !== null) leerRetrato(e.target.files[0]);
+  });
   $('#mas-ponente').addEventListener('click', ()=>{
-    E.ponentes.push({nom:'',car:''}); pintarPonentes(); render();
+    E.ponentes.push({nom:'',car:'',foto:''}); pintarPonentes(); render();
   });
 
   /* Interruptores */
@@ -1768,7 +1880,7 @@ function conectar(){
   palanca('#sw-foto','usarFoto');
   palanca('#sw-cuando','mostrarCuando');
   palanca('#sw-ponentes','usarPonentes', ()=>{
-    if(!E.ponentes.length){ E.ponentes.push({nom:'',car:''}); pintarPonentes(); }
+    if(!E.ponentes.length){ E.ponentes.push({nom:'',car:'',foto:''}); pintarPonentes(); }
   });
   palanca('#sw-liga','usarLiga');
   palanca('#sw-qr','qr');
