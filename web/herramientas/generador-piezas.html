@@ -307,9 +307,11 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 }
 .p-ante:empty{display:none}
 .p-titulo{
-  font-size:calc(var(--u) * 5 * var(--esc-titulo, 1)); font-weight:700; line-height:1.05;
-  letter-spacing:-.015em; margin:0; text-wrap:balance;
+  font-size:calc(var(--u) * 5 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1)); font-weight:700; line-height:1.05;
+  letter-spacing:-.015em; margin:0; text-wrap:balance; white-space:pre-line;
 }
+/* Un solo renglón cueste lo que cueste: el título se achica hasta entrar. */
+.tit-1linea .p-titulo{white-space:nowrap; text-wrap:nowrap}
 .p-titulo:empty{display:none}
 
 .p-foto{
@@ -495,7 +497,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-historia.sin-foto .p-pleca{
   padding-top:calc(var(--u)*10); padding-bottom:calc(var(--u)*9);
 }
-.f-historia.sin-foto .p-titulo{font-size:calc(var(--u) * 7 * var(--esc-titulo, 1))}
+.f-historia.sin-foto .p-titulo{font-size:calc(var(--u) * 7 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-tabloide.sin-foto .p-pleca{
   padding-top:calc(var(--u)*8); padding-bottom:calc(var(--u)*7.5);
 }
@@ -529,7 +531,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   background:none; clip-path:none; text-align:right;
   padding:calc(var(--u)*6) calc(var(--u)*var(--m)) calc(var(--u)*2.6);
 }
-.d-anuncio .p-titulo{font-size:calc(var(--u) * 5.4 * var(--esc-titulo, 1))}
+.d-anuncio .p-titulo{font-size:calc(var(--u) * 5.4 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .d-anuncio .p-datos{flex-direction:column; gap:calc(var(--u)*2.4)}
 .d-anuncio .p-col-izq{order:2; flex:1 1 auto}
 .d-anuncio .p-col-der{order:1; flex:0 0 auto}
@@ -557,7 +559,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 }
 .d-aviso .p-foto{order:2; margin:0}
 .d-aviso .p-velo{display:none}
-.d-aviso .p-titulo{font-size:calc(var(--u) * 7 * var(--esc-titulo, 1))}
+.d-aviso .p-titulo{font-size:calc(var(--u) * 7 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .d-aviso .p-ante{
   font-family:'MyriadIbero',sans-serif; font-weight:600;
   letter-spacing:.16em; margin-bottom:calc(var(--u)*1.9);
@@ -615,7 +617,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-pantalla .p-pie{margin-top:auto}
 /* En 16:9 la pleca encabeza la columna de texto: el render la mueve ahí */
 .f-pantalla .p-pleca{order:0; flex:0 0 auto}
-.f-pantalla .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1))}
+.f-pantalla .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-pantalla .p-ante{font-size:calc(var(--u)*2.3)}
 .f-pantalla .p-subtitulo,.f-pantalla .p-fecha{font-size:calc(var(--u)*3)}
 .f-pantalla .p-texto{font-size:calc(var(--u) * 2.15 * var(--esc-texto, 1) * var(--esc-manual, 1))}
@@ -639,7 +641,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 /* Historia 9:16 — se ve en un teléfono: todo sube de cuerpo */
 .f-historia .p-foto{height:calc(var(--u)*40)}
 .f-historia.d-anuncio .p-foto{height:calc(var(--u)*62)}
-.f-historia .p-titulo{font-size:calc(var(--u) * 6 * var(--esc-titulo, 1))}
+.f-historia .p-titulo{font-size:calc(var(--u) * 6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-historia .p-ante{font-size:calc(var(--u)*3)}
 .f-historia .p-subtitulo,.f-historia .p-fecha{font-size:calc(var(--u)*3.2)}
 .f-historia .p-texto{font-size:calc(var(--u) * 2.5 * var(--esc-texto, 1) * var(--esc-manual, 1))}
@@ -655,14 +657,14 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 /* Tabloide 11 × 17 — cartel de pared: se lee de lejos y hay aire de sobra */
 .f-tabloide .p-foto{height:calc(var(--u)*48)}
 .f-tabloide.d-anuncio .p-foto{height:calc(var(--u)*58)}
-.f-tabloide .p-titulo{font-size:calc(var(--u) * 5.6 * var(--esc-titulo, 1))}
+.f-tabloide .p-titulo{font-size:calc(var(--u) * 5.6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-tabloide .p-ante{font-size:calc(var(--u)*2.9)}
 .f-tabloide{--logo-h:7.6}
 
 /* Publicación 4:5 — la que más se usa en redes */
 .f-post .p-foto{height:calc(var(--u)*36)}
 .f-post.d-anuncio .p-foto{height:calc(var(--u)*56)}
-.f-post .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1))}
+.f-post .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-post .p-ante{font-size:calc(var(--u)*2.6)}
 .f-post .p-subtitulo,.f-post .p-fecha{font-size:calc(var(--u)*3)}
 .f-post .p-texto{font-size:calc(var(--u) * 2.1 * var(--esc-texto, 1) * var(--esc-manual, 1))}
@@ -678,7 +680,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 /* Publicación 1:1 — compacta */
 .f-publicacion .p-foto{height:calc(var(--u)*30)}
 .f-publicacion.d-anuncio .p-foto{height:calc(var(--u)*52)}
-.f-publicacion .p-titulo{font-size:calc(var(--u) * 4.6 * var(--esc-titulo, 1))}
+.f-publicacion .p-titulo{font-size:calc(var(--u) * 4.6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-publicacion .p-ante{font-size:calc(var(--u)*2.4)}
 .f-publicacion .p-subtitulo,.f-publicacion .p-fecha{font-size:calc(var(--u)*2.8)}
 .f-publicacion .p-texto{font-size:calc(var(--u) * 2 * var(--esc-texto, 1) * var(--esc-manual, 1))}
@@ -790,6 +792,19 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
       <label for="titulo">Título principal</label>
       <textarea id="titulo" rows="2" maxlength="90" placeholder="El nombre del evento"></textarea>
       <div class="contador" data-para="titulo"></div>
+      <div class="campo" style="margin:14px 0 0">
+        <label for="escalaTitulo">Tamaño del título <b class="valor" id="valTitulo"></b></label>
+        <input type="range" id="escalaTitulo" min="60" max="130" step="5">
+      </div>
+      <div class="switch" style="padding-bottom:6px">
+        <div class="switch-txt">
+          <span>En un solo renglón</span>
+          <small>Se achica lo necesario para no partirse.</small>
+        </div>
+        <div class="palanca" id="sw-1linea" role="switch" tabindex="0"></div>
+      </div>
+      <p class="pista">Para cortar el título donde tú quieras, escribe el salto de
+        línea en el campo. Con «un solo renglón» encendido no se parte nunca.</p>
     </div>
     <div class="campo">
       <label for="subtitulo">Subtítulo</label>
@@ -1122,7 +1137,8 @@ const inicial = () => ({
   usarFoto:true, mostrarCuando:true, usarPonentes:false, usarLiga:true, qr:false,
   ligaTexto:true,
   imagen:null, fx:50, fy:50, fz:100,
-  anchoTexto:44, escalaTexto:100, alinearTexto:'auto'
+  anchoTexto:44, escalaTexto:100, alinearTexto:'auto',
+  escalaTitulo:100, tituloUnaLinea:false
 });
 let E = inicial();
 let zoom = null;                 // null = ajustar solo
@@ -1216,7 +1232,8 @@ function render(){
 
   pieza.className = `pieza f-${E.formato} d-${E.diseno}`
                   + (E.usarFoto ? '' : ' sin-foto')
-                  + (E.alinearTexto === 'auto' ? '' : ' al-' + E.alinearTexto);
+                  + (E.alinearTexto === 'auto' ? '' : ' al-' + E.alinearTexto)
+                  + (E.tituloUnaLinea ? ' tit-1linea' : '');
 
   /* En 16:9 el título encabeza la columna de texto; en los verticales va
      pegado a la fotografía. Es el único cambio de estructura entre formatos. */
@@ -1296,8 +1313,11 @@ function render(){
   /* Lo que el usuario decida manda sobre el cálculo automático. */
   pieza.style.setProperty('--ancho-texto', E.anchoTexto);
   pieza.style.setProperty('--esc-manual', (E.escalaTexto / 100).toFixed(2));
+  pieza.style.setProperty('--tit-manual', (E.escalaTitulo / 100).toFixed(2));
   $('#valAncho').textContent = E.anchoTexto + ' caracteres';
   $('#valEscala').textContent = E.escalaTexto + ' %';
+  $('#valTitulo').textContent = E.escalaTitulo + ' %';
+  ajustarTitulo();
 
   ajustarLiga();
   ajustarTexto();
@@ -1361,6 +1381,36 @@ function avisarLargo(){
     el.innerHTML = 'Texto ajustado al <b>' + pct + '%</b> para que quepa';
     el.className = 'dato-lienzo';
   }
+}
+
+/* Con «un solo renglón» encendido, el título cede tamaño hasta entrar en
+   el ancho que tiene. Sin eso, se quedaría cortado por el overflow. */
+function ajustarTitulo(){
+  const el = $('#v-titulo');
+  pieza.style.setProperty('--tit-fit', 1);
+  if(!E.tituloUnaLinea || !E.titulo.trim()) return;
+  let k = 1;
+  /* Primero se aplica, luego se fuerza el recálculo y sólo entonces se mide:
+     cambiar una variable en la pieza no actualiza el hijo hasta que algo
+     obliga al navegador a rehacer el diseño. */
+  while(k > 0.4){
+    pieza.style.setProperty('--tit-fit', k.toFixed(2));
+    void el.offsetWidth;
+    /* Los dos anchos salen de getBoundingClientRect para que vengan en la
+       misma escala: la vista previa está reducida con transform y mezclar
+       una medida escalada con otra sin escalar daba falsos positivos. */
+    if(anchoDelTexto(el) <= el.getBoundingClientRect().width + 1) return;
+    k -= 0.03;
+  }
+}
+
+/* Cuánto mide el texto de verdad. `scrollWidth` no sirve: con overflow
+   visible Chrome devuelve el ancho de la caja, no el del contenido, y el
+   título parecía caber cuando se estaba saliendo. */
+function anchoDelTexto(el){
+  const r = document.createRange();
+  r.selectNodeContents(el);
+  return r.getBoundingClientRect().width;
 }
 
 /* ¿Se sale algo de la pieza?
@@ -1537,6 +1587,8 @@ function sincronizar(){
   CAMPOS.forEach(k => $('#' + k).value = E[k] ?? '');
   $('#fx').value = E.fx; $('#fy').value = E.fy; $('#fz').value = E.fz;
   $('#anchoTexto').value = E.anchoTexto; $('#escalaTexto').value = E.escalaTexto;
+  $('#escalaTitulo').value = E.escalaTitulo;
+  $('#sw-1linea').classList.toggle('on', E.tituloUnaLinea);
   $('#sw-foto').classList.toggle('on', E.usarFoto);
   $('#sw-cuando').classList.toggle('on', E.mostrarCuando);
   $('#sw-ponentes').classList.toggle('on', E.usarPonentes);
@@ -1704,6 +1756,7 @@ function conectar(){
   palanca('#sw-liga','usarLiga');
   palanca('#sw-qr','qr');
   palanca('#sw-liga-texto','ligaTexto');
+  palanca('#sw-1linea','tituloUnaLinea');
 
   /* Imagen */
   const soltar = $('#soltar');
@@ -1715,7 +1768,7 @@ function conectar(){
     if(e.dataTransfer.files[0]) leerImagen(e.dataTransfer.files[0]);
   });
   $('#archivo').addEventListener('change', e=>{ if(e.target.files[0]) leerImagen(e.target.files[0]); });
-  ['fx','fy','fz','anchoTexto','escalaTexto'].forEach(k=>{
+  ['fx','fy','fz','anchoTexto','escalaTexto','escalaTitulo'].forEach(k=>{
     $('#'+k).addEventListener('input', e=>{ E[k] = +e.target.value; render(); });
   });
   $('#quitar-imagen').addEventListener('click', ()=>{
