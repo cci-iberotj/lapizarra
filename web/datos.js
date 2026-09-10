@@ -347,8 +347,20 @@ const MotorSupabase = {
      no son estado compartido, son una bandeja de entrada. */
 
   listarRevisiones() {
+    /* `pieza` no se pide: pesa un mega por renglón y aquí no se usa. Se baja
+       una sola, y sólo al abrirla en el generador. */
     return this._rest('/revisiones?select=codigo,titulo,area,de,nota,formato,' +
-                      'diseno,estado,vista,creado,atendido&order=creado.desc&limit=200');
+                      'diseno,estado,vista,respuesta,creado,atendido,respondido' +
+                      '&order=creado.desc&limit=200');
+  },
+
+  contestarRevision(codigo, respuesta) {
+    const ahora = new Date().toISOString();
+    return this._rest('/revisiones?codigo=eq.' + encodeURIComponent(codigo), {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: { respuesta, respondido: ahora, estado: 'revisado', atendido: ahora },
+    });
   },
 
   atenderRevision(codigo, estado) {
@@ -523,6 +535,11 @@ const Almacen = {
   atenderRevision(codigo, estado) {
     if (!this.enLaNube) return Promise.resolve();
     return this.motor.atenderRevision(codigo, estado);
+  },
+
+  contestarRevision(codigo, respuesta) {
+    if (!this.enLaNube) return Promise.resolve();
+    return this.motor.contestarRevision(codigo, respuesta);
   },
 
   async guardar(coleccion, estado) {

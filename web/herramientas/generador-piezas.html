@@ -38,7 +38,34 @@ body{
   font-family:'MyriadIbero',system-ui,'Segoe UI',sans-serif;
   font-size:14px; -webkit-font-smoothing:antialiased;
 }
-.app{display:grid; grid-template-columns:424px 1fr; height:100vh; overflow:hidden}
+.app{display:grid; grid-template-columns:424px 1fr 336px; height:100vh; overflow:hidden}
+
+/* ---- Columna de acciones ---- */
+.acciones{
+  background:var(--ui-panel); border-left:1px solid var(--ui-linea);
+  overflow-y:auto; padding:0 0 40px;
+}
+.acciones::-webkit-scrollbar{width:10px}
+.acciones::-webkit-scrollbar-thumb{background:#D8D4CF;border-radius:10px;border:3px solid #fff}
+.acciones-cabeza{padding:22px 24px 16px; border-bottom:1px solid var(--ui-linea)}
+.acciones-cabeza h1{margin:0; font-size:17px; letter-spacing:-.01em}
+.acciones-cabeza p{margin:3px 0 0; font-size:12.5px; color:var(--ui-suave)}
+.acciones .grupo h2{margin-bottom:10px}
+
+/* En pantallas angostas la tercera columna estorbaría más de lo que ayuda:
+   se acuesta bajo el lienzo y se queda a la vista de todos modos. */
+@media (max-width:1360px){
+  .app{grid-template-columns:392px 1fr 300px}
+}
+@media (max-width:1180px){
+  .app{grid-template-columns:360px 1fr; grid-template-rows:1fr auto}
+  .panel{grid-row:1 / 3}
+  .lienzo{grid-column:2; grid-row:1}
+  .acciones{
+    grid-column:2; grid-row:2; max-height:40vh;
+    border-left:0; border-top:1px solid var(--ui-linea);
+  }
+}
 
 /* ---- Panel de control ---- */
 .panel{
@@ -224,6 +251,18 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   font-size:26px; letter-spacing:.14em; color:var(--rojo);
 }
 .recibo .pista{margin-top:8px}
+
+/* Lo que contesta Diseño. Va antes del código y con otro color: es lo
+   primero que tiene que leer quien vuelve a abrir su pieza. */
+.respuesta{
+  margin-top:14px; padding:14px 16px; border-radius:10px;
+  background:#F1F4F7; border:1px solid #DCE3EA;
+}
+.respuesta-et{
+  font-size:12px; color:var(--ui-suave); letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.respuesta p{margin:6px 0 0; font-size:13.5px; line-height:1.5; white-space:pre-line}
 
 /* ---- Lienzo ---- */
 .lienzo{
@@ -991,54 +1030,6 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     </div>
   </section>
 
-  <!-- 9 · Revisión -->
-  <section class="grupo" id="grupo-revision">
-    <h2><span class="paso">9</span> Mandar a revisión</h2>
-    <p class="ayuda">Antes de publicar, la pieza necesita el visto bueno de
-      Comunicación. Mándala desde aquí y te damos un código; con ese código
-      la abren, la corrigen y te contestan.</p>
-    <div class="campo">
-      <label for="rev-de">¿Quién la manda?</label>
-      <input type="text" id="rev-de" maxlength="120" placeholder="Nombre y correo">
-    </div>
-    <div class="campo">
-      <label for="rev-nota">Algo que debamos saber <span class="tenue">(opcional)</span></label>
-      <textarea id="rev-nota" rows="2" maxlength="600"
-                placeholder="La fecha aún no está confirmada, falta el logo del patrocinador…"></textarea>
-    </div>
-    <button class="btn btn-primario" id="rev-enviar">Enviar a revisión</button>
-    <div id="rev-listo" class="recibo oculto">
-      <span class="recibo-et">Código de tu pieza</span>
-      <div class="recibo-codigo"><b id="rev-codigo"></b>
-        <button class="btn btn-secundario" id="rev-copiar">Copiar</button></div>
-      <p class="pista">Guárdalo. Con él se vuelve a abrir esta pieza tal como quedó.</p>
-    </div>
-
-    <div class="campo" style="margin-top:20px">
-      <label for="rev-abrir-codigo">¿Te dieron un código?</label>
-      <div class="fila-btn">
-        <input type="text" id="rev-abrir-codigo" maxlength="9" placeholder="P4KM7RTX"
-               style="text-transform:uppercase">
-        <button class="btn btn-secundario" id="rev-abrir">Abrir</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- 10 · Descargar -->
-  <section class="grupo">
-    <h2><span class="paso">10</span> Descargar</h2>
-    <button class="btn btn-primario" id="exp-png">Descargar imagen</button>
-    <button class="btn btn-secundario" id="exp-pdf">Descargar PDF para imprimir</button>
-    <button class="btn btn-secundario" id="exp-todo">Descargar todos los tamaños</button>
-    <div class="fila-btn">
-      <button class="btn btn-secundario" id="guardar">Guardar</button>
-      <button class="btn btn-secundario" id="abrir">Abrir</button>
-    </div>
-    <p class="pista">Guardar deja un archivo que puedes volver a abrir aquí para corregir un dato sin rehacer la pieza.</p>
-    <input type="file" id="archivo-proyecto" accept="application/json" hidden>
-    <button class="btn btn-fantasma" id="limpiar">Empezar de nuevo</button>
-  </section>
-
 </aside>
 
 <!-- ══════════════ LIENZO ══════════════ -->
@@ -1117,6 +1108,68 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     Escríbenos a <b>comunicacion@tijuana.ibero.mx</b>.
   </p>
 </main>
+
+<!-- ══════════════ ACCIONES ══════════════
+     La columna de la derecha es lo que se hace CON la pieza, no lo que se
+     hace PARA armarla. Separarlas evita recorrer ocho pasos cada vez que
+     hay que descargar. -->
+<aside class="acciones">
+  <div class="acciones-cabeza">
+    <h1>Ya que quedó</h1>
+    <p>Mándala a revisar o bájala</p>
+  </div>
+  <!-- Revisión -->
+  <section class="grupo" id="grupo-revision">
+    <h2>Mandar a revisión</h2>
+    <p class="ayuda">Antes de publicar, la pieza necesita el visto bueno de
+      Comunicación. Mándala desde aquí y te damos un código; con ese código
+      la abren, la corrigen y te contestan.</p>
+    <div class="campo">
+      <label for="rev-de">¿Quién la manda?</label>
+      <input type="text" id="rev-de" maxlength="120" placeholder="Nombre y correo">
+    </div>
+    <div class="campo">
+      <label for="rev-nota">Algo que debamos saber <span class="tenue">(opcional)</span></label>
+      <textarea id="rev-nota" rows="2" maxlength="600"
+                placeholder="La fecha aún no está confirmada, falta el logo del patrocinador…"></textarea>
+    </div>
+    <button class="btn btn-primario" id="rev-enviar">Enviar a revisión</button>
+    <div id="rev-respuesta" class="respuesta oculto">
+      <span class="respuesta-et">Diseño te contestó</span>
+      <p id="rev-respuesta-texto"></p>
+    </div>
+    <div id="rev-listo" class="recibo oculto">
+      <span class="recibo-et">Código de tu pieza</span>
+      <div class="recibo-codigo"><b id="rev-codigo"></b>
+        <button class="btn btn-secundario" id="rev-copiar">Copiar</button></div>
+      <p class="pista">Guárdalo. Con él se vuelve a abrir esta pieza tal como quedó.</p>
+    </div>
+
+    <div class="campo" style="margin-top:20px">
+      <label for="rev-abrir-codigo">¿Te dieron un código?</label>
+      <div class="fila-btn">
+        <input type="text" id="rev-abrir-codigo" maxlength="9" placeholder="P4KM7RTX"
+               style="text-transform:uppercase">
+        <button class="btn btn-secundario" id="rev-abrir">Abrir</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Descargar -->
+  <section class="grupo">
+    <h2>Descargar</h2>
+    <button class="btn btn-primario" id="exp-png">Descargar imagen</button>
+    <button class="btn btn-secundario" id="exp-pdf">Descargar PDF para imprimir</button>
+    <button class="btn btn-secundario" id="exp-todo">Descargar todos los tamaños</button>
+    <div class="fila-btn">
+      <button class="btn btn-secundario" id="guardar">Guardar</button>
+      <button class="btn btn-secundario" id="abrir">Abrir</button>
+    </div>
+    <p class="pista">Guardar deja un archivo que puedes volver a abrir aquí para corregir un dato sin rehacer la pieza.</p>
+    <input type="file" id="archivo-proyecto" accept="application/json" hidden>
+    <button class="btn btn-fantasma" id="limpiar">Empezar de nuevo</button>
+  </section>
+</aside>
 </div>
 
 <div class="notif" id="notif"></div>
@@ -2171,11 +2224,12 @@ function cabeceras(){
           'Content-Type': 'application/json'};
 }
 
-/* Miniatura para la tarjeta de la bandeja. Va aparte de la pieza para
-   que la lista se pinte sin bajarse un mega por renglón. */
+/* La vista que viaja con el envío. Va aparte de la pieza para que la
+   bandeja se pinte sin bajarse un mega por renglón, y a 1000 px porque ahí
+   se abre en grande: con 420 se veía la tarjeta pero no se podía revisar. */
 async function vistaPrevia(){
   const f = FORMATOS[E.formato];
-  const png = await piezaAPNG(420 / f.w);
+  const png = await piezaAPNG(1000 / f.w);
   const im = new Image();
   const url = URL.createObjectURL(png);
   try{
@@ -2185,7 +2239,7 @@ async function vistaPrevia(){
     const g = c.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
     g.drawImage(im, 0, 0);
-    return c.toDataURL('image/jpeg', 0.72);
+    return c.toDataURL('image/jpeg', 0.78);
   } finally { URL.revokeObjectURL(url); }
 }
 
@@ -2267,6 +2321,9 @@ async function abrirRevision(codigo){
     $('#rev-de').value = d.de || '';
     $('#rev-nota').value = d.nota || '';
     $('#rev-abrir-codigo').value = codigo;
+    const resp = $('#rev-respuesta');
+    resp.classList.toggle('oculto', !d.respuesta);
+    if(d.respuesta) $('#rev-respuesta-texto').textContent = d.respuesta;
     mostrarCodigo(codigo, 'Estás editando la pieza');
     aviso('Pieza de ' + (d.de || 'alguien') + ' abierta');
     return true;

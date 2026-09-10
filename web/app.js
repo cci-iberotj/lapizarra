@@ -7548,6 +7548,15 @@ function conectarEventos() {
 
   const recargarVerificar = $('#verificarRecargar');
   if (recargarVerificar) recargarVerificar.addEventListener('click', () => pintarVerificar());
+  const cerrarVisor = $('#verificarVisorCerrar');
+  if (cerrarVisor) cerrarVisor.addEventListener('click', cerrarVisorRevision);
+  const fondoVisor = $('#verificarVisor');
+  if (fondoVisor) fondoVisor.addEventListener('click', e => {
+    if (e.target === fondoVisor) cerrarVisorRevision();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && fondoVisor && !fondoVisor.hidden) cerrarVisorRevision();
+  });
 
   $('#nuevoTema').addEventListener('click', () => abrirTema(null));
   $('#nuevaNota').addEventListener('click', () => {
@@ -7760,6 +7769,16 @@ function conectarEventos() {
    La bandeja no se guarda en `datos` ni entra al sincronizador:
    no es estado compartido que dos personas editen a la vez, es
    correspondencia que llega. Se pide cuando se abre la pestaña.
+
+   Tres decisiones de uso, todas del mismo principio —revisar es
+   mirar, no editar—:
+     · La pieza se ve EN GRANDE desde aqui. Antes habia que abrir
+       el generador solo para mirarla, que es entrar a editar para
+       no editar.
+     · Se contesta desde aqui. El generador promete que «te
+       contestan»; sin un sitio donde escribirlo, la contestacion
+       se iba por correo, que es lo que veniamos a quitar.
+     · Lo pendiente se separa de lo atendido, o se pierde.
    ══════════════════════════════════════════════════════════ */
 
 const ESTADOS_VERIFICAR = {
@@ -7771,11 +7790,27 @@ const ESTADOS_VERIFICAR = {
                 nota: 'No se va a usar' },
 };
 
+const FILTROS_VERIFICAR = [
+  { id: 'pendiente',  nombre: 'Sin revisar' },
+  { id: 'revisado',   nombre: 'Revisadas' },
+  { id: 'descartado', nombre: 'Descartadas' },
+  { id: 'todas',      nombre: 'Todas' },
+];
+
 let revisiones = [];
 let cargandoRevisiones = false;
+let filtroVerificar = 'pendiente';
+const respondiendo = new Set();   // que tarjetas tienen abierta la respuesta
 
 function urlDelGenerador(codigo) {
   return 'herramientas/generador-piezas.html#r=' + encodeURIComponent(codigo);
+}
+
+/* Lo pendiente primero: es lo unico que pide trabajo. */
+function revisionesOrdenadas() {
+  const peso = r => (r.estado === 'pendiente' ? 0 : 1);
+  return revisiones.slice().sort((a, b) =>
+    peso(a) - peso(b) || String(b.creado).localeCompare(String(a.creado)));
 }
 
 async function pintarVerificar(recargar = true) {
@@ -7783,7 +7818,7 @@ async function pintarVerificar(recargar = true) {
   if (!cont) return;
 
   if (recargar) {
-    if (cargandoRefrescando()) return;
+    if (cargandoRevisiones) return;
     cargandoRevisiones = true;
     cont.innerHTML = '<div class="vacio"><div>Buscando lo que ha llegado…</div></div>';
     try {
@@ -7799,22 +7834,29 @@ async function pintarVerificar(recargar = true) {
   }
 
   marcarPendientes();
+  pintarFiltrosVerificar();
 
-  if (!revisiones.length) {
+  const lista = revisionesOrdenadas()
+    .filter(r => filtroVerificar === 'todas' || r.estado === filtroVerificar);
+
+  if (!lista.length) {
+    const nada = !revisiones.length;
     cont.innerHTML = `<div class="vacio">
-      <div class="vacio-titulo">Nada por verificar</div>
-      <div>Cuando un area mande su pieza desde el generador va a aparecer aqui,
-      con su vista previa y el nombre de quien la manda.</div></div>`;
+      <div class="vacio-titulo">${nada ? 'Nada por verificar' : 'Nada en este apartado'}</div>
+      <div>${nada
+        ? 'Cuando un area mande su pieza desde el generador va a aparecer aqui, con su vista previa y el nombre de quien la manda.'
+        : 'Cambia de filtro para ver el resto.'}</div></div>`;
     return;
   }
 
-  cont.innerHTML = revisiones.map(r => {
+  cont.innerHTML = lista.map(r => {
     const est = ESTADOS_VERIFICAR[r.estado] || ESTADOS_VERIFICAR.pendiente;
     const cuando = String(r.creado || '').slice(0, 10);
     return `
       <article class="verificar" data-codigo="${esc(r.codigo)}"
                style="--verificar-tono:${est.tono}">
-        <div class="verificar-lienzo">${
+        <div class="verificar-lienzo" data-ver="${esc(r.codigo)}"
+             title="Ver en grande">${
           r.vista ? `<img src="${esc(r.vista)}" alt="">` : 'Sin vista previa'}</div>
         <div>
           <div class="verificar-cabeza">
@@ -7830,10 +7872,24 @@ async function pintarVerificar(recargar = true) {
             · codigo <span class="verificar-clave">${esc(r.codigo)}</span>
           </div>
           ${r.nota ? `<p class="verificar-recado">${esc(r.nota).replace(/\n/g, '<br>')}</p>` : ''}
+          ${r.respuesta ? `<p class="verificar-respondido"><b>Le contestamos:</b>
+            ${esc(r.respuesta).replace(/\n/g, '<br>')}</p>` : ''}
+          ${respondiendo.has(r.codigo) ? `
+          <div class="verificar-responder">
+            <textarea rows="3" data-texto="${esc(r.codigo)}"
+              placeholder="Lo que hay que corregir, o el visto bueno.">${esc(r.respuesta || '')}</textarea>
+            <div class="verificar-responder-pie">
+              <button type="button" class="btn-primario" data-enviar="${esc(r.codigo)}">Contestar</button>
+              <button type="button" class="btn-plano" data-cancelar="${esc(r.codigo)}">Cancelar</button>
+            </div>
+          </div>` : ''}
         </div>
         <div class="verificar-acciones">
-          <a class="btn-primario" href="${urlDelGenerador(r.codigo)}" target="_blank"
+          <button type="button" class="btn-primario" data-ver="${esc(r.codigo)}">Ver en grande</button>
+          <a class="btn-plano" href="${urlDelGenerador(r.codigo)}" target="_blank"
              rel="noopener">Abrir y corregir</a>
+          <button type="button" class="btn-plano" data-responder="${esc(r.codigo)}">${
+            r.respuesta ? 'Cambiar la respuesta' : 'Contestar'}</button>
           ${r.estado === 'pendiente'
             ? `<button type="button" class="btn-plano" data-revisada="${esc(r.codigo)}">Marcar revisada</button>
                <button type="button" class="btn-plano" data-descartar="${esc(r.codigo)}">Descartar</button>`
@@ -7842,15 +7898,75 @@ async function pintarVerificar(recargar = true) {
       </article>`;
   }).join('');
 
+  $$('[data-ver]', cont).forEach(b =>
+    b.addEventListener('click', () => abrirVisorRevision(b.dataset.ver)));
   $$('[data-revisada]', cont).forEach(b =>
     b.addEventListener('click', () => cambiarRevision(b.dataset.revisada, 'revisado')));
-  $$('[data-descartar]', cont).forEach(b =>
-    b.addEventListener('click', () => cambiarRevision(b.dataset.descartar, 'descartado')));
   $$('[data-reabrir]', cont).forEach(b =>
     b.addEventListener('click', () => cambiarRevision(b.dataset.reabrir, 'pendiente')));
+  $$('[data-descartar]', cont).forEach(b =>
+    b.addEventListener('click', () => {
+      const r = revisiones.find(x => x.codigo === b.dataset.descartar);
+      if (confirm(`¿Descartar «${(r && r.titulo) || 'esta pieza'}»?\n\n` +
+                  'Quien la mando va a ver que no se va a usar.'))
+        cambiarRevision(b.dataset.descartar, 'descartado');
+    }));
+  $$('[data-responder]', cont).forEach(b =>
+    b.addEventListener('click', () => {
+      respondiendo.add(b.dataset.responder);
+      pintarVerificar(false);
+      const caja = $(`[data-texto="${b.dataset.responder}"]`);
+      if (caja) caja.focus();
+    }));
+  $$('[data-cancelar]', cont).forEach(b =>
+    b.addEventListener('click', () => {
+      respondiendo.delete(b.dataset.cancelar); pintarVerificar(false);
+    }));
+  $$('[data-enviar]', cont).forEach(b =>
+    b.addEventListener('click', () => {
+      const caja = $(`[data-texto="${b.dataset.enviar}"]`);
+      contestarRevision(b.dataset.enviar, caja ? caja.value : '');
+    }));
 }
 
-function cargandoRefrescando() { return cargandoRevisiones; }
+function pintarFiltrosVerificar() {
+  const cont = $('#verificarFiltros');
+  if (!cont) return;
+  const cuenta = id => id === 'todas'
+    ? revisiones.length
+    : revisiones.filter(r => r.estado === id).length;
+
+  cont.innerHTML = FILTROS_VERIFICAR.map(f => `
+    <button type="button" class="verificar-filtro${
+      filtroVerificar === f.id ? ' activo' : ''}" data-filtro="${f.id}">
+      ${f.nombre} <b>${cuenta(f.id)}</b>
+    </button>`).join('');
+
+  $$('[data-filtro]', cont).forEach(b =>
+    b.addEventListener('click', () => {
+      filtroVerificar = b.dataset.filtro; pintarVerificar(false);
+    }));
+}
+
+/* ── Ver la pieza en grande ───────────────────────────────── */
+
+function abrirVisorRevision(codigo) {
+  const r = revisiones.find(x => x.codigo === codigo);
+  if (!r) return;
+  if (!r.vista) { avisar('Esa pieza llego sin vista previa'); return; }
+  $('#verificarVisorImg').src = r.vista;
+  $('#verificarVisorTitulo').textContent =
+    (r.titulo || 'Sin titulo') + ' · ' + (r.de || 'sin remitente');
+  $('#verificarVisorEditar').href = urlDelGenerador(codigo);
+  $('#verificarVisor').hidden = false;
+}
+
+function cerrarVisorRevision() {
+  $('#verificarVisor').hidden = true;
+  $('#verificarVisorImg').src = '';
+}
+
+/* ── Cambiar el estado y contestar ────────────────────────── */
 
 async function cambiarRevision(codigo, estado) {
   try {
@@ -7860,6 +7976,25 @@ async function cambiarRevision(codigo, estado) {
     pintarVerificar(false);
   } catch (e) {
     avisar('No se pudo cambiar: ' + (e.message || 'intenta otra vez'));
+  }
+}
+
+async function contestarRevision(codigo, texto) {
+  texto = (texto || '').trim().slice(0, 1200);
+  if (!texto) { avisar('Escribe la respuesta primero'); return; }
+  try {
+    await Almacen.contestarRevision(codigo, texto);
+    const r = revisiones.find(x => x.codigo === codigo);
+    if (r) {
+      r.respuesta = texto;
+      r.estado = 'revisado';
+      r.atendido = r.respondido = new Date().toISOString();
+    }
+    respondiendo.delete(codigo);
+    pintarVerificar(false);
+    avisar('Contestado. Lo va a ver al abrir su codigo.');
+  } catch (e) {
+    avisar('No se pudo contestar: ' + (e.message || 'intenta otra vez'));
   }
 }
 

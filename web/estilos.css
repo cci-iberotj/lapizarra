@@ -2207,6 +2207,61 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   margin: var(--e-4) 0 0; line-height: 1.5;
 }
 
+/* Filtros de la bandeja */
+.verificar-filtros { display: flex; gap: 8px; margin-bottom: var(--e-4); flex-wrap: wrap; }
+.verificar-filtro {
+  border: 1px solid var(--linea-sutil); background: var(--capa-1);
+  color: var(--tinta-media); border-radius: 999px;
+  padding: 5px 14px; font-size: var(--t-meta); cursor: pointer;
+}
+.verificar-filtro b { font-weight: var(--peso-medio); opacity: .75; margin-left: 3px; }
+.verificar-filtro.activo {
+  background: var(--marca); color: #fff; border-color: transparent;
+}
+.verificar-filtro.activo b { opacity: .85; }
+
+/* Visor a pantalla completa. Revisar es mirar, no editar. */
+.visor-fondo {
+  position: fixed; inset: 0; z-index: 90; background: rgba(10, 6, 8, .88);
+  display: grid; grid-template-rows: auto 1fr; gap: var(--e-4);
+  padding: var(--e-4) var(--e-4) var(--e-5);
+}
+.visor-barra {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--e-4); color: var(--tinta-sobre-invertida); font-size: var(--t-meta);
+}
+.visor-barra > div { display: flex; align-items: center; gap: var(--e-3); }
+.visor-barra .btn-plano { color: var(--tinta-sobre-invertida); }
+/* `min-height: 0` es lo que deja que la fila encoja: sin eso el hueco
+   crece hasta el tamaño natural de la imagen y el cartel se sale. */
+/* `position: relative` + `inset: 0` en la imagen, y no altura en
+   porcentaje: dentro de una fila `1fr` de grid el porcentaje no siempre
+   encuentra contra que resolverse y la imagen se queda a tamano natural.
+   El posicionamiento absoluto si resuelve contra la caja del padre. */
+.visor-hueco { min-height: 0; position: relative; }
+/* La imagen OCUPA el hueco y `contain` la mete entera dentro. Con
+   `max-height` en porcentaje no bastaba: el porcentaje no sujetaba al
+   elemento y el cartel se salia por abajo. */
+.visor-hueco img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  display: block; object-fit: contain;
+  filter: drop-shadow(0 18px 40px rgba(0, 0, 0, .55));
+}
+
+/* La miniatura invita a abrirse */
+.verificar-lienzo { cursor: zoom-in; }
+.verificar-responder { margin: var(--e-4) 0 0; }
+.verificar-responder textarea {
+  width: 100%; min-height: 74px; resize: vertical;
+  font: inherit; font-size: var(--t-meta);
+}
+.verificar-responder-pie { display: flex; gap: var(--e-3); margin-top: var(--e-3); }
+.verificar-respondido {
+  margin: var(--e-3) 0 0; padding: var(--e-3) var(--e-4);
+  background: var(--capa-hundida); border-radius: var(--r-sm);
+  font-size: var(--t-meta); color: var(--tinta-media); line-height: 1.5;
+}
+
 /* Cada pieza por verificar. Misma anatomía que una entrega —miniatura,
    cuerpo y acciones— pero la miniatura es un cartel, así que se deja
    alta libre en vez de forzarle proporción. */

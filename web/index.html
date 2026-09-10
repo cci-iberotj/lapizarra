@@ -306,8 +306,22 @@
       <button type="button" class="btn-plano" id="verificarRecargar">Actualizar</button>
     </div>
   </section>
+  <section class="verificar-filtros" id="verificarFiltros"></section>
   <section class="verificar-lista" id="verificarLista"></section>
 </main>
+
+<!-- Ver la pieza en grande sin entrar a editarla: revisar y corregir son
+     dos momentos distintos y el primero es mucho más frecuente. -->
+<div class="visor-fondo" id="verificarVisor" hidden>
+  <div class="visor-barra">
+    <span id="verificarVisorTitulo"></span>
+    <div>
+      <a class="btn-plano" id="verificarVisorEditar" target="_blank" rel="noopener">Abrir y corregir</a>
+      <button type="button" class="btn-icono" id="verificarVisorCerrar" title="Cerrar">×</button>
+    </div>
+  </div>
+  <div class="visor-hueco"><img id="verificarVisorImg" alt=""></div>
+</div>
 
 <main id="vista-inventario" class="vista">
 

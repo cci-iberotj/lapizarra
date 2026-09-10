@@ -44,6 +44,12 @@ create table if not exists public.revisiones (
   atendido timestamptz
 );
 
+-- La respuesta de Diseño. El panel del generador promete que «la abren, la
+-- corrigen y te contestan»: sin un sitio donde escribir esa contestación, la
+-- promesa se cumplía por correo, que es justo lo que veníamos a quitar.
+alter table public.revisiones add column if not exists respuesta text not null default '';
+alter table public.revisiones add column if not exists respondido timestamptz;
+
 alter table public.revisiones drop constraint if exists revisiones_estado_check;
 alter table public.revisiones add constraint revisiones_estado_check
   check (estado in ('pendiente', 'revisado', 'descartado'));
@@ -71,7 +77,8 @@ set search_path = public
 as $$
   select jsonb_build_object(
     'codigo', codigo, 'titulo', titulo, 'area', area, 'de', de,
-    'nota', nota, 'estado', estado, 'creado', creado, 'pieza', pieza)
+    'nota', nota, 'estado', estado, 'creado', creado, 'pieza', pieza,
+    'respuesta', respuesta, 'respondido', respondido)
   from public.revisiones
   where codigo = upper(trim(p_codigo))
 $$;
