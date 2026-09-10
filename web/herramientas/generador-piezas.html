@@ -198,6 +198,18 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   color:var(--ui-suave); font-size:12px; text-decoration:underline;
 }
 .quita-retrato:hover{color:var(--rojo)}
+.ponente-mandos{display:flex; gap:14px; margin-top:4px}
+.ponente-mandos button{
+  border:none; background:none; padding:2px 0 0; cursor:pointer;
+  color:var(--ui-suave); font-size:12px; text-decoration:underline;
+}
+.ponente-mandos button:hover{color:var(--rojo)}
+.encuadre{
+  margin-top:12px; padding-top:12px; border-top:1px solid var(--ui-linea);
+}
+.encuadre .campo{margin-bottom:10px}
+.encuadre .campo:last-child{margin-bottom:0}
+.encuadre label{font-size:12px; color:var(--ui-suave); margin-bottom:4px}
 
 /* El recibo del envío. El código se ve grande a propósito: es lo único
    que la persona tiene que conservar. */
@@ -362,7 +374,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 }
 .p-foto img{
   width:100%; height:100%; display:block; object-fit:cover;
-  object-position:var(--fx,50%) var(--fy,50%); transform:scale(var(--fz,1));
+  object-position:var(--fx,50%) var(--fy,50%);
+  transform:scale(var(--fz,1)) translate(var(--tx,0%), var(--ty,0%));
   transform-origin:center;
 }
 .p-foto.vacia img{display:none}
@@ -422,11 +435,20 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .ponente-i .nom{font-size:calc(var(--u)*2.1); font-weight:700; line-height:1.15; display:block}
 .ponente-i .retrato{
   display:block; width:calc(var(--u)*12.5); height:calc(var(--u)*12.5);
-  border-radius:50%; object-fit:cover; object-position:center top;
+  border-radius:50%; overflow:hidden; background:#fff;
   margin:0 auto calc(var(--u)*1.1);
   /* El aro es lo que hace que lean como conjunto: las fotos llegan con
      fondos distintos y sin él las de fondo claro flotan sin borde. */
   border:calc(var(--u)*.16) solid var(--gris-50);
+}
+/* La caja recorta y la imagen se mueve dentro, como en la fotografía
+   principal. El `scale` tiene que ir en la imagen y no en la caja: puesto
+   en la caja crecería el círculo en vez de acercarse la cara. */
+.ponente-i .retrato img{
+  width:100%; height:100%; display:block; object-fit:cover;
+  object-position:var(--rx, 50%) var(--ry, 38%);
+  transform:scale(var(--rz, 1)) translate(var(--tx, 0%), var(--ty, 0%));
+  transform-origin:center;
 }
 
 /* Con retrato el bloque cambia de rejilla a fila centrada: así el último
@@ -667,9 +689,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 /* En 9:16 sobra alto y falta ancho: caben tres por renglón, y más
    grandes, que es como se ven en el teléfono. */
 .f-historia.con-retratos .ponente-i{flex:0 0 calc(var(--u)*27)}
-.f-historia.con-retratos .retrato{
-  width:calc(var(--u)*17); height:calc(var(--u)*17);
-}
+.f-historia.con-retratos .retrato{width:calc(var(--u)*17); height:calc(var(--u)*17)}
 .f-historia.con-retratos .ponente-i .nom{font-size:calc(var(--u)*2.2)}
 .f-historia.con-retratos .ponente-i .car{font-size:calc(var(--u)*1.7)}
 .f-historia .ponente-i .nom{font-size:calc(var(--u)*2.6)}
@@ -807,7 +827,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
       <div id="zona-imagen">
         <div class="soltar" id="soltar">
           <b>Elegir fotografía</b>
-          <small>Arrástrala aquí o haz clic · máximo 12 MB</small>
+          <small>Arrástrala aquí o haz clic · hasta 40 MB, se ajusta sola</small>
         </div>
         <input type="file" id="archivo" accept="image/*" hidden>
       </div>
@@ -1317,6 +1337,10 @@ function pintarEjemplos(){
 }
 const TOPE_PONENTES = 8;
 
+/* Qué retratos tienen abierto el encuadre. Vive fuera del estado porque no
+   es parte de la pieza: es cómo tienes puesto el panel en este momento. */
+const abiertos = new Set();
+
 function pintarPonentes(){
   $('#ponentes').innerHTML = E.ponentes.map((p,i)=>`
     <div class="ponente">
@@ -1329,37 +1353,46 @@ function pintarPonentes(){
         <div class="ponente-campos">
           <input type="text" data-pon-nom="${i}" value="${esc(p.nom)}" placeholder="Nombre" maxlength="46">
           <input type="text" data-pon-car="${i}" value="${esc(p.car)}" placeholder="Cargo o institución" maxlength="70">
-          ${p.foto ? `<button class="quita-retrato" data-quita-foto="${i}">Quitar retrato</button>` : ''}
+          ${p.foto ? `<div class="ponente-mandos">
+            <button data-encuadrar="${i}">${abiertos.has(i) ? 'Listo' : 'Encuadrar'}</button>
+            <button class="quita-retrato" data-quita-foto="${i}">Quitar retrato</button>
+          </div>` : ''}
         </div>
       </div>
+      ${p.foto && abiertos.has(i) ? `
+      <div class="encuadre">
+        <div class="campo">
+          <label>Mover a los lados</label>
+          <input type="range" data-pon-fx="${i}" min="0" max="100" value="${p.fx ?? 50}">
+        </div>
+        <div class="campo">
+          <label>Mover arriba y abajo</label>
+          <input type="range" data-pon-fy="${i}" min="0" max="100" value="${p.fy ?? 38}">
+        </div>
+        <div class="campo">
+          <label>Acercar</label>
+          <input type="range" data-pon-fz="${i}" min="100" max="260" value="${p.fz ?? 100}">
+        </div>
+        <p class="pista">Si un mando no mueve nada es que por ese lado ya se ve
+          la foto completa. Acércala y entonces podrás correrla.</p>
+      </div>` : ''}
     </div>`).join('');
   $('#mas-ponente').style.display = E.ponentes.length >= TOPE_PONENTES ? 'none' : '';
 }
 
-/* El retrato se guarda ya reducido: siete fotos de cámara no caben en el
-   guardado del navegador y tampoco hacen falta, se ven a dos centímetros. */
+/* El retrato se guarda COMPLETO, sólo reducido. Antes se recortaba cuadrado
+   al cargarlo y el encuadre quedaba a lo que saliera: si la cara no caía en
+   medio, no había forma de arreglarlo sin volver a empezar. Ahora el recorte
+   lo hace la vista, con los tres mandos, y la foto entera sigue ahí. */
 let retratoDe = null;
-function leerRetrato(archivo){
-  const fr = new FileReader();
-  fr.onload = () => {
-    const im = new Image();
-    im.onload = () => {
-      const lado = Math.min(im.naturalWidth, im.naturalHeight, 520);
-      const c = document.createElement('canvas');
-      c.width = c.height = lado;
-      const g = c.getContext('2d');
-      /* recorte cuadrado centrado, pesando hacia arriba: en un retrato la
-         cara vive en la mitad de arriba */
-      const corte = Math.min(im.naturalWidth, im.naturalHeight);
-      const sx = (im.naturalWidth - corte) / 2;
-      const sy = Math.min((im.naturalHeight - corte) / 2, im.naturalHeight * 0.08);
-      g.drawImage(im, sx, sy, corte, corte, 0, 0, lado, lado);
-      E.ponentes[retratoDe].foto = c.toDataURL('image/jpeg', 0.86);
-      pintarPonentes(); render();
-    };
-    im.src = fr.result;
-  };
-  fr.readAsDataURL(archivo);
+async function leerRetrato(archivo){
+  try{
+    E.ponentes[retratoDe].foto = await reducirImagen(archivo, 900, 0.86);
+    const p = E.ponentes[retratoDe];
+    if(p.fx === undefined){ p.fx = 50; p.fy = 38; p.fz = 100; }
+    abiertos.add(retratoDe);
+    pintarPonentes(); render();
+  }catch(e){ aviso('No pude leer esa imagen'); }
 }
 
 /* ============================================================
@@ -1395,7 +1428,9 @@ function render(){
   $('#v-ponentes').innerHTML = E.usarPonentes
     ? E.ponentes.filter(p=>p.nom||p.car).map(p=>
         `<div class="ponente-i">` +
-        (p.foto?`<img class="retrato" src="${p.foto}" alt="">`:'') +
+        (p.foto?`<span class="retrato" style="--rx:${p.fx ?? 50}%;--ry:${p.fy ?? 38}%;` +
+                `--rz:${(p.fz ?? 100) / 100};--tx:${corrimiento(p.fx, p.fz)};` +
+                `--ty:${corrimiento(p.fy, p.fz)}"><img src="${p.foto}" alt=""></span>`:'') +
         `<span class="nom">${esc(p.nom)}</span>` +
         (p.car?`<span class="car">${esc(p.car)}</span>`:'') + `</div>`).join('')
     : '';
@@ -1433,6 +1468,8 @@ function render(){
     foto.style.setProperty('--fx', E.fx + '%');
     foto.style.setProperty('--fy', E.fy + '%');
     foto.style.setProperty('--fz', E.fz / 100);
+    foto.style.setProperty('--tx', corrimiento(E.fx, E.fz));
+    foto.style.setProperty('--ty', corrimiento(E.fy, E.fz));
   }
 
   /* Lo que no se usa, no se ve: el panel se encoge solo */
@@ -1889,6 +1926,11 @@ function conectar(){
     const t = e.target;
     if(t.dataset.ponNom !== undefined) E.ponentes[+t.dataset.ponNom].nom = t.value;
     if(t.dataset.ponCar !== undefined) E.ponentes[+t.dataset.ponCar].car = t.value;
+    /* Los deslizadores del encuadre NO repintan el panel: repintarlo
+       reemplaza el control a media pasada y se corta el arrastre. */
+    if(t.dataset.ponFx !== undefined) E.ponentes[+t.dataset.ponFx].fx = +t.value;
+    if(t.dataset.ponFy !== undefined) E.ponentes[+t.dataset.ponFy].fy = +t.value;
+    if(t.dataset.ponFz !== undefined) E.ponentes[+t.dataset.ponFz].fz = +t.value;
     render();
   });
   $('#ponentes').addEventListener('click', e=>{
@@ -1899,6 +1941,10 @@ function conectar(){
     const r = e.target.closest('[data-retrato]');
     if(r){ retratoDe = +r.dataset.retrato; $('#archivo-retrato').value = '';
            $('#archivo-retrato').click(); return; }
+    const enc = e.target.closest('[data-encuadrar]');
+    if(enc){ const i = +enc.dataset.encuadrar;
+             abiertos.has(i) ? abiertos.delete(i) : abiertos.add(i);
+             pintarPonentes(); return; }
     const q = e.target.closest('[data-quita-foto]');
     if(q){ E.ponentes[+q.dataset.quitaFoto].foto = '';
            pintarPonentes(); render(); }
@@ -1907,7 +1953,8 @@ function conectar(){
     if(e.target.files[0] && retratoDe !== null) leerRetrato(e.target.files[0]);
   });
   $('#mas-ponente').addEventListener('click', ()=>{
-    E.ponentes.push({nom:'',car:'',foto:''}); pintarPonentes(); render();
+    E.ponentes.push({nom:'',car:'',foto:'',fx:50,fy:38,fz:100});
+    pintarPonentes(); render();
   });
 
   /* Interruptores */
@@ -1927,7 +1974,8 @@ function conectar(){
   palanca('#sw-foto','usarFoto');
   palanca('#sw-cuando','mostrarCuando');
   palanca('#sw-ponentes','usarPonentes', ()=>{
-    if(!E.ponentes.length){ E.ponentes.push({nom:'',car:'',foto:''}); pintarPonentes(); }
+    if(!E.ponentes.length){ E.ponentes.push({nom:'',car:'',foto:'',fx:50,fy:38,fz:100});
+                            pintarPonentes(); }
   });
   palanca('#sw-liga','usarLiga');
   palanca('#sw-qr','qr');
@@ -2013,18 +2061,73 @@ function vistaActual(){
   return m ? +m[1] : 1;
 }
 
-function leerImagen(archivo){
+/* ============================================================
+   IMÁGENES
+   Nada de lo que se carga se guarda tal cual. Una foto de cámara de 13 MB
+   se vuelve 18 MB de texto dentro de la pieza; medido en tabloide a 300 ppp
+   contra la misma foto reducida a 4000 px, la diferencia es el 0.09 % de
+   los píxeles, que es ruido de recompresión. Lo que sí cambia es que la
+   pieza deja de caber en el guardado del navegador y no se puede mandar a
+   revisión, que tiene tope de seis megas.
+
+   4000 px es el lado largo que hace falta: la pieza más grande es el
+   tabloide, que sale a 3300 × 5100.
+   ============================================================ */
+const LADO_MAXIMO = 4000;
+
+function tieneTransparencia(lienzo){
+  const d = lienzo.getContext('2d').getImageData(0, 0, lienzo.width, lienzo.height).data;
+  /* Basta con encontrar un píxel translúcido; se muestrea de diez en diez
+     para no recorrer dieciséis millones de valores. */
+  for(let p = 3; p < d.length; p += 40) if(d[p] < 250) return true;
+  return false;
+}
+
+function reducirImagen(archivo, lado = LADO_MAXIMO, calidad = 0.88){
+  return new Promise((ok, mal) => {
+    const fr = new FileReader();
+    fr.onerror = mal;
+    fr.onload = () => {
+      const im = new Image();
+      im.onerror = mal;
+      im.onload = () => {
+        const k = Math.min(1, lado / Math.max(im.naturalWidth, im.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width  = Math.max(1, Math.round(im.naturalWidth  * k));
+        c.height = Math.max(1, Math.round(im.naturalHeight * k));
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        /* Un PNG con transparencia pasado a JPEG sale con el fondo negro. */
+        ok(tieneTransparencia(c) ? c.toDataURL('image/png')
+                                 : c.toDataURL('image/jpeg', calidad));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(archivo);
+  });
+}
+
+function pesoLegible(bytes){
+  return bytes >= 1048576 ? (bytes / 1048576).toFixed(1) + ' MB'
+                          : Math.round(bytes / 1024) + ' KB';
+}
+
+async function leerImagen(archivo){
   if(!/^image\//.test(archivo.type)) return aviso('Ese archivo no es una imagen');
-  if(archivo.size > 12*1024*1024) return aviso('La imagen pesa más de 12 MB');
-  const fr = new FileReader();
-  fr.onload = ()=>{
-    E.imagen = fr.result;
-    $('#mini').src = fr.result;
+  /* El tope es alto porque la imagen se reduce en cuanto entra: lo que se
+     guarda no es el archivo, es la versión que la pieza necesita. */
+  if(archivo.size > 40*1024*1024) return aviso('Esa imagen pesa más de 40 MB');
+  aviso('Preparando la fotografía…');
+  try{
+    E.imagen = await reducirImagen(archivo);
+    $('#mini').src = E.imagen;
     $('#ajustes-imagen').classList.remove('oculto');
     $('#zona-imagen').classList.add('oculto');
     render();
-  };
-  fr.readAsDataURL(archivo);
+    const antes = archivo.size, ahora = Math.round(E.imagen.length * 0.75);
+    aviso(ahora < antes * 0.8
+      ? 'Fotografía lista · de ' + pesoLegible(antes) + ' a ' + pesoLegible(ahora)
+      : 'Fotografía lista');
+  }catch(e){ aviso('No pude leer esa imagen'); }
 }
 
 /* ============================================================
@@ -2052,6 +2155,15 @@ function nuevoCodigo(){
   const n = new Uint32Array(8);
   crypto.getRandomValues(n);
   return [...n].map(v => ALFABETO[v % ALFABETO.length]).join('');
+}
+
+/* Cuánto se puede correr la imagen dentro de su caja. `object-position` ya
+   recorre lo que sobra del recorte de relleno; esto recorre lo que sobra de
+   haber acercado, que es lo único que hay cuando la foto no sobra por ese
+   eje. En 100 % vale cero y no mueve nada. */
+function corrimiento(valor, zoom){
+  const z = (zoom ?? 100) / 100;
+  return ((50 - (valor ?? 50)) / 100 * (1 - 1 / z) * 100).toFixed(2) + '%';
 }
 
 function cabeceras(){
