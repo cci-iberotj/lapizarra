@@ -460,6 +460,16 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   font-size:calc(var(--H) * .254); line-height:1; white-space:nowrap;
 }
 
+/* ---- Alineación del párrafo ----
+   Sin clase manda la del diseño: a la izquierda en cartel y anuncio,
+   centrada en el aviso. Con justificado se activa la partición de
+   palabras, o en una caja angosta el renglón se abre en ríos. */
+.al-izquierda .p-texto{text-align:left; text-wrap:pretty}
+.al-centro .p-texto{text-align:center; text-wrap:balance}
+.al-justificado .p-texto{
+  text-align:justify; text-justify:inter-word; hyphens:auto; text-wrap:wrap;
+}
+
 /* ============================================================
    DISEÑO A · CARTEL O COMUNICADO
    La pleca va primero y la fotografía debajo. En el DOM la foto
@@ -794,9 +804,13 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
         <label for="anchoTexto">Ancho de la caja <b class="valor" id="valAncho"></b></label>
         <input type="range" id="anchoTexto" min="22" max="70" step="2">
       </div>
-      <div class="campo" style="margin:0">
+      <div class="campo" style="margin:0 0 14px">
         <label for="escalaTexto">Tamaño del texto <b class="valor" id="valEscala"></b></label>
         <input type="range" id="escalaTexto" min="80" max="130" step="5">
+      </div>
+      <div class="campo" style="margin:0">
+        <label>Alineación</label>
+        <div class="opciones dos" id="alineaciones"></div>
       </div>
       <p class="pista">Si el párrafo queda apretado, ensancha la caja antes de bajarle el tamaño.</p>
     </div>
@@ -1091,6 +1105,13 @@ const EJEMPLOS = {
   }
 };
 
+const ALINEACIONES = {
+  auto:        'Como el diseño',
+  izquierda:   'A la izquierda',
+  centro:      'Centrado',
+  justificado: 'Justificado'
+};
+
 const LIMITES = {ante:60, titulo:90, subtitulo:60, texto:900};
 
 /* ---------- Estado ---------- */
@@ -1101,7 +1122,7 @@ const inicial = () => ({
   usarFoto:true, mostrarCuando:true, usarPonentes:false, usarLiga:true, qr:false,
   ligaTexto:true,
   imagen:null, fx:50, fy:50, fz:100,
-  anchoTexto:44, escalaTexto:100
+  anchoTexto:44, escalaTexto:100, alinearTexto:'auto'
 });
 let E = inicial();
 let zoom = null;                 // null = ajustar solo
@@ -1161,6 +1182,12 @@ function pintarDisenos(){
       ${miniatura(id)}<span class="nom">${d.nom}</span>
     </div>`).join('');
 }
+function pintarAlineaciones(){
+  $('#alineaciones').innerHTML = Object.entries(ALINEACIONES).map(([id,nom])=>`
+    <div class="opcion${E.alinearTexto===id?' activa':''}" data-alinear="${id}">
+      <span class="nom">${nom}</span>
+    </div>`).join('');
+}
 function pintarAreas(){
   $('#area').innerHTML = Object.entries(AREAS).map(([g,lista])=>{
     const ops = lista.map(a=>`<option${E.area===a?' selected':''}>${a}</option>`).join('');
@@ -1188,7 +1215,8 @@ function render(){
   const f = FORMATOS[E.formato];
 
   pieza.className = `pieza f-${E.formato} d-${E.diseno}`
-                  + (E.usarFoto ? '' : ' sin-foto');
+                  + (E.usarFoto ? '' : ' sin-foto')
+                  + (E.alinearTexto === 'auto' ? '' : ' al-' + E.alinearTexto);
 
   /* En 16:9 el título encabeza la columna de texto; en los verticales va
      pegado a la fotografía. Es el único cambio de estructura entre formatos. */
@@ -1519,6 +1547,7 @@ function sincronizar(){
   $('#zona-imagen').classList.toggle('oculto', !!E.imagen);
   if(E.imagen) $('#mini').src = E.imagen;
   pintarFormatos(); pintarDisenos(); pintarAreas(); pintarPonentes();
+  pintarAlineaciones();
   contadores(); render();
 }
 
@@ -1617,6 +1646,10 @@ function conectar(){
     E.diseno = o.dataset.diseno; pintarDisenos(); render();
   });
   $('#area').addEventListener('change', e=>{ E.area = e.target.value; render(); });
+  $('#alineaciones').addEventListener('click', e=>{
+    const o = e.target.closest('[data-alinear]'); if(!o) return;
+    E.alinearTexto = o.dataset.alinear; pintarAlineaciones(); render();
+  });
 
   CAMPOS.forEach(k=>{
     $('#'+k).addEventListener('input', e=>{ E[k] = e.target.value; contadores(); render(); });
