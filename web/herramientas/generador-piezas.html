@@ -120,6 +120,8 @@ select{appearance:none; background-image:url("data:image/svg+xml;utf8,<svg xmlns
 .opciones.cuatro{grid-template-columns:repeat(4,1fr)}
 .opciones.formatos{grid-template-columns:repeat(3,1fr)}
 .opciones.tres{grid-template-columns:repeat(3,1fr)}
+.opciones.cinco{grid-template-columns:repeat(5,1fr)}
+.opciones.cinco .opcion{padding:9px 0; font-size:13px}
 .opcion{
   border:1px solid #DCD8D3; border-radius:8px; background:#fff; cursor:pointer;
   padding:12px 9px; text-align:center; transition:all .15s; position:relative;
@@ -202,10 +204,16 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   border:1px solid var(--ui-linea); border-radius:9px; padding:14px; margin-bottom:10px;
   background:#FBFAF9; position:relative;
 }
-.ponente .quitar{
-  position:absolute; top:6px; right:7px; border:none; background:none; cursor:pointer;
-  color:var(--ui-suave); font-size:15px; line-height:1; padding:2px 4px;
+.ponente-orden{
+  position:absolute; top:5px; right:6px; display:flex; gap:2px;
 }
+.ponente-orden button{
+  border:none; background:none; cursor:pointer; color:var(--ui-suave);
+  font-size:14px; line-height:1; padding:3px 5px; border-radius:6px;
+}
+.ponente-orden button:hover:not(:disabled){background:#F0ECE8; color:var(--rojo)}
+.ponente-orden button:disabled{opacity:.28; cursor:default}
+.ponente .quitar{font-size:15px}
 .ponente .quitar:hover{color:var(--rojo)}
 .ponente input{margin-bottom:8px}
 .ponente input:last-child{margin-bottom:0}
@@ -356,6 +364,10 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   --acento-osc:#A80027;
   --tinta:#231F20;
   --gris:#82786F;          /* Warm Gray 9 */
+  --ret-base:12.5;         /* diámetro del retrato, en unidades */
+  --ret:1;                 /* lo que le hace el deslizador */
+  --pon-min:19.5;          /* lo que mide un ponente aunque el retrato sea chico */
+  --pon-gap:1.8;           /* separación entre ponentes, en unidades */
   --gris-50:#C1BCB7;       /* Warm Gray 9 al 50 % */
   position:relative; overflow:hidden; background:#fff; color:var(--tinta);
   display:flex; flex-direction:column;
@@ -473,9 +485,14 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .p-ponentes:has(> :only-child){grid-template-columns:1fr}
 .ponente-i .nom{font-size:calc(var(--u)*2.1); font-weight:700; line-height:1.15; display:block}
 .ponente-i .retrato{
-  display:block; width:calc(var(--u)*12.5); height:calc(var(--u)*12.5);
+  /* `min` con el 100 % es el tope: por más que se suba el deslizador, el
+     círculo nunca se sale de su columna. Y con `aspect-ratio` sigue siendo
+     redondo aunque el tope lo recorte. */
+  display:block; margin:0 auto;
+  width:min(calc(var(--u) * var(--ret-base) * var(--ret)), 100%);
+  aspect-ratio:1;
   border-radius:50%; overflow:hidden; background:#fff;
-  margin:0 auto calc(var(--u)*1.1);
+  margin-bottom:calc(var(--u)*1.1);
   /* El aro es lo que hace que lean como conjunto: las fotos llegan con
      fondos distintos y sin él las de fondo claro flotan sin borde. */
   border:calc(var(--u)*.16) solid var(--gris-50);
@@ -494,10 +511,21 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
    renglón queda centrado solo, que con `grid` no sale sin trampas. */
 .con-retratos .p-ponentes{
   display:flex; flex-wrap:wrap; justify-content:center; align-items:flex-start;
-  gap:calc(var(--u)*2.4) calc(var(--u)*1.8);
+  gap:calc(var(--u)*2.4) calc(var(--u) * var(--pon-gap));
 }
+/* Cada ponente mide lo que pida su retrato, pero nunca menos de lo que
+   necesita el nombre: con retratos chicos los nombres se partirían en
+   cuatro renglones. */
 .con-retratos .ponente-i{
-  flex:0 0 calc(var(--u)*19.5); text-align:center;
+  flex:0 0 max(calc(var(--u) * var(--ret-base) * var(--ret) * 1.06),
+               calc(var(--u) * var(--pon-min)));
+  text-align:center;
+}
+/* Con el número por renglón elegido a mano, el ancho sale de repartir el
+   espacio y no del tamaño del retrato. */
+.con-retratos.pon-fijo .ponente-i{
+  flex:0 0 calc((100% - (var(--pon-col) - 1) * var(--u) * var(--pon-gap))
+                / var(--pon-col));
 }
 .con-retratos .ponente-i .nom{font-size:calc(var(--u)*1.8); text-wrap:balance}
 .con-retratos .ponente-i .car{font-size:calc(var(--u)*1.35)}
@@ -699,7 +727,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-pantalla .p-liga{font-size:calc(var(--u) * 2.2 * var(--esc-liga, 1))}
 .f-pantalla .p-liga-et,.f-pantalla .p-informes,
 .f-pantalla .p-informes-t{font-size:calc(var(--u)*1.7)}
-.f-pantalla.con-retratos .ponente-i{flex:0 0 calc(var(--u)*19)}
+.f-pantalla.con-retratos{--pon-min:19}
 .f-pantalla .ponente-i .nom{font-size:calc(var(--u)*2.4)}
 .f-pantalla .ponente-i .car{font-size:calc(var(--u)*1.7)}
 .f-pantalla{--logo-h:7.8}
@@ -727,8 +755,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-historia .p-informes-t{font-size:calc(var(--u)*1.8)}
 /* En 9:16 sobra alto y falta ancho: caben tres por renglón, y más
    grandes, que es como se ven en el teléfono. */
-.f-historia.con-retratos .ponente-i{flex:0 0 calc(var(--u)*27)}
-.f-historia.con-retratos .retrato{width:calc(var(--u)*17); height:calc(var(--u)*17)}
+.f-historia.con-retratos{--ret-base:17; --pon-min:27}
 .f-historia.con-retratos .ponente-i .nom{font-size:calc(var(--u)*2.2)}
 .f-historia.con-retratos .ponente-i .car{font-size:calc(var(--u)*1.7)}
 .f-historia .ponente-i .nom{font-size:calc(var(--u)*2.6)}
@@ -988,6 +1015,18 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
       <div class="palanca" id="sw-ponentes" role="switch" tabindex="0"></div>
     </div>
     <div id="bloque-ponentes">
+      <div id="ajustes-retratos" class="oculto">
+        <div class="campo">
+          <label for="retratoTam">Tamaño de los retratos <b class="valor" id="valRetrato"></b></label>
+          <input type="range" id="retratoTam" min="60" max="180" step="5">
+        </div>
+        <div class="campo">
+          <label>Cuántos por renglón</label>
+          <div class="opciones cinco" id="ponentes-col"></div>
+          <p class="pista">Al hacerlos más grandes caben menos. Con «Auto» se
+            acomodan solos; elige un número si quieres mandar tú.</p>
+        </div>
+      </div>
       <div id="ponentes"></div>
       <button class="btn btn-secundario" id="mas-ponente">Agregar ponente</button>
       <input type="file" id="archivo-retrato" accept="image/*" hidden>
@@ -1341,7 +1380,8 @@ const inicial = () => ({
   imagen:null, fx:50, fy:50, fz:100,
   anchoTexto:44, escalaTexto:100, alinearTexto:'auto',
   escalaTitulo:100, tituloUnaLinea:false,
-  escalaSubtitulo:100, subtituloUnaLinea:false
+  escalaSubtitulo:100, subtituloUnaLinea:false,
+  retratoTam:100, ponentesCol:'auto'
 });
 let E = inicial();
 let zoom = null;                 // null = ajustar solo
@@ -1395,6 +1435,15 @@ function pintarDisenos(){
       ${miniatura(id)}<span class="nom">${d.nom}</span>
     </div>`).join('');
 }
+const COLUMNAS_PONENTES = ['auto', '2', '3', '4', '5'];
+
+function pintarColumnasPonentes(){
+  $('#ponentes-col').innerHTML = COLUMNAS_PONENTES.map(id=>`
+    <div class="opcion${E.ponentesCol === id ? ' activa' : ''}" data-col="${id}">
+      <span class="nom">${id === 'auto' ? 'Auto' : id}</span>
+    </div>`).join('');
+}
+
 function pintarAlineaciones(){
   $('#alineaciones').innerHTML = Object.entries(ALINEACIONES).map(([id,nom])=>`
     <div class="opcion${E.alinearTexto===id?' activa':''}" data-alinear="${id}">
@@ -1420,7 +1469,12 @@ const abiertos = new Set();
 function pintarPonentes(){
   $('#ponentes').innerHTML = E.ponentes.map((p,i)=>`
     <div class="ponente">
-      <button class="quitar" data-quita="${i}" title="Quitar">×</button>
+      <div class="ponente-orden">
+        <button data-sube="${i}" title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button data-baja="${i}" title="Bajar" ${
+          i === E.ponentes.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="quitar" data-quita="${i}" title="Quitar">×</button>
+      </div>
       <div class="ponente-fila">
         <button class="retrato-btn${p.foto?' tiene':''}" data-retrato="${i}"
                 title="${p.foto?'Cambiar retrato':'Poner retrato'}">
@@ -1511,6 +1565,11 @@ function render(){
         (p.car?`<span class="car">${esc(p.car)}</span>`:'') + `</div>`).join('')
     : '';
   pieza.classList.toggle('con-retratos', conRetratos);
+  pieza.style.setProperty('--ret', (E.retratoTam / 100).toFixed(2));
+  const porRenglon = E.ponentesCol !== 'auto';
+  pieza.classList.toggle('pon-fijo', porRenglon);
+  if(porRenglon) pieza.style.setProperty('--pon-col', E.ponentesCol);
+  $('#ajustes-retratos').classList.toggle('oculto', !conRetratos);
 
   /* Liga, informes y QR.
      En la pieza se escribe la dirección limpia, sin protocolo ni www, que es
@@ -1576,6 +1635,7 @@ function render(){
   $('#valEscala').textContent = E.escalaTexto + ' %';
   $('#valTitulo').textContent = E.escalaTitulo + ' %';
   $('#valSubtitulo').textContent = E.escalaSubtitulo + ' %';
+  $('#valRetrato').textContent = E.retratoTam + ' %';
   ajustarTitulo();
 
   ajustarLiga();
@@ -1861,6 +1921,8 @@ function sincronizar(){
   $('#anchoTexto').value = E.anchoTexto; $('#escalaTexto').value = E.escalaTexto;
   $('#escalaTitulo').value = E.escalaTitulo;
   $('#escalaSubtitulo').value = E.escalaSubtitulo;
+  $('#retratoTam').value = E.retratoTam;
+  pintarColumnasPonentes();
   $('#sw-1linea').classList.toggle('on', E.tituloUnaLinea);
   $('#sw-sub1linea').classList.toggle('on', E.subtituloUnaLinea);
   $('#sw-foto').classList.toggle('on', E.usarFoto);
@@ -1971,6 +2033,10 @@ function conectar(){
     const o = e.target.closest('[data-formato]'); if(!o) return;
     E.formato = o.dataset.formato; zoom = null; pintarFormatos(); render();
   });
+  $('#ponentes-col').addEventListener('click', e=>{
+    const o = e.target.closest('[data-col]'); if(!o) return;
+    E.ponentesCol = o.dataset.col; pintarColumnasPonentes(); render();
+  });
   $('#disenos').addEventListener('click', e=>{
     const o = e.target.closest('[data-diseno]'); if(!o) return;
     E.diseno = o.dataset.diseno; pintarDisenos(); render();
@@ -2010,8 +2076,23 @@ function conectar(){
     render();
   });
   $('#ponentes').addEventListener('click', e=>{
+    /* Mover de lugar: hasta ahora la unica forma de cambiar el orden era
+       borrar y volver a escribir. El encuadre abierto viaja con su dueño. */
+    const mover = (i, j) => {
+      [E.ponentes[i], E.ponentes[j]] = [E.ponentes[j], E.ponentes[i]];
+      const abiertoI = abiertos.has(i), abiertoJ = abiertos.has(j);
+      abiertos.delete(i); abiertos.delete(j);
+      if(abiertoI) abiertos.add(j);
+      if(abiertoJ) abiertos.add(i);
+      pintarPonentes(); render();
+    };
+    const s = e.target.closest('[data-sube]');
+    if(s){ const i = +s.dataset.sube; if(i > 0) mover(i, i - 1); return; }
+    const j = e.target.closest('[data-baja]');
+    if(j){ const i = +j.dataset.baja; if(i < E.ponentes.length - 1) mover(i, i + 1); return; }
     const b = e.target.closest('[data-quita]'); if(!b) return;
-    E.ponentes.splice(+b.dataset.quita, 1); pintarPonentes(); render();
+    E.ponentes.splice(+b.dataset.quita, 1); abiertos.clear();
+    pintarPonentes(); render();
   });
   $('#ponentes').addEventListener('click', e=>{
     const r = e.target.closest('[data-retrato]');
@@ -2069,7 +2150,8 @@ function conectar(){
     if(e.dataTransfer.files[0]) leerImagen(e.dataTransfer.files[0]);
   });
   $('#archivo').addEventListener('change', e=>{ if(e.target.files[0]) leerImagen(e.target.files[0]); });
-  ['fx','fy','fz','anchoTexto','escalaTexto','escalaTitulo','escalaSubtitulo'].forEach(k=>{
+  ['fx','fy','fz','anchoTexto','escalaTexto','escalaTitulo','escalaSubtitulo',
+   'retratoTam'].forEach(k=>{
     $('#'+k).addEventListener('input', e=>{ E[k] = +e.target.value; render(); });
   });
   $('#quitar-imagen').addEventListener('click', ()=>{
