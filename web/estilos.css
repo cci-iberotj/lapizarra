@@ -2207,6 +2207,46 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   margin: var(--e-4) 0 0; line-height: 1.5;
 }
 
+/* Cada pieza por verificar. Misma anatomía que una entrega —miniatura,
+   cuerpo y acciones— pero la miniatura es un cartel, así que se deja
+   alta libre en vez de forzarle proporción. */
+.verificar-lista { display: grid; gap: var(--e-4); }
+.verificar {
+  display: grid; grid-template-columns: 132px minmax(0, 1fr) auto;
+  gap: var(--e-5); align-items: start;
+  padding: var(--e-5); background: var(--capa-1);
+  border: 1px solid var(--linea-sutil);
+  border-left: 4px solid var(--verificar-tono, var(--info));
+  border-radius: var(--r-lg);
+}
+.verificar-lienzo {
+  width: 132px; min-height: 92px; border-radius: var(--r-sm);
+  overflow: hidden; background: var(--capa-hundida);
+  display: grid; place-items: center;
+  font-size: var(--t-sello); text-align: center; color: var(--tinta-tenue);
+}
+.verificar-lienzo img { width: 100%; height: auto; display: block; }
+.verificar-cabeza {
+  display: flex; align-items: center; gap: var(--e-3);
+  flex-wrap: wrap; margin-bottom: var(--e-3);
+}
+.verificar-cabeza h4 { margin: 0; font-size: var(--t-guia); font-weight: var(--peso-medio); }
+.verificar-meta { font-size: var(--t-meta); color: var(--tinta-tenue); line-height: 1.5; }
+.verificar-recado {
+  margin: var(--e-3) 0 0; padding: var(--e-3) var(--e-4);
+  background: var(--alerta-velo); border-radius: var(--r-sm);
+  font-size: var(--t-meta); color: var(--tinta-media); line-height: 1.5;
+}
+.verificar-clave {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .08em;
+}
+.verificar-acciones { display: grid; gap: 6px; align-content: start; }
+.verificar-acciones button, .verificar-acciones a { white-space: nowrap; }
+.verificar-acciones a.btn-primario {
+  display: block; text-align: center; text-decoration: none;
+}
+
 /* Cada entrega */
 .entregas-lista { display: grid; gap: var(--e-4); }
 .entrega {

@@ -339,6 +339,26 @@ const MotorSupabase = {
     return { cambiados, borrados, momento: ultimo };
   },
 
+  /* ── Piezas por verificar ────────────────────────────
+     Viven en su propia tabla y con los permisos al revés que los
+     registros: cualquiera puede DEJAR una —quien la manda es de un
+     área y no tiene cuenta— pero sólo el equipo puede leer la lista.
+     Por eso no pasan por la maquinaria de sincronización de arriba:
+     no son estado compartido, son una bandeja de entrada. */
+
+  listarRevisiones() {
+    return this._rest('/revisiones?select=codigo,titulo,area,de,nota,formato,' +
+                      'diseno,estado,vista,creado,atendido&order=creado.desc&limit=200');
+  },
+
+  atenderRevision(codigo, estado) {
+    return this._rest('/revisiones?codigo=eq.' + encodeURIComponent(codigo), {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: { estado, atendido: new Date().toISOString() },
+    });
+  },
+
   guardarRegistro(coleccion, registro) {
     const s = this._leerGuardada();
     return this._rest('/registros', {
@@ -491,6 +511,20 @@ const Almacen = {
   /* La aplicación sigue diciendo "guarda la parrilla". Aquí se
      traduce a: qué piezas nacieron, cuáles cambiaron, cuáles se
      fueron — y sólo eso viaja. */
+  /* ── Piezas por verificar ────────────────────────────
+     Sin nube no hay bandeja: el motor local no la tiene, y devolver
+     una lista vacía es más honesto que tronar. */
+
+  async revisiones() {
+    if (!this.enLaNube) return [];
+    return (await this.motor.listarRevisiones()) || [];
+  },
+
+  atenderRevision(codigo, estado) {
+    if (!this.enLaNube) return Promise.resolve();
+    return this.motor.atenderRevision(codigo, estado);
+  },
+
   async guardar(coleccion, estado) {
     const listas  = MAPA_COLECCIONES[coleccion] || {};
     const ajustes = AJUSTES[coleccion] || {};

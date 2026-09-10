@@ -199,6 +199,20 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 }
 .quita-retrato:hover{color:var(--rojo)}
 
+/* El recibo del envío. El código se ve grande a propósito: es lo único
+   que la persona tiene que conservar. */
+.recibo{
+  margin-top:14px; padding:14px 16px; border-radius:10px;
+  background:#FBF3F4; border:1px solid #F0D8DC;
+}
+.recibo-et{font-size:12px; color:var(--ui-suave); letter-spacing:.04em; text-transform:uppercase}
+.recibo-codigo{display:flex; align-items:center; gap:12px; margin-top:6px}
+.recibo-codigo b{
+  font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;
+  font-size:26px; letter-spacing:.14em; color:var(--rojo);
+}
+.recibo .pista{margin-top:8px}
+
 /* ---- Lienzo ---- */
 .lienzo{
   overflow:auto; padding:34px; display:flex; flex-direction:column; align-items:center;
@@ -957,9 +971,42 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     </div>
   </section>
 
-  <!-- 9 · Descargar -->
+  <!-- 9 · Revisión -->
+  <section class="grupo" id="grupo-revision">
+    <h2><span class="paso">9</span> Mandar a revisión</h2>
+    <p class="ayuda">Antes de publicar, la pieza necesita el visto bueno de
+      Comunicación. Mándala desde aquí y te damos un código; con ese código
+      la abren, la corrigen y te contestan.</p>
+    <div class="campo">
+      <label for="rev-de">¿Quién la manda?</label>
+      <input type="text" id="rev-de" maxlength="120" placeholder="Nombre y correo">
+    </div>
+    <div class="campo">
+      <label for="rev-nota">Algo que debamos saber <span class="tenue">(opcional)</span></label>
+      <textarea id="rev-nota" rows="2" maxlength="600"
+                placeholder="La fecha aún no está confirmada, falta el logo del patrocinador…"></textarea>
+    </div>
+    <button class="btn btn-primario" id="rev-enviar">Enviar a revisión</button>
+    <div id="rev-listo" class="recibo oculto">
+      <span class="recibo-et">Código de tu pieza</span>
+      <div class="recibo-codigo"><b id="rev-codigo"></b>
+        <button class="btn btn-secundario" id="rev-copiar">Copiar</button></div>
+      <p class="pista">Guárdalo. Con él se vuelve a abrir esta pieza tal como quedó.</p>
+    </div>
+
+    <div class="campo" style="margin-top:20px">
+      <label for="rev-abrir-codigo">¿Te dieron un código?</label>
+      <div class="fila-btn">
+        <input type="text" id="rev-abrir-codigo" maxlength="9" placeholder="P4KM7RTX"
+               style="text-transform:uppercase">
+        <button class="btn btn-secundario" id="rev-abrir">Abrir</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · Descargar -->
   <section class="grupo">
-    <h2><span class="paso">9</span> Descargar</h2>
+    <h2><span class="paso">10</span> Descargar</h2>
     <button class="btn btn-primario" id="exp-png">Descargar imagen</button>
     <button class="btn btn-secundario" id="exp-pdf">Descargar PDF para imprimir</button>
     <button class="btn btn-secundario" id="exp-todo">Descargar todos los tamaños</button>
@@ -1940,6 +1987,16 @@ function conectar(){
   $('#exp-png').addEventListener('click', exportarPNG);
   $('#exp-pdf').addEventListener('click', exportarPDF);
   $('#exp-todo').addEventListener('click', exportarTodo);
+  $('#rev-enviar').addEventListener('click', enviarARevision);
+  $('#rev-abrir').addEventListener('click', ()=> abrirRevision($('#rev-abrir-codigo').value));
+  $('#rev-abrir-codigo').addEventListener('keydown', e=>{
+    if(e.key === 'Enter') abrirRevision(e.target.value);
+  });
+  $('#rev-copiar').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText($('#rev-codigo').textContent);
+         aviso('Código copiado'); }
+    catch(e){ aviso('Cópialo a mano: ' + $('#rev-codigo').textContent); }
+  });
   $('#guardar').addEventListener('click', guardarProyecto);
   $('#abrir').addEventListener('click', ()=>$('#archivo-proyecto').click());
   $('#archivo-proyecto').addEventListener('change', e=>{ if(e.target.files[0]) abrirProyecto(e.target.files[0]); });
@@ -1970,6 +2027,154 @@ function leerImagen(archivo){
   fr.readAsDataURL(archivo);
 }
 
+/* ============================================================
+   REVISIÓN
+   Un área arma su pieza y la manda; le queda un código de ocho
+   caracteres. Ese código aparece en LA PIZARRA, en «Por verificar»,
+   y desde ahí Diseño la abre para corregirla.
+
+   Va contra la misma base que LA PIZARRA, con su llave publicable:
+   la que puede DEJAR una pieza pero no leer la bandeja. Quién ve
+   qué lo deciden las reglas de la base, no este archivo.
+
+   Si no hay internet —o si la herramienta se abrió desde el disco—
+   esto falla con un aviso claro y queda el botón «Guardar», que no
+   necesita red.
+   ============================================================ */
+const NUBE = {
+  url:   'https://wrezcukptrtmnhnlxmao.supabase.co',
+  llave: 'sb_publishable_XTkkarWw-P3Ls31g5ZDTOA_ZghkWshN',
+};
+
+/* Sin I, O, 0 ni 1: el código se dicta por teléfono. */
+const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function nuevoCodigo(){
+  const n = new Uint32Array(8);
+  crypto.getRandomValues(n);
+  return [...n].map(v => ALFABETO[v % ALFABETO.length]).join('');
+}
+
+function cabeceras(){
+  return {apikey: NUBE.llave, Authorization: 'Bearer ' + NUBE.llave,
+          'Content-Type': 'application/json'};
+}
+
+/* Miniatura para la tarjeta de la bandeja. Va aparte de la pieza para
+   que la lista se pinte sin bajarse un mega por renglón. */
+async function vistaPrevia(){
+  const f = FORMATOS[E.formato];
+  const png = await piezaAPNG(420 / f.w);
+  const im = new Image();
+  const url = URL.createObjectURL(png);
+  try{
+    await new Promise((ok, mal)=>{ im.onload = ok; im.onerror = mal; im.src = url; });
+    const c = document.createElement('canvas');
+    c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(im, 0, 0);
+    return c.toDataURL('image/jpeg', 0.72);
+  } finally { URL.revokeObjectURL(url); }
+}
+
+function mostrarCodigo(codigo, etiqueta){
+  $('#rev-codigo').textContent = codigo;
+  $('.recibo-et').textContent = etiqueta;
+  $('#rev-listo').classList.remove('oculto');
+}
+
+async function enviarARevision(){
+  if(!E.titulo.trim()){ aviso('Ponle título a la pieza antes de mandarla'); return; }
+  const de = $('#rev-de').value.trim();
+  if(!de){ aviso('Escribe quién la manda, para poder contestarte'); $('#rev-de').focus(); return; }
+
+  /* El tope lo pone la base; aquí se avisa antes y con palabras, que si
+     no el error que devuelve habla de políticas de seguridad. */
+  const peso = new Blob([JSON.stringify(E)]).size;
+  if(peso > 5.5 * 1024 * 1024){
+    aviso('La pieza pesa ' + (peso / 1048576).toFixed(1) + ' MB y el tope son 6. '
+          + 'Vuelve a poner la fotografía, más chica.');
+    return;
+  }
+
+  const boton = $('#rev-enviar');
+  boton.disabled = true; boton.textContent = 'Enviando…';
+  try{
+    const vista = await vistaPrevia();
+    const cuerpo = {
+      titulo:  E.titulo.trim().slice(0, 140),
+      area:    E.area || '',
+      de:      de.slice(0, 140),
+      nota:    $('#rev-nota').value.trim().slice(0, 600),
+      formato: (FORMATOS[E.formato] || {}).nom || E.formato,
+      diseno:  (DISENOS[E.diseno] || {}).nom || E.diseno,
+      pieza:   E,
+      vista,
+    };
+    /* El código lo pone quien manda; si por casualidad ya existía, la
+       llave primaria lo rechaza y se prueba con otro. */
+    let codigo, r;
+    for(let intento = 0; intento < 4; intento++){
+      codigo = nuevoCodigo();
+      r = await fetch(NUBE.url + '/rest/v1/revisiones', {
+        method: 'POST',
+        headers: Object.assign(cabeceras(), {Prefer: 'return=minimal'}),
+        body: JSON.stringify(Object.assign({codigo}, cuerpo)),
+      });
+      if(r.status !== 409) break;
+    }
+    if(!r.ok){
+      const d = await r.json().catch(()=>({}));
+      throw new Error(d.message || d.hint || ('La base contestó ' + r.status));
+    }
+    mostrarCodigo(codigo, 'Código de tu pieza');
+    aviso('Pieza enviada a revisión');
+  }catch(err){
+    aviso(navigator.onLine
+      ? 'No se pudo enviar: ' + err.message
+      : 'Sin internet. Usa «Guardar» y mándanos el archivo.');
+  }finally{
+    boton.disabled = false; boton.textContent = 'Enviar a revisión';
+  }
+}
+
+async function abrirRevision(codigo){
+  codigo = (codigo || '').trim().toUpperCase();
+  if(codigo.length !== 8){ aviso('El código tiene ocho caracteres'); return false; }
+  try{
+    const r = await fetch(NUBE.url + '/rest/v1/rpc/abrir_revision', {
+      method: 'POST', headers: cabeceras(),
+      body: JSON.stringify({p_codigo: codigo}),
+    });
+    if(!r.ok) throw new Error('La base contestó ' + r.status);
+    const d = await r.json();
+    if(!d || !d.pieza){ aviso('No encontré ninguna pieza con ese código'); return false; }
+
+    E = Object.assign(inicial(), d.pieza);
+    pintarPonentes(); sincronizar();
+    $('#rev-de').value = d.de || '';
+    $('#rev-nota').value = d.nota || '';
+    $('#rev-abrir-codigo').value = codigo;
+    mostrarCodigo(codigo, 'Estás editando la pieza');
+    aviso('Pieza de ' + (d.de || 'alguien') + ' abierta');
+    return true;
+  }catch(err){
+    aviso(navigator.onLine
+      ? 'No se pudo abrir: ' + err.message
+      : 'Sin internet: el código necesita conexión.');
+    return false;
+  }
+}
+
+/* LA PIZARRA enlaza aquí con el código en la dirección, para que sea
+   un clic y no un copiar y pegar. */
+function codigoDeLaDireccion(){
+  const h = (location.hash || '').replace('#', '');
+  const q = new URLSearchParams(location.search);
+  const m = /^r=([A-Za-z0-9]{8})$/.exec(h);
+  return (m && m[1]) || q.get('r') || null;
+}
+
 /* ---------- Arranque ---------- */
 /* Los números de los pasos cuentan sólo lo que está a la vista. */
 function renumerarPasos(){
@@ -1996,6 +2201,9 @@ function arrancar(){
   sincronizar();
   pasado = [clonar(E)]; botonesHistorial();
   document.fonts.ready.then(()=>{ ajustarTexto(); encajar(); });
+
+  const codigo = codigoDeLaDireccion();
+  if(codigo) abrirRevision(codigo).then(ok=>{ if(ok) ajustarTexto(); });
 }
 arrancar();
 </script>

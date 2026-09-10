@@ -633,6 +633,13 @@ function refrescarTodo() {
   pintarRedaccion();
   pintarEscritorio();
   pintarEntregas();
+  /* La bandeja se pide una vez al cargar para que el globo diga cuantas
+     hay sin que nadie tenga que entrar a mirar. Sólo la pide quien la
+     puede leer: para los demás la base contesta que no, y no tiene
+     sentido preguntar. */
+  if (Almacen.enLaNube && !revisiones.length && vistasQueVeo().includes('verificar')) {
+    pintarVerificar().catch(() => {});
+  } else marcarPendientes();
   pintarCuenta();
   aplicarPermisos();
   recortarParaCreacion();
@@ -7536,7 +7543,11 @@ function conectarEventos() {
     if (vistaActual === 'redaccion') pintarRedaccion();
     if (vistaActual === 'escritorio') pintarEscritorio();
     if (vistaActual === 'ajustes') pintarAjustes();
+    if (vistaActual === 'verificar') pintarVerificar();
   }));
+
+  const recargarVerificar = $('#verificarRecargar');
+  if (recargarVerificar) recargarVerificar.addEventListener('click', () => pintarVerificar());
 
   $('#nuevoTema').addEventListener('click', () => abrirTema(null));
   $('#nuevaNota').addEventListener('click', () => {
@@ -7740,16 +7751,141 @@ function conectarEventos() {
    bloqueado, y ahora leer el inventario también.
    ══════════════════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════════════════
+   POR VERIFICAR
+   Las areas arman su cartel en el generador de piezas y aprietan
+   «Enviar a revision». La pieza cae en su propia tabla con un
+   codigo de ocho caracteres y aparece aqui.
+
+   La bandeja no se guarda en `datos` ni entra al sincronizador:
+   no es estado compartido que dos personas editen a la vez, es
+   correspondencia que llega. Se pide cuando se abre la pestaña.
+   ══════════════════════════════════════════════════════════ */
+
+const ESTADOS_VERIFICAR = {
+  pendiente:  { nombre: 'Sin revisar',  tono: 'var(--info)',
+                nota: 'Todavia nadie la ha visto' },
+  revisado:   { nombre: 'Revisada',     tono: 'var(--estado-publicado)',
+                nota: 'Ya se atendio', solida: true },
+  descartado: { nombre: 'Descartada',   tono: 'var(--tinta-tenue)',
+                nota: 'No se va a usar' },
+};
+
+let revisiones = [];
+let cargandoRevisiones = false;
+
+function urlDelGenerador(codigo) {
+  return 'herramientas/generador-piezas.html#r=' + encodeURIComponent(codigo);
+}
+
+async function pintarVerificar(recargar = true) {
+  const cont = $('#verificarLista');
+  if (!cont) return;
+
+  if (recargar) {
+    if (cargandoRefrescando()) return;
+    cargandoRevisiones = true;
+    cont.innerHTML = '<div class="vacio"><div>Buscando lo que ha llegado…</div></div>';
+    try {
+      revisiones = await Almacen.revisiones();
+    } catch (e) {
+      cont.innerHTML = `<div class="vacio">
+        <div class="vacio-titulo">No se pudo leer la bandeja</div>
+        <div>${esc(e.message || 'Intenta de nuevo en un momento.')}</div></div>`;
+      cargandoRevisiones = false;
+      return;
+    }
+    cargandoRevisiones = false;
+  }
+
+  marcarPendientes();
+
+  if (!revisiones.length) {
+    cont.innerHTML = `<div class="vacio">
+      <div class="vacio-titulo">Nada por verificar</div>
+      <div>Cuando un area mande su pieza desde el generador va a aparecer aqui,
+      con su vista previa y el nombre de quien la manda.</div></div>`;
+    return;
+  }
+
+  cont.innerHTML = revisiones.map(r => {
+    const est = ESTADOS_VERIFICAR[r.estado] || ESTADOS_VERIFICAR.pendiente;
+    const cuando = String(r.creado || '').slice(0, 10);
+    return `
+      <article class="verificar" data-codigo="${esc(r.codigo)}"
+               style="--verificar-tono:${est.tono}">
+        <div class="verificar-lienzo">${
+          r.vista ? `<img src="${esc(r.vista)}" alt="">` : 'Sin vista previa'}</div>
+        <div>
+          <div class="verificar-cabeza">
+            ${selloEstado({ texto: est.nombre, tono: est.tono, solida: est.solida, ayuda: est.nota })}
+            <h4>${esc(r.titulo || 'Sin titulo')}</h4>
+          </div>
+          <div class="verificar-meta">
+            ${esc(r.de || 'Sin remitente')}
+            ${r.area ? ' · ' + esc(r.area) : ''}
+            ${r.diseno ? ' · ' + esc(r.diseno) : ''}
+            ${r.formato ? ' · ' + esc(r.formato) : ''}
+            ${cuando ? ' · ' + esc(fechaLegible(cuando) || cuando) : ''}
+            · codigo <span class="verificar-clave">${esc(r.codigo)}</span>
+          </div>
+          ${r.nota ? `<p class="verificar-recado">${esc(r.nota).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+        <div class="verificar-acciones">
+          <a class="btn-primario" href="${urlDelGenerador(r.codigo)}" target="_blank"
+             rel="noopener">Abrir y corregir</a>
+          ${r.estado === 'pendiente'
+            ? `<button type="button" class="btn-plano" data-revisada="${esc(r.codigo)}">Marcar revisada</button>
+               <button type="button" class="btn-plano" data-descartar="${esc(r.codigo)}">Descartar</button>`
+            : `<button type="button" class="btn-plano" data-reabrir="${esc(r.codigo)}">Volver a pendiente</button>`}
+        </div>
+      </article>`;
+  }).join('');
+
+  $$('[data-revisada]', cont).forEach(b =>
+    b.addEventListener('click', () => cambiarRevision(b.dataset.revisada, 'revisado')));
+  $$('[data-descartar]', cont).forEach(b =>
+    b.addEventListener('click', () => cambiarRevision(b.dataset.descartar, 'descartado')));
+  $$('[data-reabrir]', cont).forEach(b =>
+    b.addEventListener('click', () => cambiarRevision(b.dataset.reabrir, 'pendiente')));
+}
+
+function cargandoRefrescando() { return cargandoRevisiones; }
+
+async function cambiarRevision(codigo, estado) {
+  try {
+    await Almacen.atenderRevision(codigo, estado);
+    const r = revisiones.find(x => x.codigo === codigo);
+    if (r) { r.estado = estado; r.atendido = new Date().toISOString(); }
+    pintarVerificar(false);
+  } catch (e) {
+    avisar('No se pudo cambiar: ' + (e.message || 'intenta otra vez'));
+  }
+}
+
+/* El globo con el numero de pendientes, para verlo sin entrar. El de
+   avisos vive dentro de pintarContadorAvisos y no se puede reusar. */
+function marcarPendientes() {
+  const t = $('#tabVerificar');
+  if (!t) return;
+  const n = revisiones.filter(r => r.estado === 'pendiente').length;
+  let g = $('.tab-globo', t);
+  if (!n) { if (g) g.remove(); return; }
+  if (!g) { g = document.createElement('span'); g.className = 'tab-globo'; t.appendChild(g); }
+  g.textContent = n > 9 ? '9+' : n;
+  g.title = n === 1 ? 'una pieza sin revisar' : n + ' piezas sin revisar';
+}
+
 const VISTAS_POR_ROL = {
   admin: {
-    ve: ['parrilla', 'escritorio', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Administra y opera todo',
   },
   direccion: {
     // La jefa: el plan, la mesa de redacción que es su trabajo, los
     // expertos que entrevista, y el diagnóstico. El inventario no:
     // no administra cámaras.
-    ve: ['parrilla', 'escritorio', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
@@ -7773,7 +7909,7 @@ const VISTAS_POR_ROL = {
 
 function vistasQueVeo() {
   if (!Almacen.enLaNube || !Almacen.usuario) {
-    return ['parrilla', 'escritorio', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'];
+    return ['parrilla', 'escritorio', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'];
   }
   const r = VISTAS_POR_ROL[Almacen.usuario.rol];
   return r ? r.ve : ['parrilla', 'escritorio', 'ajustes'];

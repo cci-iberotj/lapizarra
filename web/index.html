@@ -76,6 +76,7 @@
     <button class="tab activo" data-vista="parrilla">Parrilla</button>
     <button class="tab" data-vista="escritorio">Mi escritorio</button>
     <button class="tab" id="tabEntregas" data-vista="entregas">Lo que llega</button><!-- el texto lo pone pintarEntregas -->
+    <button class="tab" id="tabVerificar" data-vista="verificar">Por verificar</button>
     <button class="tab" data-vista="inventario">Inventario</button>
     <button class="tab" data-vista="redaccion">Redacción</button>
     <button class="tab" data-vista="expertos">Expertos</button>
@@ -292,6 +293,20 @@
   </section>
 
   <section class="entregas-lista" id="entregasLista"></section>
+</main>
+
+<main id="vista-verificar" class="vista">
+  <section class="entregas-cabecera">
+    <div>
+      <h2>Por verificar</h2>
+      <p class="tenue nota">Piezas que las áreas armaron en el generador y mandaron
+        a revisión. Se abren aquí mismo para corregirlas.</p>
+    </div>
+    <div class="entregas-acciones">
+      <button type="button" class="btn-plano" id="verificarRecargar">Actualizar</button>
+    </div>
+  </section>
+  <section class="verificar-lista" id="verificarLista"></section>
 </main>
 
 <main id="vista-inventario" class="vista">
