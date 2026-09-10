@@ -310,8 +310,6 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
   font-size:calc(var(--u) * 5 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1)); font-weight:700; line-height:1.05;
   letter-spacing:-.015em; margin:0; text-wrap:balance; white-space:pre-line;
 }
-/* Un solo renglón cueste lo que cueste: el título se achica hasta entrar. */
-.tit-1linea .p-titulo{white-space:nowrap; text-wrap:nowrap}
 .p-titulo:empty{display:none}
 
 .p-foto{
@@ -341,7 +339,10 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .p-col-izq{flex:1 1 58%; min-width:0}
 .p-col-der{flex:0 0 38%; min-width:0}
 
-.p-subtitulo{font-size:calc(var(--u)*2.7); font-weight:700; line-height:1.15; margin:0}
+.p-subtitulo{
+  font-size:calc(var(--u) * 2.7 * var(--sub-manual, 1) * var(--sub-fit, 1));
+  font-weight:700; line-height:1.15; margin:0; white-space:pre-line;
+}
 .p-regla{display:none}
 .p-subtitulo:empty{display:none}
 .p-texto{
@@ -619,7 +620,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-pantalla .p-pleca{order:0; flex:0 0 auto}
 .f-pantalla .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-pantalla .p-ante{font-size:calc(var(--u)*2.3)}
-.f-pantalla .p-subtitulo,.f-pantalla .p-fecha{font-size:calc(var(--u)*3)}
+.f-pantalla .p-subtitulo{font-size:calc(var(--u) * 3 * var(--sub-manual, 1) * var(--sub-fit, 1))}
+.f-pantalla .p-fecha{font-size:calc(var(--u)*3)}
 .f-pantalla .p-texto{font-size:calc(var(--u) * 2.15 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-pantalla .p-lugar{font-size:calc(var(--u)*2.4)}
 .f-pantalla .p-liga{font-size:calc(var(--u) * 2.2 * var(--esc-liga, 1))}
@@ -643,7 +645,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-historia.d-anuncio .p-foto{height:calc(var(--u)*62)}
 .f-historia .p-titulo{font-size:calc(var(--u) * 6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-historia .p-ante{font-size:calc(var(--u)*3)}
-.f-historia .p-subtitulo,.f-historia .p-fecha{font-size:calc(var(--u)*3.2)}
+.f-historia .p-subtitulo{font-size:calc(var(--u) * 3.2 * var(--sub-manual, 1) * var(--sub-fit, 1))}
+.f-historia .p-fecha{font-size:calc(var(--u)*3.2)}
 .f-historia .p-texto{font-size:calc(var(--u) * 2.5 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-historia .p-lugar{font-size:calc(var(--u)*2.5)}
 .f-historia .p-liga{font-size:calc(var(--u) * 2.4 * var(--esc-liga, 1))}
@@ -666,7 +669,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-post.d-anuncio .p-foto{height:calc(var(--u)*56)}
 .f-post .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-post .p-ante{font-size:calc(var(--u)*2.6)}
-.f-post .p-subtitulo,.f-post .p-fecha{font-size:calc(var(--u)*3)}
+.f-post .p-subtitulo{font-size:calc(var(--u) * 3 * var(--sub-manual, 1) * var(--sub-fit, 1))}
+.f-post .p-fecha{font-size:calc(var(--u)*3)}
 .f-post .p-texto{font-size:calc(var(--u) * 2.1 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-post .p-lugar{font-size:calc(var(--u)*2.3)}
 .f-post .p-liga{font-size:calc(var(--u) * 2.2 * var(--esc-liga, 1))}
@@ -682,11 +686,26 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-publicacion.d-anuncio .p-foto{height:calc(var(--u)*52)}
 .f-publicacion .p-titulo{font-size:calc(var(--u) * 4.6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-publicacion .p-ante{font-size:calc(var(--u)*2.4)}
-.f-publicacion .p-subtitulo,.f-publicacion .p-fecha{font-size:calc(var(--u)*2.8)}
+.f-publicacion .p-subtitulo{font-size:calc(var(--u) * 2.8 * var(--sub-manual, 1) * var(--sub-fit, 1))}
+.f-publicacion .p-fecha{font-size:calc(var(--u)*2.8)}
 .f-publicacion .p-texto{font-size:calc(var(--u) * 2 * var(--esc-texto, 1) * var(--esc-manual, 1))}
 .f-publicacion .p-lugar{font-size:calc(var(--u)*2.2)}
 .f-publicacion .p-liga{font-size:calc(var(--u) * 2.1 * var(--esc-liga, 1))}
 .f-publicacion{--logo-h:8}
+
+/* ============================================================
+   UN SOLO RENGLÓN
+   Va al final a propósito: los diseños definen `text-wrap` más abajo y,
+   con la misma especificidad, gana la última regla. Aquí también se quita
+   el `max-width`, porque medido en `ch` encoge junto con la letra y el
+   ajuste se perseguiría a sí mismo sin alcanzarse nunca.
+   ============================================================ */
+.tit-1linea .p-titulo{
+  white-space:nowrap; text-wrap:nowrap; max-width:none; overflow-wrap:normal;
+}
+.sub-1linea .p-subtitulo{
+  white-space:nowrap; text-wrap:nowrap; max-width:none; overflow-wrap:normal;
+}
 
 .p-col{display:contents}
 </style>
@@ -808,8 +827,19 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     </div>
     <div class="campo">
       <label for="subtitulo">Subtítulo</label>
-      <input type="text" id="subtitulo" maxlength="60" placeholder="Una línea que amplía el título">
+      <textarea id="subtitulo" rows="2" maxlength="80" placeholder="Una línea que amplía el título"></textarea>
       <div class="contador" data-para="subtitulo"></div>
+      <div class="campo" style="margin:14px 0 0">
+        <label for="escalaSubtitulo">Tamaño del subtítulo <b class="valor" id="valSubtitulo"></b></label>
+        <input type="range" id="escalaSubtitulo" min="60" max="130" step="5">
+      </div>
+      <div class="switch" style="padding-bottom:6px">
+        <div class="switch-txt">
+          <span>En un solo renglón</span>
+          <small>Se achica lo necesario para no partirse.</small>
+        </div>
+        <div class="palanca" id="sw-sub1linea" role="switch" tabindex="0"></div>
+      </div>
     </div>
     <div class="campo" id="campo-texto">
       <label for="texto">Información general</label>
@@ -1127,7 +1157,7 @@ const ALINEACIONES = {
   justificado: 'Justificado'
 };
 
-const LIMITES = {ante:60, titulo:90, subtitulo:60, texto:900};
+const LIMITES = {ante:60, titulo:90, subtitulo:80, texto:900};
 
 /* ---------- Estado ---------- */
 const inicial = () => ({
@@ -1138,7 +1168,8 @@ const inicial = () => ({
   ligaTexto:true,
   imagen:null, fx:50, fy:50, fz:100,
   anchoTexto:44, escalaTexto:100, alinearTexto:'auto',
-  escalaTitulo:100, tituloUnaLinea:false
+  escalaTitulo:100, tituloUnaLinea:false,
+  escalaSubtitulo:100, subtituloUnaLinea:false
 });
 let E = inicial();
 let zoom = null;                 // null = ajustar solo
@@ -1233,7 +1264,8 @@ function render(){
   pieza.className = `pieza f-${E.formato} d-${E.diseno}`
                   + (E.usarFoto ? '' : ' sin-foto')
                   + (E.alinearTexto === 'auto' ? '' : ' al-' + E.alinearTexto)
-                  + (E.tituloUnaLinea ? ' tit-1linea' : '');
+                  + (E.tituloUnaLinea ? ' tit-1linea' : '')
+                  + (E.subtituloUnaLinea ? ' sub-1linea' : '');
 
   /* En 16:9 el título encabeza la columna de texto; en los verticales va
      pegado a la fotografía. Es el único cambio de estructura entre formatos. */
@@ -1314,9 +1346,11 @@ function render(){
   pieza.style.setProperty('--ancho-texto', E.anchoTexto);
   pieza.style.setProperty('--esc-manual', (E.escalaTexto / 100).toFixed(2));
   pieza.style.setProperty('--tit-manual', (E.escalaTitulo / 100).toFixed(2));
+  pieza.style.setProperty('--sub-manual', (E.escalaSubtitulo / 100).toFixed(2));
   $('#valAncho').textContent = E.anchoTexto + ' caracteres';
   $('#valEscala').textContent = E.escalaTexto + ' %';
   $('#valTitulo').textContent = E.escalaTitulo + ' %';
+  $('#valSubtitulo').textContent = E.escalaSubtitulo + ' %';
   ajustarTitulo();
 
   ajustarLiga();
@@ -1386,15 +1420,21 @@ function avisarLargo(){
 /* Con «un solo renglón» encendido, el título cede tamaño hasta entrar en
    el ancho que tiene. Sin eso, se quedaría cortado por el overflow. */
 function ajustarTitulo(){
-  const el = $('#v-titulo');
-  pieza.style.setProperty('--tit-fit', 1);
-  if(!E.tituloUnaLinea || !E.titulo.trim()) return;
+  unaLinea('#v-titulo', '--tit-fit', E.tituloUnaLinea, E.titulo);
+  unaLinea('#v-subtitulo', '--sub-fit', E.subtituloUnaLinea, E.subtitulo);
+}
+
+/* Baja el cuerpo del elemento hasta que su texto entra en un renglón. */
+function unaLinea(sel, variable, activo, texto){
+  const el = $(sel);
+  pieza.style.setProperty(variable, 1);
+  if(!activo || !texto.trim()) return;
   let k = 1;
   /* Primero se aplica, luego se fuerza el recálculo y sólo entonces se mide:
      cambiar una variable en la pieza no actualiza el hijo hasta que algo
      obliga al navegador a rehacer el diseño. */
   while(k > 0.4){
-    pieza.style.setProperty('--tit-fit', k.toFixed(2));
+    pieza.style.setProperty(variable, k.toFixed(2));
     void el.offsetWidth;
     /* Los dos anchos salen de getBoundingClientRect para que vengan en la
        misma escala: la vista previa está reducida con transform y mezclar
@@ -1588,7 +1628,9 @@ function sincronizar(){
   $('#fx').value = E.fx; $('#fy').value = E.fy; $('#fz').value = E.fz;
   $('#anchoTexto').value = E.anchoTexto; $('#escalaTexto').value = E.escalaTexto;
   $('#escalaTitulo').value = E.escalaTitulo;
+  $('#escalaSubtitulo').value = E.escalaSubtitulo;
   $('#sw-1linea').classList.toggle('on', E.tituloUnaLinea);
+  $('#sw-sub1linea').classList.toggle('on', E.subtituloUnaLinea);
   $('#sw-foto').classList.toggle('on', E.usarFoto);
   $('#sw-cuando').classList.toggle('on', E.mostrarCuando);
   $('#sw-ponentes').classList.toggle('on', E.usarPonentes);
@@ -1757,6 +1799,7 @@ function conectar(){
   palanca('#sw-qr','qr');
   palanca('#sw-liga-texto','ligaTexto');
   palanca('#sw-1linea','tituloUnaLinea');
+  palanca('#sw-sub1linea','subtituloUnaLinea');
 
   /* Imagen */
   const soltar = $('#soltar');
@@ -1768,7 +1811,7 @@ function conectar(){
     if(e.dataTransfer.files[0]) leerImagen(e.dataTransfer.files[0]);
   });
   $('#archivo').addEventListener('change', e=>{ if(e.target.files[0]) leerImagen(e.target.files[0]); });
-  ['fx','fy','fz','anchoTexto','escalaTexto','escalaTitulo'].forEach(k=>{
+  ['fx','fy','fz','anchoTexto','escalaTexto','escalaTitulo','escalaSubtitulo'].forEach(k=>{
     $('#'+k).addEventListener('input', e=>{ E[k] = +e.target.value; render(); });
   });
   $('#quitar-imagen').addEventListener('click', ()=>{
