@@ -1215,24 +1215,47 @@ const DISENOS = MODO === 'comunicados'
   : {cartel:  TODOS_LOS_DISENOS.cartel, anuncio: TODOS_LOS_DISENOS.anuncio};
 
 /* La primera opción es la institucional: sin bloque gris, sólo la rúbrica. */
+/* Los nombres salen del organigrama oficial 2026, no de un directorio
+   viejo. En el recuadro gris va el área sin el «Departamento de» ni la
+   «Coordinación de» delante: el recuadro es angosto y el prefijo se
+   repetiría en todas. Es como lo pone el manual, que escribe
+   «Arte y Cultura /». */
 const AREAS = {
   '':['IBERO Tijuana'],
-  'Institucional':[
-    'Rectoría','Dirección Académica','Dirección de Administración y Finanzas',
-    'Comunicación y Crecimiento Institucional'
+  'Dirección':[
+    'Rectoría','Dirección General','Dirección Académica',
+    'Dirección del Medio Universitario','Dirección de Administración y Finanzas',
+    'Vinculación Institucional','Planeación y Proyectos Institucionales'
   ],
   'Departamentos académicos':[
-    'Administración y Negocios Sostenibles','Arquitectura, Diseño e Ingenierías',
-    'Bienestar y Cuidado de la Salud','Ciencias Sociales y Humanidades',
-    'Calidad y Servicios Educativos','Posgrados y Educación Continua'
+    'Ingenierías y Arquitectura','Ciencias Sociales y Negocios',
+    'Ciencias de la Salud'
+  ],
+  'Licenciaturas':[
+    'Arquitectura','Ingeniería en Mecatrónica',
+    'Ingeniería Industrial en Manufactura Inteligente','Comunicación','Derecho',
+    'Administración de Negocios Internacionales','Administración de Empresas',
+    'Enfermería','Nutrición','Psicología','Medicina'
+  ],
+  'Académica':[
+    'Investigación y Posgrados','Servicios Escolares',
+    'Internacionalización y Vinculación Académica','Laboratorios y Talleres',
+    'Idiomas'
   ],
   'Medio Universitario':[
-    'Medio Universitario','Arte y Cultura','Deportes','Formación Ignaciana',
-    'Acompañamiento Integral','Servicio Social y Vinculación'
+    'Biblioteca Loyola','Arte y Cultura','Área de Reflexión Universitaria',
+    'Deportes','Centro Universitario Ignaciano','Incidencia y Servicio Social',
+    'Centro de Atención Estudiantil Universitaria'
   ],
-  'Servicios':[
-    'Admisiones','Becas','Biblioteca Loyola','Cobranza','Servicios Escolares',
-    'Recursos Humanos','Infraestructura y Servicios Generales','Auditoría'
+  'Administración y Finanzas':[
+    'Procuración de Fondos','Infraestructura y Planta Física','Recursos Humanos',
+    'Informática y Telecomunicación','Tesorería','Contabilidad y Fiscal',
+    'Compras','Cobranza','Almacén','Becas','Servicio Médico'
+  ],
+  'Vinculación Institucional':[
+    'Educación Continua y Posgrados','Comunicación y Crecimiento Institucional',
+    'Admisiones','Diseño Gráfico','Comunicación Institucional','Medios Digitales',
+    'Contenido Multimedia'
   ]
 };
 const AREA_GENERAL = 'IBERO Tijuana';
