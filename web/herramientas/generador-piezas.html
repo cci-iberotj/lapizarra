@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Generador de piezas · IBERO Tijuana</title>
+<!-- Icono de la pestaña. Va incrustado para que la herramienta siga siendo
+     un solo archivo: copiada a otra carpeta, sigue llevando su icono.
+     El dibujo vive en _proyectos\iconos.py. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E00034'/%3E%3Crect x='6' y='4.5' width='20' height='23' rx='2.5' fill='%23fff'/%3E%3Crect x='9' y='8' width='14' height='6' rx='1' fill='%23E00034'/%3E%3Crect x='9' y='18' width='14' height='2.6' rx='1' fill='%23E00034'/%3E%3Crect x='9' y='22.5' width='9' height='2.6' rx='1' fill='%23E00034'/%3E%3C/svg%3E">
 <style id="css-fuentes">
 /* ============================================================
    FUENTES INSTITUCIONALES (incrustadas por _build/build.py)
@@ -1861,12 +1865,10 @@ function renumerarPasos(){
     .forEach((n, i) => { n.textContent = i + 1; });
 }
 
-/* La herramienta interna es el mismo motor con un solo diseño: cambia el
-   rótulo y desaparece el paso que ya no hay que elegir. */
+/* La herramienta interna es el mismo motor con un solo diseño: el nombre y el
+   icono los pone build.py al compilar, y aquí sólo desaparece el paso que ya
+   no hay que elegir. */
 function vestirComunicados(){
-  document.title = 'Generador de comunicados · IBERO Tijuana';
-  $('.marca h1').textContent = 'Generador de comunicados';
-  $('.marca p').textContent  = 'Avisos para redes · IBERO Tijuana';
   $('#grupo-diseno').classList.add('oculto');
 }
 
