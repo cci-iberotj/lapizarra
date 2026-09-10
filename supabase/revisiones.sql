@@ -111,7 +111,10 @@ create policy "mandar a revision" on public.revisiones
     and char_length(de)     <= 140
     and char_length(nota)   <= 600
     and octet_length(pieza::text) <= 6000000
-    and (vista is null or octet_length(vista) <= 500000)
+    -- La vista se abre a pantalla completa en la bandeja, así que va a
+    -- 1800 px de lado largo. Un cartel con fotografía a sangre ronda los
+    -- 400 KB; el tope deja aire de sobra sin abrir la puerta a cualquier cosa.
+    and (vista is null or octet_length(vista) <= 1200000)
   );
 
 -- La bandeja es de quien da el visto bueno: Diseño y la jefatura. No de

@@ -2224,12 +2224,15 @@ function cabeceras(){
           'Content-Type': 'application/json'};
 }
 
-/* La vista que viaja con el envío. Va aparte de la pieza para que la
-   bandeja se pinte sin bajarse un mega por renglón, y a 1000 px porque ahí
-   se abre en grande: con 420 se veía la tarjeta pero no se podía revisar. */
+/* La vista que viaja con el envío. Va aparte de la pieza para que la bandeja
+   se pinte sin bajarse un mega por renglón, y se mide por el lado LARGO: en
+   la bandeja se abre a pantalla completa, y lo que se mira de un cartel
+   vertical es su alto. Con 1000 de ancho salía pixeleada. */
+const VISTA_LADO = 1800;
+
 async function vistaPrevia(){
   const f = FORMATOS[E.formato];
-  const png = await piezaAPNG(1000 / f.w);
+  const png = await piezaAPNG(VISTA_LADO / Math.max(f.w, f.h));
   const im = new Image();
   const url = URL.createObjectURL(png);
   try{
@@ -2239,7 +2242,7 @@ async function vistaPrevia(){
     const g = c.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
     g.drawImage(im, 0, 0);
-    return c.toDataURL('image/jpeg', 0.78);
+    return c.toDataURL('image/jpeg', 0.82);
   } finally { URL.revokeObjectURL(url); }
 }
 
