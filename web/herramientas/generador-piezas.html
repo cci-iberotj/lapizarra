@@ -411,6 +411,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .p-ante{
   font-size:calc(var(--u)*2.7); font-weight:400; line-height:1.2;
   margin-bottom:calc(var(--u)*.5);
+  /* Respeta el salto que escriba quien redacta, como el título. */
+  white-space:pre-line;
 }
 .p-ante:empty{display:none}
 .p-titulo{
@@ -419,10 +421,31 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 }
 .p-titulo:empty{display:none}
 
+/* El alto de la fotografía es un número en unidades que cada formato y
+   cada diseño ajustan, multiplicado por lo que diga el deslizador. */
 .p-foto{
   position:relative; overflow:hidden; background:#E8E4E0;
-  height:calc(var(--u)*38); flex:0 0 auto;
+  height:calc(var(--u) * var(--foto-alto, 38) * var(--foto-k, 1));
+  flex:0 0 auto;
 }
+/* Con «llenar el hueco» la fotografía crece hasta comerse lo que sobre:
+   los demás bloques no se estiran, así que todo el sobrante es suyo. Es lo
+   que evita el agujero de abajo cuando el texto es corto. */
+.foto-llena .p-foto{
+  flex:1 1 auto;
+  height:auto;
+  min-height:calc(var(--u) * var(--foto-alto, 38) * var(--foto-k, 1));
+}
+/* La fotografía no es hija directa de la pieza: vive dentro de `.p-visual`.
+   Si esa caja no crece, la de adentro tampoco tiene contra qué crecer. */
+.foto-llena .p-visual{flex:1 1 auto; min-height:0}
+/* Y los márgenes automáticos del bloque de datos se apagan: en flexbox el
+   margen `auto` se come el sobrante ANTES de que `flex-grow` vea nada, así
+   que con los dos puestos la foto no crecía. */
+.foto-llena .p-datos{margin-top:0; margin-bottom:0}
+/* Menos en 16:9, donde la fotografía es una columna lateral y no puede
+   comerse el sobrante vertical: ahí el bloque de datos sigue centrándose. */
+.f-pantalla.foto-llena .p-datos{margin-top:auto; margin-bottom:auto}
 .p-foto img{
   width:100%; height:100%; display:block; object-fit:cover;
   object-position:var(--fx,50%) var(--fy,50%);
@@ -446,6 +469,10 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 }
 .p-col-izq{flex:1 1 58%; min-width:0}
 .p-col-der{flex:0 0 38%; min-width:0}
+/* El reparto 58/38 supone un párrafo a la izquierda. Sin él la izquierda
+   sobra y la derecha, angosta, parte el lugar en tres renglones. */
+.sin-texto .p-col-izq{flex:1 1 46%}
+.sin-texto .p-col-der{flex:0 0 48%}
 
 .p-subtitulo{
   font-size:calc(var(--u) * 2.7 * var(--sub-manual, 1) * var(--sub-fit, 1));
@@ -639,7 +666,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 /* Sin fotografía sobra altura: el bloque de texto se centra ópticamente
    entre la pleca y el pie, y la pleca gana cuerpo para que el título
    ocupe el lugar que dejó la imagen. */
-.sin-foto .p-datos{margin-top:auto; margin-bottom:auto}
+.p-datos{margin-top:auto; margin-bottom:auto}
 /* Con retratos el sobrante se parte en dos —antes del texto y después
    del cuadro de ponentes— en vez de acumularse todo arriba. */
 .sin-foto.con-retratos .p-datos{margin-bottom:calc(var(--u)*3.5)}
@@ -655,7 +682,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-tabloide.sin-foto .p-pleca{
   padding-top:calc(var(--u)*8); padding-bottom:calc(var(--u)*7.5);
 }
-.f-pantalla.sin-foto .p-datos{margin:0}
+/* En 16:9 el bloque también se centra: la regla que lo prohibía dejaba el
+   43 % del alto vacío abajo cuando el texto era corto. */
 .f-pantalla.sin-foto .p-pleca{
   padding-top:calc(var(--u)*3.2); padding-bottom:calc(var(--u)*3.4);
 }
@@ -665,7 +693,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
    La fotografía manda: cubre la parte superior a sangre, con una
    pleca vertical de color a la izquierda y el título encima.
    ============================================================ */
-.d-anuncio .p-foto{height:calc(var(--u)*56); margin-left:calc(var(--u)*2.4)}
+.d-anuncio .p-foto{--foto-alto:56; margin-left:calc(var(--u)*2.4)}
 .d-anuncio .p-visual::before{        /* pleca vertical izquierda */
   content:''; position:absolute; left:0; top:0; bottom:0;
   width:calc(var(--u)*2.4); background:var(--acento); z-index:2;
@@ -742,8 +770,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-pantalla.sin-foto .p-col{width:100%; flex:0 0 100%}
 
 /* Historia 9:16 — se ve en un teléfono: todo sube de cuerpo */
-.f-historia .p-foto{height:calc(var(--u)*40)}
-.f-historia.d-anuncio .p-foto{height:calc(var(--u)*62)}
+.f-historia .p-foto{--foto-alto:40}
+.f-historia.d-anuncio .p-foto{--foto-alto:62}
 .f-historia .p-titulo{font-size:calc(var(--u) * 6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-historia .p-ante{font-size:calc(var(--u)*3)}
 .f-historia .p-subtitulo{font-size:calc(var(--u) * 3.2 * var(--sub-manual, 1) * var(--sub-fit, 1))}
@@ -764,15 +792,15 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-historia .p-qr canvas,.f-historia .p-qr img{width:calc(var(--u)*13); height:calc(var(--u)*13)}
 
 /* Tabloide 11 × 17 — cartel de pared: se lee de lejos y hay aire de sobra */
-.f-tabloide .p-foto{height:calc(var(--u)*48)}
-.f-tabloide.d-anuncio .p-foto{height:calc(var(--u)*58)}
+.f-tabloide .p-foto{--foto-alto:48}
+.f-tabloide.d-anuncio .p-foto{--foto-alto:58}
 .f-tabloide .p-titulo{font-size:calc(var(--u) * 5.6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-tabloide .p-ante{font-size:calc(var(--u)*2.9)}
 .f-tabloide{--logo-h:7.6}
 
 /* Publicación 4:5 — la que más se usa en redes */
-.f-post .p-foto{height:calc(var(--u)*36)}
-.f-post.d-anuncio .p-foto{height:calc(var(--u)*56)}
+.f-post .p-foto{--foto-alto:36}
+.f-post.d-anuncio .p-foto{--foto-alto:56}
 .f-post .p-titulo{font-size:calc(var(--u) * 5.2 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-post .p-ante{font-size:calc(var(--u)*2.6)}
 .f-post .p-subtitulo{font-size:calc(var(--u) * 3 * var(--sub-manual, 1) * var(--sub-fit, 1))}
@@ -788,8 +816,8 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-post .p-qr canvas,.f-post .p-qr img{width:calc(var(--u)*12); height:calc(var(--u)*12)}
 
 /* Publicación 1:1 — compacta */
-.f-publicacion .p-foto{height:calc(var(--u)*30)}
-.f-publicacion.d-anuncio .p-foto{height:calc(var(--u)*52)}
+.f-publicacion .p-foto{--foto-alto:30}
+.f-publicacion.d-anuncio .p-foto{--foto-alto:52}
 .f-publicacion .p-titulo{font-size:calc(var(--u) * 4.6 * var(--esc-titulo, 1) * var(--tit-manual, 1) * var(--tit-fit, 1))}
 .f-publicacion .p-ante{font-size:calc(var(--u)*2.4)}
 .f-publicacion .p-subtitulo{font-size:calc(var(--u) * 2.8 * var(--sub-manual, 1) * var(--sub-fit, 1))}
@@ -798,6 +826,14 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
 .f-publicacion .p-lugar{font-size:calc(var(--u)*2.2)}
 .f-publicacion .p-liga{font-size:calc(var(--u) * 2.1 * var(--esc-liga, 1))}
 .f-publicacion{--logo-h:8}
+
+/* Con retratos, la fotografía a sangre cede altura. Los dos son elementos
+   fotográficos peleando por el mismo alto, y juntos obligaban a encoger la
+   pieza al 66 %: la letra acababa diminuta. Quien quiera la foto grande de
+   todos modos tiene el deslizador. */
+.con-retratos.d-anuncio .p-foto{--foto-alto:42}
+.f-publicacion.con-retratos.d-anuncio .p-foto{--foto-alto:34}
+.f-post.con-retratos.d-anuncio .p-foto{--foto-alto:38}
 
 /* ============================================================
    LO QUE DECIDE QUIEN ESCRIBE
@@ -911,6 +947,17 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
           <label for="fz">Acercar</label>
           <input type="range" id="fz" min="100" max="200" value="100">
         </div>
+        <div class="campo">
+          <label for="fotoAlto">Alto de la fotografía <b class="valor" id="valFotoAlto"></b></label>
+          <input type="range" id="fotoAlto" min="55" max="180" step="5">
+        </div>
+        <div class="switch" style="padding-bottom:6px">
+          <div class="switch-txt">
+            <span>Que llene el hueco</span>
+            <small>La foto crece hasta ocupar lo que sobre.</small>
+          </div>
+          <div class="palanca" id="sw-foto-llena" role="switch" tabindex="0"></div>
+        </div>
         <button class="btn btn-fantasma" id="quitar-imagen">Quitar fotografía</button>
       </div>
     </div>
@@ -925,7 +972,7 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     </div>
     <div class="campo">
       <label for="ante">Texto de invitación o introducción</label>
-      <input type="text" id="ante" maxlength="60" placeholder="Te invitamos a la">
+      <textarea id="ante" rows="2" maxlength="70" placeholder="Te invitamos a la"></textarea>
       <div class="contador" data-para="ante"></div>
     </div>
     <div class="campo">
@@ -995,11 +1042,15 @@ input[type=range]{width:100%; accent-color:var(--rojo)}
     <div id="bloque-cuando">
       <div class="campo">
         <label for="fecha">Fecha y hora</label>
-        <input type="text" id="fecha" maxlength="60" placeholder="Jueves 24 de septiembre | 17:00 h">
+        <textarea id="fecha" rows="2" maxlength="90"
+                  placeholder="Jueves 24 de septiembre&#10;17:00 h"></textarea>
       </div>
       <div class="campo">
         <label for="lugar">Lugar</label>
-        <input type="text" id="lugar" maxlength="70" placeholder="Auditorio, Edificio A, planta baja">
+        <p class="pista">En los dos campos puedes dar Enter para cortar el
+          renglón donde tú quieras.</p>
+        <textarea id="lugar" rows="2" maxlength="110"
+                  placeholder="Auditorio, Edificio A&#10;Entrada libre"></textarea>
       </div>
     </div>
   </section>
@@ -1368,7 +1419,7 @@ const ALINEACIONES = {
   justificado: 'Justificado'
 };
 
-const LIMITES = {ante:60, titulo:90, subtitulo:80, texto:900};
+const LIMITES = {ante:70, titulo:90, subtitulo:80, texto:900};
 
 /* ---------- Estado ---------- */
 const inicial = () => ({
@@ -1381,7 +1432,11 @@ const inicial = () => ({
   anchoTexto:44, escalaTexto:100, alinearTexto:'auto',
   escalaTitulo:100, tituloUnaLinea:false,
   escalaSubtitulo:100, subtituloUnaLinea:false,
-  retratoTam:100, ponentesCol:'auto'
+  retratoTam:100, ponentesCol:'auto',
+  /* La fotografia se come el sobrante de origen: dejarla en su alto fijo
+     abre un agujero abajo en cuanto el texto es corto, que es la mitad
+     de los casos. Quien la quiera de tamano fijo apaga el interruptor. */
+  fotoAlto:100, fotoLlena:true
 });
 let E = inicial();
 let zoom = null;                 // null = ajustar solo
@@ -1565,6 +1620,9 @@ function render(){
         (p.car?`<span class="car">${esc(p.car)}</span>`:'') + `</div>`).join('')
     : '';
   pieza.classList.toggle('con-retratos', conRetratos);
+  pieza.classList.toggle('sin-texto', !E.texto.trim());
+  pieza.style.setProperty('--foto-k', (E.fotoAlto / 100).toFixed(2));
+  pieza.classList.toggle('foto-llena', E.usarFoto && !!E.imagen && E.fotoLlena);
   pieza.style.setProperty('--ret', (E.retratoTam / 100).toFixed(2));
   const porRenglon = E.ponentesCol !== 'auto';
   pieza.classList.toggle('pon-fijo', porRenglon);
@@ -1636,6 +1694,7 @@ function render(){
   $('#valTitulo').textContent = E.escalaTitulo + ' %';
   $('#valSubtitulo').textContent = E.escalaSubtitulo + ' %';
   $('#valRetrato').textContent = E.retratoTam + ' %';
+  $('#valFotoAlto').textContent = E.fotoAlto + ' %';
   ajustarTitulo();
 
   ajustarLiga();
@@ -1893,7 +1952,7 @@ function abrirProyecto(archivo){
   const fr = new FileReader();
   fr.onload = () => {
     try{
-      E = Object.assign(inicial(), JSON.parse(fr.result));
+      E = comoSeGuardo(JSON.parse(fr.result));
       sincronizar(); aviso('Proyecto abierto');
     }catch(err){ aviso('Ese archivo no es un proyecto del generador'); }
   };
@@ -1904,12 +1963,20 @@ function abrirProyecto(archivo){
    que estaba empezado cuando las dos compartían gaveta. */
 const CLAVE_VIEJA = 'ibero-generador-piezas-v2';
 const CLAVE = MODO === 'comunicados' ? 'ibero-generador-comunicados-v1' : CLAVE_VIEJA;
+/* Lo que se guardó antes de que existiera un ajuste se compuso sin él: al
+   reabrirlo se respeta como estaba, o la pieza cambiaría sola. */
+function comoSeGuardo(guardado){
+  const e = Object.assign(inicial(), guardado);
+  if(guardado.fotoLlena === undefined) e.fotoLlena = false;
+  return e;
+}
+
 function guardarLocal(){ try{ localStorage.setItem(CLAVE, JSON.stringify(E)); }catch(e){} }
 function leerLocal(){
   try{
     const d = localStorage.getItem(CLAVE)
            ?? (MODO === 'comunicados' ? localStorage.getItem(CLAVE_VIEJA) : null);
-    if(d) E = Object.assign(inicial(), JSON.parse(d));
+    if(d) E = comoSeGuardo(JSON.parse(d));
   }catch(e){}
 }
 
@@ -1922,6 +1989,8 @@ function sincronizar(){
   $('#escalaTitulo').value = E.escalaTitulo;
   $('#escalaSubtitulo').value = E.escalaSubtitulo;
   $('#retratoTam').value = E.retratoTam;
+  $('#fotoAlto').value = E.fotoAlto;
+  $('#sw-foto-llena').classList.toggle('on', E.fotoLlena);
   pintarColumnasPonentes();
   $('#sw-1linea').classList.toggle('on', E.tituloUnaLinea);
   $('#sw-sub1linea').classList.toggle('on', E.subtituloUnaLinea);
@@ -2139,6 +2208,7 @@ function conectar(){
   palanca('#sw-liga-texto','ligaTexto');
   palanca('#sw-1linea','tituloUnaLinea');
   palanca('#sw-sub1linea','subtituloUnaLinea');
+  palanca('#sw-foto-llena','fotoLlena');
 
   /* Imagen */
   const soltar = $('#soltar');
@@ -2151,7 +2221,7 @@ function conectar(){
   });
   $('#archivo').addEventListener('change', e=>{ if(e.target.files[0]) leerImagen(e.target.files[0]); });
   ['fx','fy','fz','anchoTexto','escalaTexto','escalaTitulo','escalaSubtitulo',
-   'retratoTam'].forEach(k=>{
+   'retratoTam','fotoAlto'].forEach(k=>{
     $('#'+k).addEventListener('input', e=>{ E[k] = +e.target.value; render(); });
   });
   $('#quitar-imagen').addEventListener('click', ()=>{
@@ -2424,7 +2494,7 @@ async function abrirRevision(codigo){
     const d = await r.json();
     if(!d || !d.pieza){ aviso('No encontré ninguna pieza con ese código'); return false; }
 
-    E = Object.assign(inicial(), d.pieza);
+    E = comoSeGuardo(d.pieza);
     pintarPonentes(); sincronizar();
     $('#rev-de').value = d.de || '';
     $('#rev-nota').value = d.nota || '';
