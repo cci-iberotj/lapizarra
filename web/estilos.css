@@ -2892,6 +2892,51 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   background: color-mix(in oklab, var(--evento-tono) 12%, var(--capa-2));
 }
 
+/* ── Cumpleaños ────────────────────────────────────────────
+   El unico evento que no es trabajo, y el unico que no se puede
+   mover ni cancelar. En el calendario todo lo demas se dibuja
+   PUNTEADO y transparente, que es como se dice "esto todavia
+   depende de alguien". Un cumpleaños no depende de nadie: va
+   relleno y con el contorno entero.
+
+   Esta regla tiene que quedar DESPUES de la segunda .cal-evento
+   (la que pone background transparent y border dashed). Si sube,
+   aquella gana y el cumpleaños vuelve a verse como pendiente. */
+.cal-evento.es-cumple {
+  background: var(--marca-velo);
+  border-style: solid;
+  border-color: var(--marca-tinta);
+}
+.cal-evento.es-cumple:hover { background: var(--marca-velo); }
+.cal-evento.es-cumple .titulo {
+  color: var(--marca-tinta);
+  font-weight: var(--peso-fuerte);
+}
+
+/* La ficha no abre con una tabla de datos como los demas eventos:
+   abre con la estrella y con lo unico que de verdad se quiere
+   saber, que es cuanto falta. --marca-tinta sobre --marca-velo
+   esta medido en la paleta: 8.60 claro, 5.11 oscuro. */
+.ficha-cumple {
+  text-align: center;
+  background: var(--marca-velo);
+  border-radius: var(--r-lg);
+  padding: 24px 18px 20px;
+}
+.ficha-cumple-estrella {
+  display: block; font-size: 28px; line-height: 1;
+  color: var(--marca-tinta); margin-bottom: 10px;
+}
+.ficha-cumple h4 {
+  margin: 0; font-size: var(--t-med);
+  letter-spacing: -.015em; color: var(--marca-tinta);
+}
+.ficha-cumple-cuenta {
+  margin: 7px 0 12px; font-size: var(--t-meta);
+  text-transform: uppercase; letter-spacing: .1em;
+  font-weight: var(--peso-fuerte); color: var(--marca-tinta);
+}
+
 /* La leyenda del calendario: sin ella el código de color hay que
    adivinarlo, y un código que se adivina no es un código. */
 .leyenda {

@@ -1982,20 +1982,20 @@ const TIPOS_EVENTO = [
        el calendario y no en ideas —donde viven las efemerides, que si
        se convierten en post— ni en piezas. */
     id: 'cumpleanos', nombre: 'Cumpleaños', corto: 'Cumple', icono: '★',
-    sinCancelar: true,
+    sinCancelar: true, festejo: true,
     titulo: 'Anotar un cumpleaños',
-    pista: 'De alguien del equipo. Recordatorio interno: no se publica nada.',
+    pista: 'De alguien del equipo. Para que nadie se haga el occiso.',
     etiquetas: {
-      titulo: 'De quién', lugar: 'Dónde se festeja', quien: 'Quién organiza',
-      quienPista: 'Deja vacío si todavía nadie se apunta',
+      titulo: 'De quién', lugar: 'Dónde se festeja', quien: 'Quién se apunta',
+      quienPista: 'El primero que se anime',
       ejemplo: 'Sergio, Marysol, Less…',
-      detalles: 'Qué le gusta, quién junta para el pastel, si es sorpresa…',
+      detalles: 'Qué le gusta, quién trae el pastel, si es sorpresa…',
     },
     estados: [
-      { id: 'anotado',   nombre: 'Anotado',   tono: 'var(--marca-tinta)',
-        nota: 'Ya está puesto; no hay pretexto para que se pase' },
-      { id: 'festejado', nombre: 'Festejado', tono: 'var(--marca-tinta)',
-        nota: 'Ya se le felicitó', solida: true },
+      { id: 'anotado',   nombre: 'Ahí viene',      tono: 'var(--marca-tinta)',
+        nota: 'Ya está en el calendario; ya nadie tiene pretexto' },
+      { id: 'festejado', nombre: 'Ya se le cantó', tono: 'var(--marca-tinta)',
+        nota: 'Misión cumplida', solida: true },
     ],
   },
   {
@@ -2021,6 +2021,18 @@ const ESTADO_CANCELADO = {
 
 function tipoDe(e) {
   return TIPOS_EVENTO.find(t => t.id === (e && e.tipo)) || TIPOS_EVENTO[0];
+}
+
+/* El renglon grande de la ficha de cumpleaños. Los demas eventos
+   dicen 'en 20 dias' de pasadita, entre parentesis. Un cumpleaños se
+   cuenta al reves: lo que importa es cuanto FALTA, y va en grande. */
+function cuentaCumple(dias, fecha) {
+  if (!fecha) return 'Falta ponerle fecha';
+  if (dias === 0) return '¡Es hoy!';
+  if (dias === 1) return 'Es mañana';
+  if (dias > 0) return 'Faltan ' + dias + ' días';
+  if (dias === -1) return 'Fue ayer';
+  return 'Fue hace ' + (-dias) + ' días';
 }
 
 function estadosDe(e) {
@@ -2994,7 +3006,7 @@ function pintarCalendario() {
         .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
         .filter(Boolean).join(' + ');
       return `
-      <div class="cal-evento" data-evento="${esc(ev.id)}"
+      <div class="cal-evento${tipoDe(ev).festejo ? ' es-cumple' : ''}" data-evento="${esc(ev.id)}"
            style="--evento-tono:${colorEvento(ev)}"
            title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}${q ? ' — ' + esc(q) : ''}">
         <div class="cal-evento-alto">${selloEstado(etiquetaEvento(ev))}</div>
@@ -6968,11 +6980,18 @@ function pintarFichaEvento() {
   $('#previaCuerpo').innerHTML = `
     <div class="ficha-ev">
 
+      ${t.festejo ? `
+      <header class="ficha-cumple">
+        <span class="ficha-cumple-estrella" aria-hidden="true">★</span>
+        <h4>${esc(e.titulo || 'Cumpleaños')}</h4>
+        <p class="ficha-cumple-cuenta">${esc(cuentaCumple(dias, e.fecha))}</p>
+        ${selloEstado(etiquetaEvento(e))}
+      </header>` : `
       <header class="ficha-ev-cabeza">
         ${selloEstado(etiquetaEvento(e))}
         <h4 class="previa-titulo">${esc(e.titulo || 'Evento sin nombre')}</h4>
         ${est && est.nota ? `<p class="ficha-ev-nota">${esc(est.nota)}</p>` : ''}
-      </header>
+      </header>`}
 
       <dl class="previa-lista">
         <dt>Cuándo</dt>
