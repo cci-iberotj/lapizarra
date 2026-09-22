@@ -1976,6 +1976,29 @@ const TIPOS_EVENTO = [
     ],
   },
   {
+    /* No produce nada. No sale a ninguna red, no pide foto ni video,
+       no lo toca el reloj que publica. Es un recordatorio interno y
+       punto: sirve para que al equipo no se le pase. Por eso vive en
+       el calendario y no en ideas —donde viven las efemerides, que si
+       se convierten en post— ni en piezas. */
+    id: 'cumpleanos', nombre: 'Cumpleaños', corto: 'Cumple', icono: '★',
+    sinCancelar: true,
+    titulo: 'Anotar un cumpleaños',
+    pista: 'De alguien del equipo. Recordatorio interno: no se publica nada.',
+    etiquetas: {
+      titulo: 'De quién', lugar: 'Dónde se festeja', quien: 'Quién organiza',
+      quienPista: 'Deja vacío si todavía nadie se apunta',
+      ejemplo: 'Sergio, Marysol, Less…',
+      detalles: 'Qué le gusta, quién junta para el pastel, si es sorpresa…',
+    },
+    estados: [
+      { id: 'anotado',   nombre: 'Anotado',   tono: 'var(--marca-tinta)',
+        nota: 'Ya está puesto; no hay pretexto para que se pase' },
+      { id: 'festejado', nombre: 'Festejado', tono: 'var(--marca-tinta)',
+        nota: 'Ya se le felicitó', solida: true },
+    ],
+  },
+  {
     id: 'bloqueo', nombre: 'Tiempo bloqueado', corto: 'Bloqueo', icono: '▬',
     titulo: 'Bloquear tiempo',
     pista: 'Vacaciones, permiso, día fuera de campus. Para que no te agenden encima.',
@@ -2002,6 +2025,9 @@ function tipoDe(e) {
 
 function estadosDe(e) {
   const t = tipoDe(e);
+  // Hay tipos que no admiten 'Cancelado' porque la idea no aplica:
+  // un cumpleaños ocurre lo quiera uno o no.
+  if (t.sinCancelar) return t.estados.slice();
   return t.estados.concat([
     t.cancelado ? Object.assign({}, ESTADO_CANCELADO, { nombre: t.cancelado })
                 : ESTADO_CANCELADO,
