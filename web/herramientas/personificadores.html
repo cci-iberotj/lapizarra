@@ -166,13 +166,13 @@ button { font: inherit; cursor: pointer; }
 
 .cara {
   width: 11in; height: 4.25in;
-  padding: .46in .75in .34in;
+  padding: .46in .6in .34in;
   position: relative; overflow: hidden;
   /* Dos columnas: la rubrica flotando a la izquierda y los datos a
      la derecha. La rubrica no se estira --su ancho lo pone su
      propia proporcion-- y el texto se queda con lo que sobra. */
   display: grid; grid-template-columns: auto minmax(0, 1fr);
-  gap: .6in; align-items: center;
+  gap: .5in; align-items: center;
 }
 /* La de arriba cuelga del otro lado al doblar: va girada. */
 .cara.reves { transform: rotate(180deg); }
@@ -201,12 +201,12 @@ button { font: inherit; cursor: pointer; }
 .hoja.altas .nombre { text-transform: uppercase; letter-spacing: .01em; }
 
 .cargo {
-  font-family: 'MyriadIbero', sans-serif; font-weight: 600; font-size: 14pt;
+  font-family: 'MyriadIbero', sans-serif; font-weight: 600; font-size: 15.5pt;
   text-transform: uppercase; letter-spacing: .16em; color: var(--gris);
   line-height: 1.3; margin-top: .05in;
 }
 .sede {
-  font-family: 'MyriadIbero', sans-serif; font-weight: 600; font-size: 11.5pt;
+  font-family: 'MyriadIbero', sans-serif; font-weight: 600; font-size: 12.5pt;
   text-transform: uppercase; letter-spacing: .1em; color: var(--gris-cl);
   line-height: 1.35;
 }
@@ -215,9 +215,13 @@ button { font: inherit; cursor: pointer; }
    izquierda.
    El ancho va ESCRITO y no en auto: un <svg> con viewBox y
    width:auto no siempre resuelve su proporcion --se estiraba a
-   3.13in en vez de 2.18-- y se comia el ancho del nombre.
-   2.45 x 0.889 = 2.18, la proporcion real del archivo. */
-.rubrica { height: 2.45in; width: 2.18in; display: block; }
+   3.13in en vez de lo suyo-- y se comia el ancho del nombre.
+   1.40 x 0.889 = 1.24, la proporcion real del archivo.
+
+   Es una FIRMA, no el asunto de la tarjeta. Quien se sienta ahi
+   es el asunto: la rubrica cede tamano para que el nombre lo
+   tome. */
+.rubrica { height: 1.4in; width: 1.24in; display: block; }
 
 .oculto { position: absolute; width: 0; height: 0; overflow: hidden; }
 
@@ -451,13 +455,23 @@ function hoja(p) {
 
 /* ── Que el nombre quepa, sin que nadie piense en puntajes ── */
 function ajustarNombre(el) {
-  const caja = el.parentElement;                 // .centro
+  const caja = el.parentElement;                 // .datos
   const hermanos = Array.from(caja.children).filter(x => x !== el);
-  const altoLibre = caja.clientHeight
+  const ancho = caja.clientWidth;
+
+  /* El alto disponible se mide contra la CARA, no contra .datos.
+     Como la columna va centrada, .datos se encoge a su contenido:
+     preguntarle su altura era preguntarle al nombre por su propio
+     tamaño, y entonces el nombre nunca podia crecer --se quedaba
+     en el tamaño con el que hubiera entrado a la funcion. Asi
+     'Ana Ruiz', dos palabras en una columna de ocho pulgadas, se
+     quedaba en 36 pt. */
+  const cara = el.closest('.cara');
+  const cs = getComputedStyle(cara);
+  const altoLibre = cara.clientHeight
+    - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
     - hermanos.reduce((s, x) => s + x.offsetHeight, 0)
     - hermanos.length * 10;
-
-  const ancho = caja.clientWidth;
 
   /* PRIMERO, UN SOLO RENGLON.
      Para eso se escogio la hoja acostada: once pulgadas de ancho.
@@ -466,7 +480,7 @@ function ajustarNombre(el) {
      Se mide con nowrap porque un bloque que envuelve nunca reporta
      mas ancho del que tiene: habria que adivinarlo. */
   el.style.whiteSpace = 'nowrap';
-  for (let pt = 44; pt >= 24; pt--) {
+  for (let pt = 54; pt >= 24; pt--) {
     el.style.fontSize = pt + 'pt';
     if (el.scrollWidth <= ancho && el.offsetHeight <= altoLibre) {
       el.style.whiteSpace = '';
@@ -475,10 +489,10 @@ function ajustarNombre(el) {
   }
   el.style.whiteSpace = '';
 
-  /* No cupo ni a 30 pt: son esos nombres de cinco apellidos. Antes
-     que seguir encogiendo se parte en dos renglones, porque 30 pt
-     partido se lee mejor que 22 de corrido. */
-  for (let pt = 36; pt >= 16; pt--) {
+  /* No cupo en un renglon ni al minimo: son esos nombres de cinco
+     apellidos. Antes que seguir encogiendo se parte en dos, porque
+     partido y grande se lee mejor que entero y diminuto. */
+  for (let pt = 44; pt >= 16; pt--) {
     el.style.fontSize = pt + 'pt';
     const renglon = pt * 1.05 * (96 / 72);
     const renglones = Math.max(1, Math.round(el.offsetHeight / renglon));
