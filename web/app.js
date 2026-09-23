@@ -3108,7 +3108,8 @@ function pintarCalendario() {
           <span>${dia.getDate() === 1 && fuera
             ? MESES[dia.getMonth()].slice(0, 3) + ' 1'
             : dia.getDate()}</span>
-          <button class="celda-agregar" data-fecha="${txt}" title="Agregar pieza este día">+</button>
+          ${soloLectura('parrilla_piezas') ? '' :
+            `<button class="celda-agregar" data-fecha="${txt}" title="Agregar pieza este día">+</button>`}
         </div>
         ${eventos}
         ${piezas}

@@ -1540,6 +1540,16 @@ body {
   border-radius: var(--r-xs);
 }
 
+/* Sobre una tarjeta RELLENA con el color de su pilar, el anillo de
+   marca caia a 1.19:1 --invisible justo en las tarjetas ya listas--.
+   Ahi se dibuja con la tinta que va sobre relleno, y se le pone un
+   halo del papel por fuera para que se despegue de cualquier pilar. */
+.cal-pieza.lista:focus-visible,
+.cal-evento.es-cumple:focus-visible {
+  outline-color: var(--texto-sobre-pilar);
+  box-shadow: 0 0 0 4px var(--capa-0);
+}
+
 /* ══ CHIPS ══
    Antes daban 4.39:1 en claro y 3.80:1 en oscuro porque el mismo
    tono servía de relleno y de texto. Ahora el relleno usa la
@@ -2676,11 +2686,15 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 /* El "+" de cada día quedaba en 3.05:1. Antes casi no se veía
    porque el calendario era la vista secundaria; ahora es la
    principal y es el gesto de captura más frecuente. */
+/* Medido en 15x15 px: por debajo del minimo de 24 y, con opacity 0
+   hasta el hover, inalcanzable en tactil, donde no hay hover. */
 .celda-agregar {
   color: var(--tinta-tenue);
   opacity: 1;
   font-size: var(--t-guia);
   line-height: 1;
+  min-width: 24px; min-height: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
   border-radius: var(--r-xs);
   transition: color var(--dur-instantanea), background var(--dur-instantanea);
 }
@@ -2813,11 +2827,16 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   /* Los carriles crecen con la pantalla en vez de quedarse fijos;
      el centro se queda con todo lo que sobre, que es donde de
      verdad hace falta el ancho. */
+  /* DOS pistas. Al retirar el banco de ideas (23-sep-2026) se
+     corrigieron los bloques de 1100 y de 1100-1500 pero NO este, y
+     quedo una tercera pista vacia de ~338px reservando ancho para
+     nada. Medido: celdas de 92px a 1536 contra 135px a 1366, o sea
+     que la pantalla grande mostraba el calendario MAS chico que la
+     mediana, y recortaba 42 de 42 titulos. */
   #vista-parrilla .carriles {
     grid-template-columns:
       clamp(280px, 21vw, 380px)
-      minmax(0, 1fr)
-      clamp(300px, 22vw, 400px);
+      minmax(0, 1fr);
     gap: clamp(16px, 1.6vw, 32px);
   }
 
@@ -2871,7 +2890,10 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 /* Se atenua el formato, no el renglon entero: el renglon ahora
    lleva el sello, y esa opacidad se multiplicaba con la de la
    tarjeta publicada (.82 x .78 = .64) hasta tumbarlo a 4.02:1. */
-.cal-pieza.lista .cal-meta .cal-formato { opacity: .82; }
+/* SIN opacity: se multiplicaba con la de .publicada (.78 x .82 =
+   .64 efectivo) y tiraba el formato a 3.11:1. Se atenua con tinta,
+   que no compone con el ancestro. */
+.cal-pieza.lista .cal-meta .cal-formato { opacity: 1; }
 
 /* En la lista la tarjeta es grande: un bloque de color puro a ese
    tamaño cansa. Se usa el mismo tono rebajado contra la capa, que
@@ -2887,7 +2909,10 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 
 /* Publicado ya es historia: sigue lleno, pero se apaga un poco
    para que lo que exige atención sea lo programado. */
-.cal-pieza.lista.publicada { opacity: .78; }
+/* .78 apagaba la tarjeta ENTERA, texto incluido: 18 combinaciones
+   reprobaban en claro y 15 en oscuro. Lo que debe verse mas apagado
+   es el RELLENO, no lo que hay que leer encima. */
+.cal-pieza.lista.publicada { opacity: .92; }
 
 /* ── Pieza en camino ───────────────────────────────────── */
 /* Se queda como estaba —blanca con su riel de pilar— y eso ahora
@@ -2961,8 +2986,17 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 }
 
 /* Sin nada que mostrar: se atenua, pero NO se esconde. Que una red
-   lleve tres semanas en cero es justo lo que hay que ver. */
-.vc-op.vacio:not(.activo) { opacity: .5; }
+   lleve tres semanas en cero es justo lo que hay que ver.
+
+   Con opacity:.5 el cero quedaba en 2.71:1 y su contador en 2.38:1,
+   o sea que lo unico que este boton existe para mostrar era lo
+   primero que dejaba de leerse. Se atenua con tinta medida, no
+   apagando el elemento entero. */
+.vc-op.vacio:not(.activo) {
+  color: var(--tinta-tenue);
+  border-color: var(--linea-sutil);
+}
+.vc-op.vacio:not(.activo) .vc-punto { opacity: .45; }
 
 .vc-sep {
   width: 1px; height: 22px; background: var(--linea-sutil);
