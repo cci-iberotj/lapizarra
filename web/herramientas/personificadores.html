@@ -171,8 +171,8 @@ button { font: inherit; cursor: pointer; }
   /* Dos columnas: la rubrica flotando a la izquierda y los datos a
      la derecha. La rubrica no se estira --su ancho lo pone su
      propia proporcion-- y el texto se queda con lo que sobra. */
-  display: grid; grid-template-columns: auto minmax(0, 1fr);
-  gap: .5in; align-items: center;
+  display: grid; grid-template-columns: auto auto minmax(0, 1fr);
+  gap: .38in; align-items: center;
 }
 /* La de arriba cuelga del otro lado al doblar: va girada. */
 .cara.reves { transform: rotate(180deg); }
@@ -222,6 +222,12 @@ button { font: inherit; cursor: pointer; }
    es el asunto: la rubrica cede tamano para que el nombre lo
    tome. */
 .rubrica { height: 1.4in; width: 1.24in; display: block; }
+
+/* La raya que separa la firma de la persona.
+   ALTO FIJO a proposito: si creciera con el texto, un nombre de un
+   renglon y otro de dos darian rayas distintas, y en una mesa las
+   tarjetas se ven juntas. Todas iguales o ninguna. */
+.raya { width: .025in; height: 1.5in; background: var(--rojo); }
 
 .oculto { position: absolute; width: 0; height: 0; overflow: hidden; }
 
@@ -434,6 +440,7 @@ function cara(p, reves) {
   return `
     <div class="cara${reves ? ' reves' : ''}">
       ${RUBRICA}
+      <div class="raya"></div>
       <div class="datos">
         <div class="nombre">${esc(p.nombre) || '&nbsp;'}</div>
         ${p.cargo ? `<div class="cargo">${esc(p.cargo)}</div>` : ''}
