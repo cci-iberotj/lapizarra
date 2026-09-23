@@ -2905,6 +2905,78 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   background: color-mix(in oklab, var(--evento-tono) 12%, var(--capa-2));
 }
 
+/* ── Qué se ve en la parrilla ──────────────────────────────
+   La fila de botones que reemplazo al desplegable de canales.
+   Cada uno lleva SU color --el de su red, medido ya en la paleta--
+   y la cuenta de lo que hay en el rango que se esta viendo. Un
+   cero a la vista vale mas que un filtro que hay que abrir para
+   descubrir que no habia nada.
+
+   El relleno del activo usa --texto-sobre-pilar y no blanco fijo:
+   en tema oscuro los colores de canal se aclaran, y blanco encima
+   de un rosa claro no se lee. */
+.vistas-calendario {
+  display: flex; flex-wrap: wrap; gap: 7px; align-items: center;
+  margin: 0 0 var(--e-5);
+}
+.vc-op {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 13px; border-radius: var(--r-pastilla);
+  border: 1px solid var(--linea-control); background: var(--capa-2);
+  color: var(--tinta-media);
+  font: inherit; font-size: var(--t-meta); font-weight: var(--peso-medio);
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--dur-rapida), border-color var(--dur-rapida),
+              color var(--dur-rapida), transform var(--dur-instantanea);
+}
+.vc-op:hover { border-color: var(--tono); color: var(--tinta); transform: translateY(-1px); }
+.vc-op:focus-visible { outline: 2px solid var(--tono); outline-offset: 2px; }
+
+.vc-punto {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--tono); flex: none;
+}
+.vc-n {
+  font-size: var(--t-sello); font-weight: var(--peso-fuerte);
+  font-variant-numeric: tabular-nums;
+  background: var(--capa-hundida); color: var(--tinta-media);
+  padding: 1px 6px; border-radius: var(--r-pastilla);
+  min-width: 21px; text-align: center;
+}
+
+/* --tinta-encima la pone el JS solo cuando el relleno no cambia
+   entre temas; si no viene, manda la tinta invertida de la paleta. */
+.vc-op.activo {
+  background: var(--tono); border-color: var(--tono);
+  color: var(--tinta-encima, var(--texto-sobre-pilar));
+  box-shadow: var(--elev-1);
+}
+.vc-op.activo .vc-punto {
+  background: var(--tinta-encima, var(--texto-sobre-pilar)); opacity: .75;
+}
+.vc-op.activo .vc-n {
+  background: color-mix(in oklab,
+              var(--tinta-encima, var(--texto-sobre-pilar)) 20%, transparent);
+  color: var(--tinta-encima, var(--texto-sobre-pilar));
+}
+
+/* Sin nada que mostrar: se atenua, pero NO se esconde. Que una red
+   lleve tres semanas en cero es justo lo que hay que ver. */
+.vc-op.vacio:not(.activo) { opacity: .5; }
+
+.vc-sep {
+  width: 1px; height: 22px; background: var(--linea-sutil);
+  margin: 0 3px; flex: none;
+}
+
+@media (max-width: 720px) {
+  .vistas-calendario { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+  .vistas-calendario::-webkit-scrollbar { height: 5px; }
+  .vistas-calendario::-webkit-scrollbar-thumb {
+    background: var(--linea-control); border-radius: var(--r-pastilla);
+  }
+}
+
 /* ── Novedades ─────────────────────────────────────────────
    Lo que cambio desde la ultima vez que entraste. Se apoya en
    .modal-fondo y .modal, que ya existen: lo unico propio es la

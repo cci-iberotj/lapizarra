@@ -766,9 +766,77 @@ function alternarPanelHistorial(forzar) {
    PARRILLA
    ══════════════════════════════════════════════════════════ */
 
+/* ══ Qué se ve en la parrilla ══════════════════════════════
+   Un solo botón encendido a la vez: 'todo', 'eventos', 'posts',
+   o una red en particular.
+
+   Antes esto era un desplegable de canales que ademas NO tocaba
+   los eventos: para ver solo Instagram habia que abrir una lista,
+   y los eventos seguian ahi estorbando. Ahora el filtro entiende
+   la diferencia entre lo que ocurre y lo que se publica. */
+const VISTAS_FIJAS = ['todo', 'eventos', 'posts'];
+let vista = 'todo';
+
+function vistaVeEventos() { return vista === 'todo' || vista === 'eventos'; }
+function vistaVePiezas()  { return vista !== 'eventos'; }
+function canalDeVista()   { return VISTAS_FIJAS.includes(vista) ? '' : vista; }
+
+/* El rango que la persona tiene enfrente, para que las cuentas de
+   los botones digan lo que se ve y no un total abstracto. */
+function rangoVisible() {
+  if (modoParrilla === 'calendario') {
+    const a = anclaMes.getFullYear(), m = anclaMes.getMonth();
+    return [aTexto(new Date(a, m, 1)), aTexto(new Date(a, m + 1, 0))];
+  }
+  if ($('#filtroTodasSemanas').checked) return ['0000-01-01', '9999-12-31'];
+  return [aTexto(anclaSemana), aTexto(sumarDias(anclaSemana, 6))];
+}
+
+function pintarVistas() {
+  const cont = $('#vistasCalendario');
+  if (!cont) return;
+  const [desde, hasta] = rangoVisible();
+  const enRango = x => x.fecha && x.fecha >= desde && x.fecha <= hasta;
+
+  const piezas  = (datos.parrilla.piezas  || []).filter(enRango);
+  const eventos = (datos.parrilla.eventos || []).filter(enRango);
+
+  /* 'tinta' sale solo cuando el relleno NO cambia entre temas.
+     --info-solido y --marca-solida son azul y vino oscuros en los
+     dos temas, asi que siempre piden blanco encima. Dejarles la
+     tinta que se invierte daba 2.18 y 1.81 en oscuro: ilegible.
+     Los canales SI se aclaran en oscuro, y por eso usan la tinta
+     invertida, que es justo para lo que existe. */
+  const ops = [
+    { id: 'todo',    nombre: 'Todo',    tono: 'var(--tinta)',        n: piezas.length + eventos.length },
+    { id: 'eventos', nombre: 'Eventos', tono: 'var(--info-solido)',  tinta: '#FFFFFF', n: eventos.length },
+    { id: 'posts',   nombre: 'Posts',   tono: 'var(--marca-solida)', tinta: '#FFFFFF', n: piezas.length },
+  ].concat(CANALES.map(c => ({
+    id: c.id, nombre: c.nombre, tono: c.color,
+    n: piezas.filter(p => (p.canales || []).includes(c.id)).length,
+  })));
+
+  cont.innerHTML = ops.map((o, i) =>
+    (i === 3 ? '<span class="vc-sep" aria-hidden="true"></span>' : '') +
+    `<button class="vc-op${o.id === vista ? ' activo' : ''}${o.n ? '' : ' vacio'}"
+             data-v="${esc(o.id)}"
+             style="--tono:${o.tono}${o.tinta ? ';--tinta-encima:' + o.tinta : ''}"
+             role="tab" aria-selected="${o.id === vista}">
+       <span class="vc-punto" aria-hidden="true"></span>${esc(o.nombre)}
+       <span class="vc-n">${o.n}</span>
+     </button>`).join('');
+
+  $$('.vc-op', cont).forEach(b => b.addEventListener('click', () => {
+    vista = b.dataset.v;
+    pintarVistas();
+    pintarPiezas();
+    pintarCalendario();
+  }));
+}
+
 function piezasFiltradas() {
   const fPilar  = $('#filtroPilar').value;
-  const fCanal  = $('#filtroCanal').value;
+  const fCanal  = canalDeVista();
   const fEstado = $('#filtroEstado').value;
   const todas   = $('#filtroTodasSemanas').checked;
 
@@ -2869,6 +2937,7 @@ function refrescarParrilla() {
   pintarSemana();
   pintarProgreso();
   pintarBalance();
+  pintarVistas();
   pintarPiezas();
   pintarCalendario();
   pintarEfemerides();
@@ -2934,6 +3003,7 @@ function aplicarModoParrilla() {
   $('#envolturaTodas').style.display = enCalendario ? 'none' : '';
   $$('.conmutador-op').forEach(b => b.classList.toggle('activo', b.dataset.modo === modoParrilla));
   if (enCalendario) pintarCalendario();
+  pintarVistas();   // el rango cambia entre mes y semana: las cuentas tambien
 }
 
 function pintarCalendario() {
@@ -2956,10 +3026,10 @@ function pintarCalendario() {
 
   // Índice de piezas por fecha, respetando los filtros activos
   const fPilar = $('#filtroPilar').value;
-  const fCanal = $('#filtroCanal').value;
+  const fCanal = canalDeVista();
   const fEstado = $('#filtroEstado').value;
   const porFecha = {};
-  datos.parrilla.piezas
+  (vistaVePiezas() ? datos.parrilla.piezas : [])
     .filter(p => !fPilar || p.pilar === fPilar)
     .filter(p => !fCanal || (p.canales || []).includes(fCanal))
     .filter(p => !fEstado || p.estado === fEstado)
@@ -3011,7 +3081,7 @@ function pintarCalendario() {
         </div>`;
     }).join('');
 
-    const eventos = eventosDe(txt).map(ev => {
+    const eventos = (vistaVeEventos() ? eventosDe(txt) : []).map(ev => {
       const q = necesidadesDe(ev)
         .map(id => (QUE_SE_NECESITA.find(x => x.id === id) || {}).nombre)
         .filter(Boolean).join(' + ');
@@ -7576,8 +7646,6 @@ function eliminarModal() {
 function llenarSelectores() {
   $('#filtroPilar').insertAdjacentHTML('beforeend',
     PILARES.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join(''));
-  $('#filtroCanal').insertAdjacentHTML('beforeend',
-    CANALES.map(c => `<option value="${c.id}">${esc(c.nombre)}</option>`).join(''));
   $('#filtroEstado').insertAdjacentHTML('beforeend',
     ESTADOS.map(e => `<option value="${e.id}">${esc(e.nombre)}</option>`).join(''));
   $('#filtroCategoria').insertAdjacentHTML('beforeend',
@@ -7630,21 +7698,28 @@ function conectarEventos() {
   $('#semanaSiguiente').addEventListener('click', () => { anclaSemana = sumarDias(anclaSemana, 7); refrescarParrilla(); });
   $('#semanaHoy').addEventListener('click', () => { anclaSemana = inicioSemana(new Date()); refrescarParrilla(); });
 
-  ['#filtroPilar', '#filtroCanal', '#filtroEstado', '#filtroTodasSemanas'].forEach(s =>
-    $(s).addEventListener('change', () => { pintarPiezas(); pintarCalendario(); }));
+  ['#filtroPilar', '#filtroEstado', '#filtroTodasSemanas'].forEach(s =>
+    $(s).addEventListener('change', () => { pintarPiezas(); pintarCalendario(); pintarVistas(); }));
 
   $$('.conmutador-op').forEach(b => b.addEventListener('click', () => {
     modoParrilla = b.dataset.modo;
     aplicarModoParrilla();
   }));
 
+  /* Las cuentas de los botones hablan del rango que se ve, asi que
+     cambiar de mes las mueve. Se repintan aqui y no dentro de
+     pintarCalendario para no armar una recursion entre los dos. */
   $('#mesAnterior').addEventListener('click', () => {
-    anclaMes = new Date(anclaMes.getFullYear(), anclaMes.getMonth() - 1, 1); pintarCalendario();
+    anclaMes = new Date(anclaMes.getFullYear(), anclaMes.getMonth() - 1, 1);
+    pintarCalendario(); pintarVistas();
   });
   $('#mesSiguiente').addEventListener('click', () => {
-    anclaMes = new Date(anclaMes.getFullYear(), anclaMes.getMonth() + 1, 1); pintarCalendario();
+    anclaMes = new Date(anclaMes.getFullYear(), anclaMes.getMonth() + 1, 1);
+    pintarCalendario(); pintarVistas();
   });
-  $('#mesHoy').addEventListener('click', () => { anclaMes = new Date(); pintarCalendario(); });
+  $('#mesHoy').addEventListener('click', () => {
+    anclaMes = new Date(); pintarCalendario(); pintarVistas();
+  });
 
   // Los dos botones del banco de ideas ya no estan en la pagina.
   // Se consultan antes de colgarles nada: si vuelven, vuelven solos.
@@ -8354,6 +8429,19 @@ async function pasarAdentro(usuario) {
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
   {
+    clave: '2026-09-23-b',
+    version: '2026-09-23',
+    titulo: 'La parrilla se filtra con botones',
+    puntos: [
+      { t: 'Fuera el desplegable de canales',
+        d: 'Arriba de la parrilla hay una fila de botones: Todo, Eventos, Posts, y uno por cada red con su propio color.' },
+      { t: 'Cada boton dice cuanto hay',
+        d: 'El numero es lo que cae en lo que estas viendo. Un cero a la vista vale mas que un filtro que hay que abrir para descubrir que no habia nada.' },
+      { t: 'Ahora el filtro entiende los eventos',
+        d: 'El desplegable viejo solo filtraba posts: para ver una red, los eventos seguian ahi estorbando. Eventos y Posts ya se pueden ver por separado.' },
+    ],
+  },
+  {
     version: '2026-09-23',
     titulo: 'La parrilla se queda con dos carriles',
     puntos: [
@@ -8378,9 +8466,15 @@ function leerNovedadesVistas() {
   catch (e) { return ''; }   // ventana privada, cookies bloqueadas
 }
 
+/* La CLAVE es lo que se compara; la VERSION es solo la fecha que se
+   enseña. Sin separarlas, dos tandas del mismo dia no se podian
+   distinguir: la segunda nunca le salia a quien ya habia cerrado la
+   primera. */
+function claveDe(n) { return n.clave || n.version; }
+
 function novedadesPendientes() {
   const visto = leerNovedadesVistas();
-  return NOVEDADES.filter(n => n.version > visto);
+  return NOVEDADES.filter(n => claveDe(n) > visto);
 }
 
 function pintarNovedades(lista) {
@@ -8413,7 +8507,7 @@ function pintarNovedades(lista) {
     </div>`;
 
   const cerrar = () => {
-    try { localStorage.setItem(LLAVE_NOVEDADES, NOVEDADES[0].version); } catch (e) {}
+    try { localStorage.setItem(LLAVE_NOVEDADES, claveDe(NOVEDADES[0])); } catch (e) {}
     fondo.remove();
     document.removeEventListener('keydown', porEscape);
   };

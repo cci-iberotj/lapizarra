@@ -182,9 +182,6 @@
       <select id="filtroPilar" aria-label="Filtrar por pilar" class="campo-mini">
         <option value="">Todos los pilares</option>
       </select>
-      <select id="filtroCanal" aria-label="Filtrar por canal" class="campo-mini">
-        <option value="">Todos los canales</option>
-      </select>
       <select id="filtroEstado" aria-label="Filtrar por estado" class="campo-mini">
         <option value="">Todos los estados</option>
       </select>
@@ -193,6 +190,13 @@
       </label>
     </div>
   </section>
+
+  <!-- Qué se ve. Va aquí arriba y no dentro del calendario para que
+       siga a la vista cuando se cambia a Lista: un control que
+       filtra pero se esconde deja a la gente mirando una pantalla
+       medio vacía sin saber por qué. -->
+  <div class="vistas-calendario" id="vistasCalendario" role="tablist"
+       aria-label="Qué se ve en la parrilla"></div>
 
   <section class="tablero" id="tableroPiezas" hidden></section>
 
