@@ -3070,7 +3070,9 @@ function pintarCalendario() {
                    : p.no_despues ? `Sólo hasta el ${fechaLegible(p.no_despues)}` : '';
       return `
         <div class="cal-pieza${p.imagen || collage ? '' : ' sin-imagen'}${LISTO_PARA_SALIR.includes(p.estado) ? ' lista' : ''}${p.estado === 'publicado' ? ' publicada' : ''}${marcaAprobacion(p)}" data-id="${esc(p.id)}" style="--pieza-tono:${relleno}"
-             draggable="true" title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
+             draggable="true" tabindex="0" role="button"
+             aria-label="${esc(p.titulo)}${p.fecha ? ', ' + esc(fechaLegible(p.fecha)) : ''}"
+             title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
             <div class="cal-titulo">${acotada ? '<span class="marca-ventana" title="' + esc(rotulo) + '">⧖</span> ' : ''}${
@@ -3088,6 +3090,8 @@ function pintarCalendario() {
       return `
       <div class="cal-evento${tipoDe(ev).festejo ? ' es-cumple' : ''}" data-evento="${esc(ev.id)}"
            style="--evento-tono:${colorEvento(ev)}"
+           tabindex="0" role="button"
+           aria-label="${esc(tipoDe(ev).corto)}: ${esc(ev.titulo)}${ev.hora ? ', ' + esc(horaLegible(ev.hora)) : ''}"
            title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}${q ? ' — ' + esc(q) : ''}">
         <div class="cal-evento-alto">${selloEstado(etiquetaEvento(ev))}</div>
         <div class="cal-evento-bajo">
@@ -3114,10 +3118,25 @@ function pintarCalendario() {
   const cont = $('#calendarioMes');
   cont.innerHTML = celdas.join('');
 
-  $$('.cal-pieza', cont).forEach(el =>
-    el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
-  $$('.cal-evento', cont).forEach(el =>
-    el.addEventListener('click', ev => { ev.stopPropagation(); abrirFichaEvento(el.dataset.evento); }));
+  /* Enter y Espacio tienen que abrir, como en cualquier boton.
+     Un <div role="button"> NO los recibe solo: eso lo regala el
+     <button> de verdad, y aqui no se puede usar porque la tarjeta
+     se arrastra y un boton arrastrable se porta raro entre
+     navegadores. Asi que el teclado se atiende a mano. */
+  const abrirConTeclado = (el, abrir) => el.addEventListener('keydown', ev => {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    ev.preventDefault();          // Espacio sin esto desplaza la pagina
+    abrir();
+  });
+
+  $$('.cal-pieza', cont).forEach(el => {
+    el.addEventListener('click', () => abrirPrevia(el.dataset.id));
+    abrirConTeclado(el, () => abrirPrevia(el.dataset.id));
+  });
+  $$('.cal-evento', cont).forEach(el => {
+    el.addEventListener('click', ev => { ev.stopPropagation(); abrirFichaEvento(el.dataset.evento); });
+    abrirConTeclado(el, () => abrirFichaEvento(el.dataset.evento));
+  });
   $$('.celda-agregar', cont).forEach(b =>
     b.addEventListener('click', ev => { ev.stopPropagation(); abrirPieza(null, { fecha: b.dataset.fecha }); }));
 
@@ -8428,6 +8447,19 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-09-23-c',
+    version: '2026-09-23',
+    titulo: 'El calendario se puede usar con el teclado',
+    puntos: [
+      { t: 'Tab recorre las tarjetas',
+        d: 'Las piezas y los eventos del mes ya entran al recorrido del teclado. Antes solo respondian al raton: con Tab no habia forma de llegar a ellos.' },
+      { t: 'Enter o Espacio los abre',
+        d: 'Igual que cualquier boton. El anillo de foco marca en cual estas parado.' },
+      { t: 'Y el lector de pantalla los nombra',
+        d: 'Cada tarjeta dice que es: el titulo de la pieza con su fecha, o el tipo de evento con su hora.' },
+    ],
+  },
   {
     clave: '2026-09-23-b',
     version: '2026-09-23',
