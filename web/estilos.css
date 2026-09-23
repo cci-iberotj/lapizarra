@@ -328,7 +328,17 @@ h3 { font-size: var(--t-micro); text-transform: uppercase; letter-spacing: .11em
   box-shadow: 0 1px 0 rgba(255,255,255,.06), 0 2px 14px rgba(26,24,22,.18);
 }
 
-.marca { display: flex; flex-direction: column; line-height: 1.2; }
+/* Es un <button> para poder abrir las novedades, asi que hay que
+   deshacerle lo de boton: sin esto llega con fondo, borde, fuente
+   del sistema y el texto centrado. */
+.marca {
+  display: flex; flex-direction: column; line-height: 1.2;
+  background: none; border: 0; padding: 0; margin: 0;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
+  border-radius: 6px;
+}
+.marca:hover .marca-sub { color: #D8CFC9; }
+.marca:focus-visible { outline: 2px solid var(--marca-tinta); outline-offset: 3px; }
 .marca-nombre { font-weight: 700; letter-spacing: .2em; font-size: var(--t-med); }
 .marca-sub { font-size: var(--t-micro); color: #B3A9A4; letter-spacing: .05em; }
 
@@ -2690,8 +2700,11 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 .carriles { display: grid; gap: var(--e-5); }
 
 @media (min-width: 1100px) {
+  /* DOS carriles desde que se retiro el banco de ideas (23-sep-2026).
+     El tercero era el suyo. Para devolverlo: agregar de nuevo
+     minmax(240px, 320px) al final, aqui y en el bloque de 1100-1500. */
   .carriles {
-    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(240px, 320px);
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
     align-items: start;
   }
 
@@ -2890,6 +2903,67 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 }
 .cal-evento:hover {
   background: color-mix(in oklab, var(--evento-tono) 12%, var(--capa-2));
+}
+
+/* ── Novedades ─────────────────────────────────────────────
+   Lo que cambio desde la ultima vez que entraste. Se apoya en
+   .modal-fondo y .modal, que ya existen: lo unico propio es la
+   lista numerada y la cabecera. */
+.modal-novedades { max-width: 560px; }
+
+.novedades-cabeza {
+  padding: 26px 26px 20px;
+  background: var(--marca-velo);
+  border-bottom: 1px solid var(--borde);
+}
+.novedades-pin {
+  display: inline-block; margin-bottom: 9px;
+  font-size: 9.5px; font-weight: var(--peso-fuerte);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--texto-sobre-pilar); background: var(--marca-solida);
+  padding: 3px 9px; border-radius: var(--r-pastilla);
+}
+.novedades-cabeza h3 {
+  margin: 0; font-size: var(--t-med); letter-spacing: -.015em;
+  color: var(--marca-tinta); text-transform: none;
+}
+.novedades-fecha {
+  margin: 5px 0 0; font-size: var(--t-meta);
+  color: var(--marca-tinta); opacity: .8;
+}
+
+.novedades-cuerpo { padding: 22px 26px; max-height: 58vh; overflow-y: auto; }
+.novedades-tanda {
+  margin: 18px 0 10px; font-size: var(--t-meta);
+  text-transform: uppercase; letter-spacing: .09em;
+  font-weight: var(--peso-fuerte); color: var(--tinta-media);
+}
+.novedades-tanda:first-child { margin-top: 0; }
+
+/* Numerada y no con viñetas: son cambios que se leen en orden, y
+   el numero le da a cada uno un nombre para señalarlo en voz alta
+   ("el 3 es el que no entendi"). */
+.novedades-lista {
+  margin: 0; padding: 0 0 0 1.4em;
+  display: grid; gap: 15px;
+}
+.novedades-lista li { padding-left: 4px; }
+.novedades-lista li::marker {
+  color: var(--marca-tinta); font-weight: var(--peso-fuerte);
+}
+.novedades-lista b { display: block; margin-bottom: 3px; color: var(--tinta); }
+.novedades-lista span { color: var(--tinta-media); font-size: var(--t-meta); }
+
+.novedades-pie {
+  display: flex; align-items: center; gap: var(--e-5);
+  padding: 16px 26px; border-top: 1px solid var(--borde);
+  background: var(--superficie-2);
+}
+.novedades-pie .tenue { flex: 1 1 auto; font-size: var(--t-micro); }
+
+@media (max-width: 620px) {
+  .novedades-pie { flex-direction: column; align-items: stretch; }
+  .novedades-pie .btn-primario { width: 100%; }
 }
 
 /* ── Cumpleaños ────────────────────────────────────────────
@@ -4019,12 +4093,13 @@ body.solo-creacion #progreso { display: none; }
    Que se acorte con puntos suspensivos, no a mordida. */
 .cal-evento .sello { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-/* Con tres carriles el calendario se queda con celdas de 90px.
-   Debajo de 1500 los rieles ceden ancho antes que el calendario,
-   que es donde de verdad se trabaja. */
+/* Debajo de 1500 el riel cede ancho antes que el calendario, que es
+   donde de verdad se trabaja. Con dos carriles esto aprieta mucho
+   menos que antes, pero se conserva: en una laptop de 1366 cada
+   pixel del mes cuenta. */
 @media (min-width: 1100px) and (max-width: 1500px) {
   #vista-parrilla .carriles {
-    grid-template-columns: minmax(200px, 250px) minmax(0, 1fr) minmax(200px, 260px);
+    grid-template-columns: minmax(200px, 250px) minmax(0, 1fr);
   }
 }
 

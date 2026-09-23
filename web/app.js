@@ -907,6 +907,10 @@ function pintarPiezas() {
 
 function pintarIdeas() {
   const cont = $('#listaIdeas');
+  // El banco se retiro de la pantalla (23-sep-2026) pero el codigo
+  // se quedo entero para poder devolverlo sin rehacerlo. Sin esta
+  // guarda, cada refresco reventaba aqui.
+  if (!cont) return;
   const ideas = datos.parrilla.ideas || [];
 
   if (!ideas.length) {
@@ -2805,6 +2809,7 @@ function puedeProgramar() {
 }
 
 function conectarArrastreDeIdeas() {
+  if (!$('#listaIdeas')) return;   // ver pintarIdeas()
   $$('.idea[draggable="true"]').forEach(el => {
     el.addEventListener('dragstart', ev => {
       ideaArrastrada = (datos.parrilla.ideas || []).find(i => i.id === el.dataset.idea) || null;
@@ -2890,26 +2895,31 @@ function pintarEfemerides() {
     const lista = cubiertas.has(e.fecha);
     return `
       <button class="efemeride${lista ? ' cubierta' : ''}" data-efem="${esc(e.nombre)}"
-              style="--tono:${pil.color}" title="${esc(e.nota || 'Guardar como idea')}">
+              style="--tono:${pil.color}" title="${esc(e.nota || 'Programar en la parrilla')}">
         <span class="efem-dia">${e.cuando.getDate()} ${MESES[e.cuando.getMonth()].slice(0,3)}</span>
         <span class="efem-nombre">${esc(e.nombre)}</span>
         <span class="efem-faltan">${lista ? '✓ cubierta' : (dias <= 0 ? 'hoy' : `en ${dias} d`)}</span>
       </button>`;
   }).join('');
 
+  /* Antes esto guardaba una idea en el banco. Sin banco, una
+     efemeride va derecho a donde sirve: una pieza nueva con su
+     nombre y su fecha ya puestos, clasificada al vuelo igual que
+     lo estaba la idea. Un prompt() menos, y la fecha ya no se
+     pierde en el camino. */
   $$('.efemeride', cont).forEach(b => b.addEventListener('click', () => {
+    if (soloLectura('parrilla_piezas')) {
+      avisar('Tu rol no programa piezas.');
+      return;
+    }
     const e = proximas.find(x => x.nombre === b.dataset.efem);
-    const texto = prompt(
-      `Idea para ${e.nombre} (${fechaLegible(e.fecha)})\n\n${e.nota || ''}\n\n¿Qué se te ocurre?`,
-      `${e.nombre}: `);
-    if (!texto || !texto.trim()) return;
-    datos.parrilla.ideas = datos.parrilla.ideas || [];
-    datos.parrilla.ideas.push({ id: id(), texto: texto.trim(), creado: ahora() });
-    guardar('parrilla');
-    registrar(`Guardó una idea para ${e.nombre}`);
-    pintarIdeas();
-    pintarEfemerides();
-    avisar('Idea guardada en el banco.');
+    const s = clasificarTexto(e.nombre + (e.nota ? '. ' + e.nota : ''));
+    abrirPieza(null, {
+      titulo: e.nombre,
+      fecha: e.fecha,
+      pilar: s.pilar, formato: s.formato, canales: s.canales,
+      notas: e.nota || '',
+    });
   }));
 }
 
@@ -7636,7 +7646,10 @@ function conectarEventos() {
   });
   $('#mesHoy').addEventListener('click', () => { anclaMes = new Date(); pintarCalendario(); });
 
-  $('#ideaClasificada').addEventListener('click', capturarIdeaClasificada);
+  // Los dos botones del banco de ideas ya no estan en la pagina.
+  // Se consultan antes de colgarles nada: si vuelven, vuelven solos.
+  const bIdeaC = $('#ideaClasificada');
+  if (bIdeaC) bIdeaC.addEventListener('click', capturarIdeaClasificada);
   $('#acomodarPendientes').addEventListener('click', acomodarPendientes);
   $('#periodoAuditoria').addEventListener('change', refrescarAuditoria);
   $('#recalcular').addEventListener('click', () => { refrescarAuditoria(); avisar('Diagnóstico actualizado.'); });
@@ -7717,7 +7730,10 @@ function conectarEventos() {
   $('#nuevoEquipo').addEventListener('click', () => abrirEquipo(null));
   $('#nuevoVuelo').addEventListener('click', () => abrirVuelo(null));
 
-  $('#nuevaIdea').addEventListener('click', () => {
+  $('#verNovedades').addEventListener('click', verNovedadesTodas);
+
+  const bNuevaIdea = $('#nuevaIdea');   // retirado de la pagina; ver pintarIdeas()
+  if (bNuevaIdea) bNuevaIdea.addEventListener('click', () => {
     const texto = prompt('¿Qué idea quieres guardar?');
     if (!texto || !texto.trim()) return;
     datos.parrilla.ideas = datos.parrilla.ideas || [];
@@ -8310,7 +8326,110 @@ async function pasarAdentro(usuario) {
   registrar('Estado al abrir LA PIZARRA');
   refrescarTodo();
   arrancarSincronizacion();
+  avisarNovedades();
 }
+
+/* ══════════════════════════════════════════════════════════
+   NOVEDADES
+   Cuando algo cambia, quien entra se entera. Sin esto los cambios
+   aparecen sin avisar y la gente cree que se rompio algo, o peor:
+   no se entera de lo que ahora puede hacer.
+
+   SE GUARDA EN EL NAVEGADOR, NO EN LA BASE
+   Es una preferencia de esta persona en esta computadora, no un
+   dato del area. Guardarlo en la base costaria una tabla y una
+   peticion mas en cada arranque para algo que, si falla, solo
+   hace que alguien vea un aviso dos veces.
+
+   QUIEN NUNCA LO HA VISTO, SI LO VE
+   Si no hay nada guardado se muestra. En un equipo que ya venia
+   usando La Pizarra, "sin registro" significa "de los de siempre",
+   no "recien llegado". Y a quien si acaba de llegar, leer que
+   cambio ultimamente tampoco le hace daño.
+
+   COMO SE AGREGA UNA NOVEDAD
+   Un objeto nuevo ARRIBA del arreglo. La 'version' es la fecha; se
+   compara como texto, asi que aaaa-mm-dd ordena solo. Se muestran
+   todas las que sean mas nuevas que lo ultimo que vio la persona,
+   asi que quien falto dos semanas recibe las dos tandas juntas. */
+const NOVEDADES = [
+  {
+    version: '2026-09-23',
+    titulo: 'La parrilla se queda con dos carriles',
+    puntos: [
+      { t: 'Se retiro el banco de ideas',
+        d: 'Se ocupaba poco y se comia un tercio del ancho. Lo guardado NO se borro: las ideas siguen en la base y el banco puede volver el dia que se decida usarlo.' },
+      { t: 'El calendario es mas ancho',
+        d: 'Al soltar ese carril el mes gana espacio: los dias se leen mejor y caben mas piezas sin apretarse.' },
+      { t: 'Las efemerides van derecho a la parrilla',
+        d: 'Antes, al hacer clic en una fecha se guardaba una idea suelta. Ahora abre una pieza nueva con el nombre y la fecha ya puestos.' },
+      { t: 'Cumpleanos',
+        d: 'Hay un quinto tipo de evento, con estrella. Es interno: no pide foto ni video y no sale a ninguna red.' },
+    ],
+  },
+];
+
+const LLAVE_NOVEDADES = 'pizarra-novedades-visto';
+
+function leerNovedadesVistas() {
+  try { return localStorage.getItem(LLAVE_NOVEDADES) || ''; }
+  catch (e) { return ''; }   // ventana privada, cookies bloqueadas
+}
+
+function novedadesPendientes() {
+  const visto = leerNovedadesVistas();
+  return NOVEDADES.filter(n => n.version > visto);
+}
+
+function pintarNovedades(lista) {
+  if (!lista.length) return;
+  const fondo = document.createElement('div');
+  fondo.className = 'modal-fondo novedades-fondo';
+  fondo.innerHTML = `
+    <div class="modal modal-novedades" role="dialog" aria-modal="true"
+         aria-labelledby="novTitulo">
+      <div class="novedades-cabeza">
+        <span class="novedades-pin">Qué cambió</span>
+        <h3 id="novTitulo">${esc(lista[0].titulo)}</h3>
+        <p class="novedades-fecha">${esc(fechaLegible(lista[0].version) || lista[0].version)}</p>
+      </div>
+      <div class="novedades-cuerpo">
+        ${lista.map(n => `
+          ${lista.length > 1 ? `<p class="novedades-tanda">${esc(n.titulo)}</p>` : ''}
+          <ol class="novedades-lista">
+            ${n.puntos.map(p => `
+              <li>
+                <b>${esc(p.t)}</b>
+                <span>${esc(p.d)}</span>
+              </li>`).join('')}
+          </ol>`).join('')}
+      </div>
+      <div class="novedades-pie">
+        <span class="tenue">Se vuelve a abrir haciendo clic en LA PIZARRA, arriba a la izquierda.</span>
+        <button type="button" class="btn-primario" id="novCerrar">Entendido</button>
+      </div>
+    </div>`;
+
+  const cerrar = () => {
+    try { localStorage.setItem(LLAVE_NOVEDADES, NOVEDADES[0].version); } catch (e) {}
+    fondo.remove();
+    document.removeEventListener('keydown', porEscape);
+  };
+  const porEscape = ev => { if (ev.key === 'Escape') cerrar(); };
+
+  document.body.appendChild(fondo);
+  $('#novCerrar', fondo).addEventListener('click', cerrar);
+  // Clic afuera cierra; clic adentro no. Sin el segundo, arrastrar
+  // texto dentro del panel lo cerraba al soltar.
+  fondo.addEventListener('click', ev => { if (ev.target === fondo) cerrar(); });
+  document.addEventListener('keydown', porEscape);
+  $('#novCerrar', fondo).focus();
+}
+
+/* Al entrar: solo lo que no ha visto. Desde la marca: todo, aunque
+   ya lo haya visto, porque ahi lo esta pidiendo a proposito. */
+function avisarNovedades() { pintarNovedades(novedadesPendientes()); }
+function verNovedadesTodas() { pintarNovedades(NOVEDADES); }
 
 function conectarPuerta() {
   $('#formEntrar').addEventListener('submit', async ev => {
@@ -8411,6 +8530,7 @@ function detenerSincronizacion() {
     await cargar();
     registrar('Estado al abrir LA PIZARRA');
     refrescarTodo();
+    avisarNovedades();
     return;
   }
 

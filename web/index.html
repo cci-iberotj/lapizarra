@@ -68,10 +68,10 @@
 </div>
 
 <header class="barra">
-  <div class="marca">
+  <button class="marca" id="verNovedades" type="button" title="Ver qué cambió">
     <span class="marca-nombre">LA PIZARRA</span>
     <span class="marca-sub">Diseño y Medios · IBERO Tijuana</span>
-  </div>
+  </button>
   <nav class="tabs">
     <button class="tab activo" data-vista="parrilla">Parrilla</button>
     <button class="tab" data-vista="escritorio">Mi escritorio</button>
@@ -217,7 +217,7 @@
     <div class="bloque-encabezado">
       <h3>Fechas que vienen</h3>
     </div>
-    <p class="tenue nota">Perchas para colgar contenido en los próximos dos meses y medio. Clic en una para guardarla como idea.</p>
+    <p class="tenue nota">Perchas para colgar contenido en los próximos dos meses y medio. Clic en una para programarla en la parrilla.</p>
     <div class="tira-efemerides" id="tiraEfemerides"></div>
   </section>
     </aside>
@@ -248,20 +248,15 @@
   </section>
     </div>
 
-    <aside class="riel riel-der">
-<section class="bloque-ideas">
-    <div class="bloque-encabezado">
-      <h3>Banco de ideas</h3>
-      <div class="acciones-bloque">
-        <button class="btn-plano btn-auto" id="ideaClasificada">◈ Capturar y clasificar</button>
-        <button class="btn-plano" id="nuevaIdea">+ Agregar idea</button>
-      </div>
-    </div>
-    <p class="tenue nota">Lo que todavía no tiene fecha. Cada idea se clasifica sola: el color te dice de qué pilar es.</p>
-    <div class="resumen-ideas" id="resumenIdeas"></div>
-    <div class="ideas" id="listaIdeas"></div>
-  </section>
-    </aside>
+    <!-- El BANCO DE IDEAS vivia aqui, en el carril derecho.
+         Se retiro el 23-sep-2026 porque casi no se usaba y se comia
+         un tercio del ancho de la parrilla. Las ideas guardadas NO
+         se borraron: siguen en parrilla_ideas, en la base.
+
+         Para devolverlo: regresar este bloque, volver a poner la
+         tercera columna en .carriles (estilos.css) y quitar las
+         guardas de pintarIdeas() y conectarArrastreDeIdeas(). El
+         resto del codigo de ideas quedo intacto a proposito. -->
 
   </div>
 
