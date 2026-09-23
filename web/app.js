@@ -8365,6 +8365,8 @@ const NOVEDADES = [
         d: 'Antes, al hacer clic en una fecha se guardaba una idea suelta. Ahora abre una pieza nueva con el nombre y la fecha ya puestos.' },
       { t: 'Cumpleanos',
         d: 'Hay un quinto tipo de evento, con estrella. Es interno: no pide foto ni video y no sale a ninguna red.' },
+      { t: 'Generador de personificadores',
+        d: 'Las tarjetas de mesa del presidium. Se pega la lista y salen las hojas carta listas para doblar. Está en herramientas/personificadores.html' },
     ],
   },
 ];
