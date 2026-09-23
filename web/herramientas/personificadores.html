@@ -150,18 +150,28 @@ button { font: inherit; cursor: pointer; }
    Medidas en pulgadas: el destino es papel, no pantalla. */
 
 .previa { display: grid; gap: 12px; justify-items: center; }
+#hojas { display: grid; gap: 16px; justify-items: center; width: 100%; }
 .previa-nota {
   justify-self: stretch; font-size: 13px; color: var(--gris);
   display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
 }
 
+/* transform: scale() ENCOGE lo que se ve, pero la hoja sigue
+   ocupando sus once pulgadas en el diseño. Sin esta caja, en una
+   laptop de 1366 aparecia barra de desplazamiento horizontal.
+   La caja mide lo que de verdad se ve; la hoja se escala adentro
+   desde la esquina y lo que sobra se recorta. */
+.marco-hoja {
+  width: calc(11in * var(--zoom, .62));
+  height: calc(8.5in * var(--zoom, .62));
+  overflow: hidden;
+  box-shadow: 0 4px 22px rgba(60,40,30,.16);
+}
 .hoja {
   width: 11in; height: 8.5in;       /* CARTA ACOSTADA */
   background: var(--papel); position: relative;
-  box-shadow: 0 4px 22px rgba(60,40,30,.16);
   transform: scale(var(--zoom, .62));
-  transform-origin: top center;
-  margin-bottom: calc((var(--zoom, .62) - 1) * 8.5in);
+  transform-origin: top left;
 }
 
 .cara {
@@ -198,7 +208,6 @@ button { font: inherit; cursor: pointer; }
   width: 100%;
   font-size: 40pt;    /* lo ajusta el JS; ver ajustarNombre() */
 }
-.hoja.altas .nombre { text-transform: uppercase; letter-spacing: .01em; }
 
 .cargo {
   font-family: 'MyriadIbero', sans-serif; font-weight: 600; font-size: 18pt;
@@ -231,7 +240,7 @@ button { font: inherit; cursor: pointer; }
 
 .oculto { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-/* La marca del doblez: guía en pantalla; en papel sólo si se pide. */
+/* La marca del doblez: guía de pantalla. Nunca se imprime. */
 .doblez {
   position: absolute; left: 0; right: 0; top: 4.25in;
   border-top: 1px dashed #C3B9B2; pointer-events: none;
@@ -258,15 +267,16 @@ button { font: inherit; cursor: pointer; }
   .taller { display: block; padding: 0; max-width: none; }
   .encabezado, .panel, .previa-nota { display: none !important; }
   .previa { display: block; }
-  .doblez { display: none; }
-  .hoja.con-guia .doblez { display: block; border-top-color: #E6DFDA; }
-  .hoja.con-guia .doblez span { display: none; }
+  .doblez { display: none; }   /* guia de pantalla; en papel no va */
 
-  .hoja {
-    transform: none; margin: 0; box-shadow: none;
+  /* En papel no hay encogido ni marco: la hoja vale lo que mide. */
+  .marco-hoja {
+    width: auto; height: auto; overflow: visible; box-shadow: none;
     break-after: page; page-break-after: always;
   }
-  .hoja:last-child { break-after: auto; page-break-after: auto; }
+  .marco-hoja:last-child { break-after: auto; page-break-after: auto; }
+  #hojas { display: block; gap: 0; }
+  .hoja { transform: none; margin: 0; box-shadow: none; }
 }
 
 @media (max-width: 1080px) {
@@ -375,8 +385,6 @@ button { font: inherit; cursor: pointer; }
     </div>
 
     <div class="opciones">
-      <label><input type="checkbox" id="altas" checked> Nombres en mayúsculas</label>
-      <label><input type="checkbox" id="guiaDoblez"> Imprimir una guía tenue para doblar</label>
       <div class="campo">
         <span>Institución por omisión</span>
         <input type="text" id="sedePorOmision" value="Universidad Iberoamericana Tijuana">
@@ -423,6 +431,39 @@ let viendo = 0;
 const esc = t => String(t == null ? '' : t)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+/* ── El nombre va en altas y bajas, siempre ───────────────
+   text-transform no sirve para esto: 'capitalize' sobre
+   "DR. LUIS ARRIAGA" lo deja igual, porque solo toca la primera
+   letra de cada palabra y las demas ya son mayusculas.
+
+   Se arregla cuando llega SIN CRITERIO DE CAJA: todo en altas
+   --como suelen venir las listas de protocolo-- o todo en bajas
+   --como se escribe de prisa--. Si trae altas Y bajas, alguien ya
+   decidio: "de la Peña", "McDonald" se respetan tal cual, porque
+   corregir lo que no esta mal es peor que no corregir nada.
+
+   Las particulas --de, del, la, y-- se quedan abajo cuando no
+   abren el nombre, que es como se escriben en español. */
+const PARTICULAS = ['de', 'del', 'la', 'las', 'los', 'y', 'e', 'da', 'do', 'dos', 'van', 'von'];
+
+function altasYBajas(txt) {
+  const s = String(txt == null ? '' : txt).trim();
+  if (!s) return s;
+
+  // Se juzga solo por las letras: los puntos y numeros no dicen nada.
+  const letras = s.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g, '');
+  if (!letras) return s;
+  const mezclado = letras !== letras.toUpperCase()
+                && letras !== letras.toLowerCase();
+  if (mezclado) return s;
+
+  return s.toLowerCase().split(/\s+/).map((palabra, i) =>
+    (i > 0 && PARTICULAS.includes(palabra))
+      ? palabra
+      : palabra.charAt(0).toUpperCase() + palabra.slice(1)
+  ).join(' ');
+}
+
 /* El escudo son solo los lobos: ya no dice el nombre de la
    universidad, asi que el renglon de institucion vuelve a hacer
    falta. Se pone el de casa por omision y se cambia por el de la
@@ -442,7 +483,7 @@ function cara(p, reves) {
       ${RUBRICA}
       <div class="raya"></div>
       <div class="datos">
-        <div class="nombre">${esc(p.nombre) || '&nbsp;'}</div>
+        <div class="nombre">${esc(altasYBajas(p.nombre)) || '&nbsp;'}</div>
         ${p.cargo ? `<div class="cargo">${esc(p.cargo)}</div>` : ''}
         ${sede ? `<div class="sede">${esc(sede)}</div>` : ''}
       </div>
@@ -450,9 +491,7 @@ function cara(p, reves) {
 }
 
 function hoja(p) {
-  const altas = $('#altas').checked ? ' altas' : '';
-  const guia  = $('#guiaDoblez').checked ? ' con-guia' : '';
-  return `<div class="hoja${altas}${guia}">
+  return `<div class="hoja">
     ${cara(p, true)}
     ${cara(p, false)}
     <div class="banda"></div>
@@ -525,8 +564,10 @@ function pintarPanel() {
 
 function pintarHojas() {
   $('#hojas').innerHTML = gente.length
-    ? gente.map(hoja).join('')
+    ? gente.map(p => `<div class="marco-hoja">${hoja(p)}</div>`).join('')
     : `<div class="vacio">Agrega a alguien y aquí aparece su hoja.</div>`;
+
+  ajustarZoom();
 
   $$('#hojas .nombre').forEach(ajustarNombre);
 
@@ -534,6 +575,20 @@ function pintarHojas() {
   $('#cuenta').textContent = n === 0 ? 'Sin personas'
     : n === 1 ? '1 persona · 1 hoja' : `${n} personas · ${n} hojas · un solo PDF`;
 }
+
+/* El encogido se calcula contra el ancho que de verdad hay, no
+   con un numero fijo: asi la hoja se ve entera lo mismo en un
+   monitor grande que en una laptop. */
+function ajustarZoom() {
+  const caja = $('#hojas');
+  if (!caja) return;
+  const hay = caja.clientWidth;
+  if (!hay) return;
+  const z = Math.min(0.72, Math.max(0.22, (hay - 6) / (11 * 96)));
+  caja.style.setProperty('--zoom', z.toFixed(4));
+}
+
+window.addEventListener('resize', ajustarZoom);
 
 function pintar() { pintarPanel(); pintarHojas(); }
 
@@ -599,8 +654,7 @@ $('#agregar').addEventListener('click', () => {
 });
 
 $('#imprimir').addEventListener('click', () => window.print());
-['altas', 'guiaDoblez', 'sedePorOmision'].forEach(id =>
-  $('#' + id).addEventListener('input', pintarHojas));
+$('#sedePorOmision').addEventListener('input', pintarHojas);
 
 // Las fuentes empotradas tardan un instante; medir antes da tamaños
 // calculados con la fuente de respaldo.
