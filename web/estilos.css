@@ -2930,6 +2930,58 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   background: color-mix(in oklab, var(--evento-tono) 12%, var(--capa-2));
 }
 
+/* ── El tiempo tiene que leerse ────────────────────────────
+   Lo primero que alguien busca al abrir la parrilla es "que hay
+   hoy y que viene". Para eso el mes tiene que decir, sin que
+   nadie lo piense, donde termina lo que ya paso y donde estas
+   parado. Hasta ahora un dia ido se veia igual que uno por venir.
+
+   Se marca con FONDO y TINTA, nunca con opacity: apagar la celda
+   entera arrastra consigo el texto de las piezas que tiene
+   dentro, y eso ya costo caro dos veces en este archivo.
+
+   Va al final del archivo a proposito: hay tres bloques de
+   .celda repartidos mas arriba y este tiene que ganarles. */
+
+/* LO QUE YA PASO: se hunde y se calla, pero se sigue leyendo.
+   No se esconde: ahi esta lo que se publico esta semana.
+
+   PIERDE EL BORDE, y eso es lo que lo distingue del fin de semana.
+   Los dos van sobre la misma superficie hundida, asi que con el
+   borde puesto un sabado por venir se leia igual que un martes ya
+   ido. Sin borde, lo pasado deja de ser una caja donde se puede
+   soltar algo y pasa a ser fondo. */
+.celda.pasado {
+  background: var(--capa-hundida);
+  border-color: transparent;
+}
+.celda.pasado .celda-numero span {
+  color: var(--tinta-tenue);
+  font-weight: var(--peso-normal);
+}
+
+/* HOY no es un dia con otro borde: es donde estas parado. El
+   numero va relleno, que es la convencion que todo mundo ya lee
+   en cualquier calendario, y ademas aguanta impresion en gris. */
+.celda.hoy .celda-numero span {
+  background: var(--marca-solida);
+  color: var(--texto-sobre-pilar);
+  min-width: 22px; height: 22px; padding: 0 6px;
+  border-radius: var(--r-pastilla);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+/* Hoy manda sobre pasado: a media manana el dia ya empezo pero no
+   termino, y el orden de las clases no lo garantiza. */
+.celda.hoy { background: var(--capa-2); border-color: var(--marca-tinta); }
+
+/* La cola del mes siguiente ES un destino de arrastre: ahi se
+   sueltan las piezas que se reprograman. Con opacity .45 su
+   numero quedaba en 1.8:1, o sea invisible justo donde hay que
+   apuntar. Se atenua con tinta medida. */
+.celda.fuera { opacity: 1; }
+.celda.fuera .celda-numero span { color: var(--tinta-tenue); }
+
 /* ── Qué se ve en la parrilla ──────────────────────────────
    La fila de botones que reemplazo al desplegable de canales.
    Cada uno lleva SU color --el de su red, medido ya en la paleta--

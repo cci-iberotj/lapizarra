@@ -3103,7 +3103,7 @@ function pintarCalendario() {
 
     const finde = dia.getDay() === 0 || dia.getDay() === 6;
     celdas.push(`
-      <div class="celda${fuera ? ' fuera' : ''}${despues ? ' del-siguiente' : ''}${txt === hoy ? ' hoy' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
+      <div class="celda${fuera ? ' fuera' : ''}${despues ? ' del-siguiente' : ''}${txt === hoy ? ' hoy' : ''}${!fuera && txt < hoy ? ' pasado' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
         <div class="celda-numero">
           <span>${dia.getDate() === 1 && fuera
             ? MESES[dia.getMonth()].slice(0, 3) + ' 1'
@@ -8448,6 +8448,21 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-09-23-d',
+    version: '2026-09-23',
+    titulo: 'El calendario ya dice en qué día estamos',
+    puntos: [
+      { t: 'Hoy se ve de un golpe',
+        d: 'El número del día va relleno, como en cualquier calendario. No hay que buscarlo.' },
+      { t: 'Lo que ya pasó se hunde',
+        d: 'Los días idos pierden su borde y se van al fondo. Siguen legibles —ahí está lo que se publicó— pero dejan de competir con lo que viene.' },
+      { t: 'Y el fin de semana ya no se confunde con el pasado',
+        d: 'Un sábado por venir conserva su borde: sigue siendo un día donde puedes soltar algo.' },
+      { t: 'La cola del mes siguiente se lee',
+        d: 'Estaba al 45% de opacidad, con el número en 1.8:1 — invisible justo donde hay que apuntar para reprogramar al mes que entra.' },
+    ],
+  },
   {
     clave: '2026-09-23-c',
     version: '2026-09-23',
