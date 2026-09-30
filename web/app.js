@@ -352,6 +352,8 @@ const CATEGORIAS = [
   { id: 'almacenamiento',nombre: 'Almacenamiento' },
   { id: 'energia',       nombre: 'Energía / baterías' },
   { id: 'computo',       nombre: 'Cómputo' },
+  { id: 'diseno',        nombre: 'Periféricos de diseño' },
+  { id: 'licencias',     nombre: 'Software y licencias' },
   { id: 'accesorio',     nombre: 'Accesorio' },
 ];
 
