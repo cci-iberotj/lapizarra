@@ -181,6 +181,7 @@ details.inventario[open] > summary::before { content: '▾ '; }
 .o-precio .tenue { font-size: 13px; color: var(--tinta-tenue); }
 .estimado { font-size: 11.5px; font-weight: 700; color: var(--alerta); background: var(--alerta-velo); padding: 1px 6px; border-radius: 4px; }
 .o-liga { font-size: 13px; }
+.o-ligas { flex-basis: 100%; font-size: 13px; line-height: 1.6; }
 
 .n-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--capa-0); }
 .estado-sel {
@@ -623,7 +624,7 @@ function pintarNecesidad(n) {
               ${o.precio == null || o.precio === '' ? '<b>Por cotizar</b>' : `<b>${pesos((Number(o.precio) || 0) * (Number(o.cantidad) || 1))}</b>`}
               ${(Number(o.cantidad) || 1) > 1 && o.precio ? `<span class="tenue">${o.cantidad} × ${pesos(o.precio)}</span>` : ''}
               ${o.estimado ? '<span class="estimado" title="Precio aproximado, sin tienda consultada">estimado</span>' : ''}
-              ${o.tienda ? `<span class="tenue">${o.url ? `<a class="o-liga" href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.tienda)}</a>` : esc(o.tienda)}</span>` : ''}
+              ${pintarLigas(o)}
             </span>
           </label>`).join('')}
         </div>
@@ -641,6 +642,20 @@ function pintarNecesidad(n) {
       </div>
     </div>
   </article>`;
+}
+
+// Una opción puede juntar varios productos (pedestales + caja de luz):
+// cada uno lleva su liga. Las opciones viejas traen sólo `url`.
+function ligasDe(o) {
+  if (o.ligas && o.ligas.length) return o.ligas.filter(l => l && l.url);
+  return o.url ? [{ texto: o.tienda || 'Ver en la tienda', url: o.url }] : [];
+}
+function pintarLigas(o) {
+  const ligas = ligasDe(o);
+  const a = l => `<a class="o-liga" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.texto || 'Ver')} ↗</a>`;
+  if (ligas.length > 1) return `<span class="o-ligas">${o.tienda ? `<span class="tenue">${esc(o.tienda)}:</span> ` : ''}${ligas.map(a).join(' · ')}</span>`;
+  if (ligas.length === 1) return `<span class="tenue">${a(o.ligas && o.ligas.length ? ligas[0] : { texto: o.tienda || ligas[0].texto, url: ligas[0].url })}</span>`;
+  return o.tienda ? `<span class="tenue">${esc(o.tienda)}</span>` : '';
 }
 
 function pintarHilo(idNec) {
@@ -669,7 +684,7 @@ function abrirEditor(n) {
   const nueva = !n;
   edicion = n ? JSON.parse(JSON.stringify(n)) : {
     id: nuevoId(), titulo: '', area: filtroArea !== 'todas' ? filtroArea : 'foto', prioridad: 'importante',
-    porque: '', riesgo: '', opciones: [{ id: 'o1', nombre: '', detalle: '', precio: '', cantidad: 1, tienda: '', url: '', estimado: true }],
+    porque: '', riesgo: '', opciones: [{ id: 'o1', nombre: '', detalle: '', precio: '', cantidad: 1, tienda: '', url: '', ligas: [], estimado: true }],
     elegida: 'o1', incluida: true, estado: 'propuesta', orden: 999,
   };
   edicion._nueva = nueva;
@@ -701,7 +716,7 @@ function pintarEditor() {
           <label class="campo"><span>Cantidad</span><input data-k="cantidad" type="number" min="1" step="1" value="${esc(o.cantidad || 1)}"></label>
           <label class="campo"><span>Tienda</span><input data-k="tienda" value="${esc(o.tienda)}" maxlength="60"></label>
         </div>
-        <label class="campo"><span>Liga a la tienda</span><input data-k="url" type="url" value="${esc(o.url)}" placeholder="https://"></label>
+        <label class="campo"><span>Ligas a la tienda · una por renglón: qué es | https://…</span><textarea data-k="ligas" rows="2" placeholder="Pedestales | https://…">${esc(ligasDe(o).map(l => (l.texto ? l.texto + ' | ' : '') + l.url).join('\n'))}</textarea></label>
         <label class="check-linea"><input type="checkbox" data-k="estimado" ${o.estimado ? 'checked' : ''}> Es un precio estimado, sin tienda consultada</label>
       </div>`).join('')}
     </div>
@@ -722,6 +737,13 @@ function leerEditor() {
       if (k === 'estimado') o[k] = inp.checked;
       else if (k === 'precio') o[k] = inp.value === '' ? null : Math.max(0, Math.round(Number(inp.value)));
       else if (k === 'cantidad') o[k] = Math.max(1, Math.round(Number(inp.value) || 1));
+      else if (k === 'ligas') {
+        o.ligas = inp.value.split('\n').map(x => x.trim()).filter(Boolean).map(x => {
+          const i = x.lastIndexOf('|');
+          return i < 0 ? { texto: '', url: x } : { texto: x.slice(0, i).trim(), url: x.slice(i + 1).trim() };
+        }).filter(l => /^https?:\/\//.test(l.url));
+        o.url = o.ligas.length ? o.ligas[0].url : '';
+      }
       else o[k] = inp.value.trim();
     });
   });
@@ -734,7 +756,7 @@ $('#dlgEditar').addEventListener('click', ev => {
     leerEditor();
     const n = edicion.opciones.length + 1;
     let id = 'o' + n; while (edicion.opciones.some(o => o.id === id)) id += 'x';
-    edicion.opciones.push({ id, nombre: '', detalle: '', precio: null, cantidad: 1, tienda: '', url: '', estimado: true });
+    edicion.opciones.push({ id, nombre: '', detalle: '', precio: null, cantidad: 1, tienda: '', url: '', ligas: [], estimado: true });
     pintarEditor();
     const todas = $$('#edOpciones .ed-opcion'); $('[data-k="nombre"]', todas[todas.length - 1]).focus();
   }
