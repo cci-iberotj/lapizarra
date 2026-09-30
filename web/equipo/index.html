@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Equipo multimedia · IBERO Tijuana</title>
+<link rel="stylesheet" href="fuentes.css">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   EQUIPO MULTIMEDIA · Necesidades para los jefes
+   Diseño y Medios · IBERO Tijuana
+
+   Página aparte de LA PIZARRA que se abre sin cuenta, con una
+   liga que trae el código del tablero (…/equipo/#CODIGO).
+   Todo lo que se mueve aquí se guarda en Supabase por las
+   funciones compras_* (supabase/compras.sql).
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --marca:        #7B1E2E;
+  --marca-velo:   #F6E9EB;
+  --tinta:        #191713;
+  --tinta-media:  #463F38;
+  --tinta-tenue:  #655C54;
+  --capa-0:       #F1EDE9;
+  --capa-1:       #F8F6F3;
+  --capa-2:       #FFFFFF;
+  --linea:        #DDD6CF;
+  --linea-fuerte: #C4BAB0;
+  --warm-gray-9:  #83786F;
+
+  --ok:       #2E6B41;  --ok-velo:       #E6F0E9;
+  --alerta:   #7A5A1B;  --alerta-velo:   #F5EEDF;
+  --peligro:  #96232B;  --peligro-velo:  #F7E6E7;
+  --info:     #2F4E7A;  --info-velo:     #E6ECF4;
+
+  --serif: 'Alverata', Georgia, serif;
+  --sans:  'MyriadIbero', 'Segoe UI', system-ui, sans-serif;
+
+  --radio: 10px;
+  --sombra: 0 1px 2px rgba(25,23,19,.06), 0 4px 14px rgba(25,23,19,.05);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--capa-0); color: var(--tinta);
+  font: 400 16px/1.5 var(--sans);
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--info); }
+:focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
+
+.envoltura { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+/* ── Portada ─────────────────────────────────────────────── */
+.portada { padding-top: 40px; padding-bottom: 22px; }
+.rotulo {
+  display: inline-block; background: var(--warm-gray-9); color: #fff;
+  font: 700 19px/1 var(--sans); padding: 8px 12px 7px; letter-spacing: .01em;
+}
+.portada h1 {
+  font: 700 clamp(34px, 5vw, 52px)/1.05 var(--serif);
+  margin: 18px 0 10px; letter-spacing: -.01em;
+}
+.portada .bajada { font-size: 18px; color: var(--tinta-media); max-width: 720px; margin: 0; }
+
+/* ── Barra del presupuesto (se queda arriba) ─────────────── */
+.barra {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(241,237,233,.94); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--linea);
+}
+.barra .envoltura { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding-top: 12px; padding-bottom: 12px; }
+.cifra { display: flex; flex-direction: column; min-width: 120px; }
+.cifra small { font-size: 13px; color: var(--tinta-tenue); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.cifra strong { font: 700 26px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.cifra.aprobado strong { color: var(--ok); }
+.paquetes { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.paquete {
+  border: 1px solid var(--linea-fuerte); background: var(--capa-2); border-radius: 999px;
+  padding: 7px 14px; cursor: pointer; font-size: 14px; line-height: 1.2; min-height: 44px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.paquete b { font-weight: 700; }
+.paquete span { font-size: 12.5px; color: var(--tinta-tenue); font-variant-numeric: tabular-nums; }
+.paquete:hover { border-color: var(--marca); }
+.paquete.activo { background: var(--marca); border-color: var(--marca); color: #fff; }
+.paquete.activo span { color: #F6E9EB; }
+.acciones-barra { display: flex; gap: 8px; }
+.boton-suave {
+  border: 1px solid var(--linea-fuerte); background: var(--capa-2); border-radius: 8px;
+  padding: 8px 12px; cursor: pointer; font-size: 14px; min-height: 40px;
+}
+.boton-suave:hover { border-color: var(--tinta-media); }
+
+/* ── Secciones ───────────────────────────────────────────── */
+section { margin: 34px 0; }
+h2 { font: 700 26px/1.2 var(--serif); margin: 0 0 6px; }
+.nota-seccion { color: var(--tinta-media); margin: 0 0 16px; }
+
+.diagnostico { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.dato {
+  background: var(--capa-2); border-radius: var(--radio); padding: 16px 16px 14px;
+  border-left: 4px solid var(--marca); box-shadow: var(--sombra);
+}
+.dato b { display: block; font: 700 17px/1.3 var(--serif); margin-bottom: 4px; }
+.dato p { margin: 0; color: var(--tinta-media); font-size: 15px; }
+
+details.inventario { margin-top: 14px; background: var(--capa-2); border-radius: var(--radio); box-shadow: var(--sombra); }
+details.inventario > summary { cursor: pointer; padding: 14px 16px; font-weight: 600; list-style: none; min-height: 44px; }
+details.inventario > summary::before { content: '▸ '; color: var(--tinta-tenue); }
+details.inventario[open] > summary::before { content: '▾ '; }
+.tabla-inv { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.tabla-inv th { text-align: left; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); padding: 8px 16px; border-bottom: 1px solid var(--linea); }
+.tabla-inv td { padding: 7px 16px; border-bottom: 1px solid var(--capa-0); vertical-align: top; }
+.tabla-inv tr.cat td { background: var(--capa-1); font-weight: 700; color: var(--tinta-media); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.tabla-inv .tenue { color: var(--tinta-tenue); }
+.envoltura-tabla { overflow-x: auto; }
+
+/* ── Filtros ─────────────────────────────────────────────── */
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.filtros .etq { font-size: 14px; color: var(--tinta-tenue); margin-right: 4px; }
+.chip-filtro {
+  border: 1px solid var(--linea-fuerte); background: var(--capa-2); border-radius: 999px;
+  padding: 6px 14px; cursor: pointer; font-size: 14.5px; min-height: 40px;
+}
+.chip-filtro[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
+
+/* ── Grupos por prioridad ────────────────────────────────── */
+.grupo { margin-top: 30px; }
+.grupo-cabeza { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border-top: 3px solid var(--color-grupo); padding-top: 12px; margin-bottom: 14px; }
+.grupo-cabeza h3 { font: 700 22px/1.2 var(--serif); margin: 0; color: var(--color-grupo); }
+.grupo-cabeza p { margin: 0; color: var(--tinta-media); flex: 1; min-width: 200px; }
+.grupo-cabeza .subtotal { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ── Tarjeta de necesidad ────────────────────────────────── */
+.necesidad {
+  background: var(--capa-2); border-radius: var(--radio); box-shadow: var(--sombra);
+  margin-bottom: 14px; padding: 18px 20px 14px; border: 2px solid transparent;
+  transition: border-color .15s, opacity .15s;
+}
+.necesidad.fuera { opacity: .86; }  /* a .86 el texto tenue sigue arriba de 4.5:1 */
+.necesidad.fuera .opcion.elegida { border-color: var(--linea-fuerte); background: var(--capa-1); }
+.necesidad.descartada { opacity: .6; }
+.necesidad.descartada .n-titulo { text-decoration: line-through; }
+
+.n-cabeza { display: flex; gap: 14px; align-items: flex-start; }
+.incluir { display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0; min-height: 44px; }
+.incluir input { width: 24px; height: 24px; accent-color: var(--marca); cursor: pointer; margin: 0; }
+.n-cuerpo { flex: 1; min-width: 0; }
+.n-titulo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.n-titulo { font: 700 20px/1.25 var(--serif); margin: 0; }
+.chip { font-size: 12.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; letter-spacing: .02em; }
+.chip.area-diseno    { background: var(--marca-velo); color: var(--marca); }
+.chip.area-foto      { background: var(--info-velo); color: var(--info); }
+.chip.area-contenido { background: var(--alerta-velo); color: var(--alerta); }
+.chip.area-general   { background: var(--capa-0); color: var(--tinta-media); }
+.n-precio { margin-left: auto; font: 700 20px/1.2 var(--serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.n-precio small { display: block; font: 400 12.5px/1.2 var(--sans); color: var(--tinta-tenue); text-align: right; }
+
+.n-textos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; margin: 10px 0 14px; }
+.n-textos p { margin: 0; font-size: 15.5px; color: var(--tinta-media); }
+.n-textos p b { display: block; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); margin-bottom: 2px; }
+.n-textos p.riesgo b { color: var(--peligro); }
+
+.opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.opcion {
+  position: relative; display: block; cursor: pointer; border: 2px solid var(--linea);
+  border-radius: 9px; padding: 12px 14px 12px 40px; background: var(--capa-2);
+  transition: border-color .12s, background .12s;
+}
+.opcion:hover { border-color: var(--linea-fuerte); }
+.opcion input { position: absolute; left: 13px; top: 15px; width: 18px; height: 18px; accent-color: var(--marca); margin: 0; }
+.opcion.elegida { border-color: var(--marca); background: #FCF7F8; }
+.o-nombre { font-weight: 700; display: block; line-height: 1.3; }
+.o-detalle { display: block; font-size: 14px; color: var(--tinta-media); margin-top: 3px; }
+.o-precio { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.o-precio b { font-size: 16.5px; }
+.o-precio .tenue { font-size: 13px; color: var(--tinta-tenue); }
+.estimado { font-size: 11.5px; font-weight: 700; color: var(--alerta); background: var(--alerta-velo); padding: 1px 6px; border-radius: 4px; }
+.o-liga { font-size: 13px; }
+
+.n-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--capa-0); }
+.estado-sel {
+  border: 1px solid var(--linea-fuerte); border-radius: 8px; padding: 7px 10px; min-height: 40px;
+  background: var(--capa-2); font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.estado-sel.aprobada   { background: var(--ok-velo); border-color: var(--ok); color: var(--ok); }
+.estado-sel.comprada   { background: var(--info-velo); border-color: var(--info); color: var(--info); }
+.estado-sel.descartada { background: var(--capa-0); color: var(--tinta-tenue); }
+.pie-der { margin-left: auto; display: flex; gap: 6px; }
+.boton-texto { background: none; border: 0; padding: 8px 10px; border-radius: 8px; cursor: pointer; color: var(--tinta-media); font-size: 14.5px; min-height: 40px; }
+.boton-texto:hover { background: var(--capa-0); color: var(--tinta); }
+.ultimo { font-size: 13px; color: var(--tinta-tenue); }
+
+.hilo { margin-top: 10px; background: var(--capa-1); border-radius: 8px; padding: 10px 14px; }
+.comentario { padding: 7px 0; border-bottom: 1px solid var(--linea); font-size: 15px; }
+.comentario:last-of-type { border-bottom: 0; }
+.comentario b { font-weight: 700; }
+.comentario time { font-size: 12.5px; color: var(--tinta-tenue); margin-left: 6px; }
+.comentario p { margin: 2px 0 0; white-space: pre-wrap; }
+.nuevo-com { display: flex; gap: 8px; margin-top: 8px; }
+.nuevo-com textarea { flex: 1; min-height: 44px; resize: vertical; border: 1px solid var(--linea-fuerte); border-radius: 8px; padding: 9px 10px; background: var(--capa-2); }
+
+.agregar {
+  width: 100%; margin-top: 8px; padding: 16px; border: 2px dashed var(--linea-fuerte); border-radius: var(--radio);
+  background: transparent; cursor: pointer; font-weight: 700; color: var(--tinta-media); min-height: 56px;
+}
+.agregar:hover { border-color: var(--marca); color: var(--marca); }
+
+/* ── Comentarios generales y movimientos ─────────────────── */
+.panel { background: var(--capa-2); border-radius: var(--radio); box-shadow: var(--sombra); padding: 16px 20px; }
+.movimiento { font-size: 14.5px; padding: 5px 0; color: var(--tinta-media); border-bottom: 1px solid var(--capa-0); }
+.movimiento b { color: var(--tinta); }
+.movimiento time { color: var(--tinta-tenue); font-size: 13px; margin-left: 6px; }
+
+footer { padding-top: 30px; padding-bottom: 60px; color: var(--tinta-tenue); font-size: 14px; }
+
+/* ── Ventanas ────────────────────────────────────────────── */
+dialog { border: 0; border-radius: 14px; padding: 0; max-width: min(760px, calc(100vw - 24px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.25); color: var(--tinta); }
+dialog::backdrop { background: rgba(25,23,19,.45); }
+.dlg-cabeza { padding: 18px 22px 6px; }
+.dlg-cabeza h2 { font-size: 24px; }
+.dlg-cuerpo { padding: 8px 22px; max-height: 68vh; overflow: auto; }
+.dlg-pie { display: flex; gap: 8px; padding: 14px 22px 18px; border-top: 1px solid var(--capa-0); }
+.dlg-pie .der { margin-left: auto; display: flex; gap: 8px; }
+.campo { display: block; margin-bottom: 12px; }
+.campo > span { display: block; font-size: 13.5px; font-weight: 700; color: var(--tinta-media); margin-bottom: 4px; }
+.campo input, .campo select, .campo textarea {
+  width: 100%; border: 1px solid var(--linea-fuerte); border-radius: 8px; padding: 9px 11px; background: var(--capa-2); min-height: 42px;
+}
+.campo textarea { min-height: 64px; resize: vertical; }
+.fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ed-opcion { border: 1px solid var(--linea); border-radius: 10px; padding: 12px 12px 2px; margin-bottom: 10px; background: var(--capa-1); }
+.ed-opcion .fila3 { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 10px; }
+.ed-opcion-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; font-size: 14px; color: var(--tinta-tenue); }
+.check-linea { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 14.5px; }
+.boton { border: 0; border-radius: 9px; padding: 10px 18px; cursor: pointer; font-weight: 700; min-height: 44px; }
+.boton.primario { background: var(--marca); color: #fff; }
+.boton.primario:hover { background: #64182a; }
+.boton.secundario { background: var(--capa-0); color: var(--tinta); }
+.boton.peligro { background: transparent; color: var(--peligro); border: 1px solid var(--peligro); }
+
+.aviso {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px); opacity: 0;
+  background: var(--tinta); color: #fff; padding: 11px 18px; border-radius: 10px; z-index: 50;
+  transition: opacity .2s, transform .2s; pointer-events: none; max-width: calc(100vw - 32px); font-size: 15px;
+}
+.aviso.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.pantalla-codigo { max-width: 420px; margin: 12vh auto; text-align: center; padding: 0 20px; }
+.pantalla-codigo input { text-align: center; letter-spacing: .25em; text-transform: uppercase; font-size: 22px; }
+.cargando { text-align: center; padding: 80px 20px; color: var(--tinta-tenue); }
+
+@media (max-width: 720px) {
+  .barra .envoltura { gap: 8px 16px; padding-top: 8px; padding-bottom: 8px; }
+  .cifra { min-width: 0; }
+  .cifra small { font-size: 11.5px; }
+  .acciones-barra { display: none; }   /* el nombre se pide solo al primer cambio */
+  .paquetes { flex-wrap: nowrap; }
+  .paquete { padding: 5px 8px; min-height: 44px; }
+  .n-textos { grid-template-columns: 1fr; }
+  .necesidad { padding: 14px 14px 10px; }
+  .n-cabeza { display: block; }
+  .incluir { float: left; margin: 0 10px 0 0; min-height: 30px; }
+  .n-precio { margin-left: 0; width: 100%; }
+  .n-precio small { text-align: left; }
+  .paquetes { margin-left: 0; width: 100%; }
+  .paquete { flex: 1; }
+  .fila, .ed-opcion .fila3 { grid-template-columns: 1fr; }
+  .cifra strong { font-size: 22px; }
+}
+
+/* ── Impresión: lo que se lleva a la junta ───────────────── */
+@media print {
+  @page { size: letter; margin: 0.5in; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  body { background: #fff; font-size: 12px; }
+  .barra { position: static; background: #fff; border: 0; }
+  .paquetes, .acciones-barra, .filtros, .n-pie .pie-der, .agregar, .nuevo-com, #seccionMovs, .hilo:empty, .solo-pantalla { display: none !important; }
+  .necesidad { box-shadow: none; border: 1px solid var(--linea); break-inside: avoid; padding: 10px 12px; }
+  .necesidad.fuera { display: none; }
+  .opcion:not(.elegida) { display: none; }
+  .dato, .panel, details.inventario { box-shadow: none; border: 1px solid var(--linea); }
+  details.inventario { display: none; }
+  .portada { padding-top: 0; }
+}
+</style>
+</head>
+<body>
+
+<div id="app"><div class="cargando">Cargando…</div></div>
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
+<dialog id="dlgNombre">
+  <form method="dialog" id="formNombre">
+    <div class="dlg-cabeza"><h2>¿Quién eres?</h2></div>
+    <div class="dlg-cuerpo">
+      <p style="margin-top:0;color:var(--tinta-media)">Tu nombre acompaña lo que apruebes o comentes, para que todos sepan quién decidió qué. Se pide una sola vez en este navegador.</p>
+      <label class="campo"><span>Nombre</span><input id="inNombre" autocomplete="name" required maxlength="60" placeholder="Ej. Marysol Castro"></label>
+    </div>
+    <div class="dlg-pie"><div class="der">
+      <button type="button" class="boton secundario" data-cerrar>Cancelar</button>
+      <button class="boton primario" value="ok">Listo</button>
+    </div></div>
+  </form>
+</dialog>
+
+<dialog id="dlgEditar">
+  <form method="dialog" id="formEditar">
+    <div class="dlg-cabeza"><h2 id="edTitulo">Editar necesidad</h2></div>
+    <div class="dlg-cuerpo" id="edCuerpo"></div>
+    <div class="dlg-pie">
+      <button type="button" class="boton peligro" id="edQuitar">Quitar de la lista</button>
+      <div class="der">
+        <button type="button" class="boton secundario" data-cerrar>Cancelar</button>
+        <button class="boton primario" value="ok">Guardar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<script src="../config.js"></script>
+<script>
+'use strict';
+
+/* ── Catálogos ───────────────────────────────────────────── */
+
+const PRIORIDADES = [
+  { id: 'arreglo',    nombre: 'Arreglos rápidos', que: 'Cuestan poco y destraban equipo que ya tenemos.', color: 'var(--tinta-media)' },
+  { id: 'urgente',    nombre: 'Urgente',          que: 'Sin esto hay riesgo de no poder cubrir.',          color: 'var(--peligro)' },
+  { id: 'importante', nombre: 'Importante',       que: 'Para la calidad que pide lo que está planeado.',   color: 'var(--alerta)' },
+  { id: 'deseable',   nombre: 'Deseable',         que: 'Crecimiento: abre formatos nuevos.',               color: 'var(--info)' },
+];
+const PAQUETES = [
+  { id: 'minimo',      nombre: 'Mínimo',      prioridades: ['arreglo', 'urgente'] },
+  { id: 'recomendado', nombre: 'Recomendado', prioridades: ['arreglo', 'urgente', 'importante'] },
+  { id: 'completo',    nombre: 'Completo',    prioridades: ['arreglo', 'urgente', 'importante', 'deseable'] },
+];
+const AREAS = [
+  { id: 'diseno',    nombre: 'Diseño' },
+  { id: 'foto',      nombre: 'Foto y video' },
+  { id: 'contenido', nombre: 'Contenido' },
+  { id: 'general',   nombre: 'General' },
+];
+const ESTADOS = [
+  { id: 'propuesta',  nombre: 'Propuesta' },
+  { id: 'aprobada',   nombre: 'Aprobada' },
+  { id: 'comprada',   nombre: 'Comprada' },
+  { id: 'descartada', nombre: 'Descartada' },
+];
+const CATEGORIAS_INV = {
+  camara: 'Cámaras', lente: 'Lentes', drone: 'Drones', audio: 'Audio', iluminacion: 'Iluminación',
+  soporte: 'Soporte y tripiés', almacenamiento: 'Almacenamiento', energia: 'Energía y baterías',
+  computo: 'Cómputo', diseno: 'Periféricos de diseño', licencias: 'Software y licencias', accesorio: 'Accesorios',
+};
+
+/* ── Utilidades ──────────────────────────────────────────── */
+
+const $ = (s, c = document) => c.querySelector(s);
+const $$ = (s, c = document) => [...c.querySelectorAll(s)];
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nombreDe = (lista, id) => (lista.find(x => x.id === id) || {}).nombre || id || '';
+const pesos = n => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n || 0);
+const nuevoId = () => 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function hace(fecha) {
+  const d = new Date(fecha); if (isNaN(d)) return '';
+  const s = (Date.now() - d) / 1000;
+  if (s < 60) return 'hace un momento';
+  if (s < 3600) return 'hace ' + Math.round(s / 60) + ' min';
+  if (s < 86400) return 'hace ' + Math.round(s / 3600) + ' h';
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+}
+let temporizadorAviso;
+function avisar(texto) {
+  const a = $('#aviso'); a.textContent = texto; a.classList.add('visible');
+  clearTimeout(temporizadorAviso); temporizadorAviso = setTimeout(() => a.classList.remove('visible'), 3200);
+}
+function leerLocal(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function guardarLocal(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: se vuelve a preguntar */ } }
+
+/* ── Nube ────────────────────────────────────────────────── */
+
+async function rpc(fn, args) {
+  const r = await fetch(CONFIG.supabase.url + '/rest/v1/rpc/' + fn, {
+    method: 'POST',
+    headers: { apikey: CONFIG.supabase.llave, Authorization: 'Bearer ' + CONFIG.supabase.llave, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  const texto = await r.text();
+  if (!r.ok) {
+    let msg = 'No se pudo guardar.';
+    try { msg = JSON.parse(texto).message || msg; } catch (e) { /* respuesta sin JSON */ }
+    throw new Error(msg);
+  }
+  return texto ? JSON.parse(texto) : null;
+}
+
+/* ── Estado ──────────────────────────────────────────────── */
+
+let codigo = (location.hash || '').replace('#', '').trim().toUpperCase();
+let T = null;                 // el tablero tal como vino de la base
+let version = null;
+let filtroArea = leerLocal('equipo.filtro') || 'todas';
+const hilosAbiertos = new Set();
+
+function necesidades() { return (T && T.necesidades) || []; }
+function opcionElegida(n) {
+  const ops = n.opciones || [];
+  return ops.find(o => o.id === n.elegida) || ops[0] || null;
+}
+function costo(n) {
+  const o = opcionElegida(n);
+  return o ? (Number(o.precio) || 0) * (Number(o.cantidad) || 1) : 0;
+}
+function cuenta(n) { return n.estado !== 'descartada'; }
+function totalDe(filtro) { return necesidades().filter(n => cuenta(n) && filtro(n)).reduce((s, n) => s + costo(n), 0); }
+function paqueteActivo() {
+  const vivas = necesidades().filter(cuenta);
+  return (PAQUETES.find(p => vivas.every(n => !!n.incluida === p.prioridades.includes(n.prioridad))) || {}).id || null;
+}
+
+/* ── Quién eres ──────────────────────────────────────────── */
+
+function quienSoy() {
+  const ya = leerLocal('equipo.nombre');
+  if (ya) return Promise.resolve(ya);
+  return new Promise(resolve => {
+    const d = $('#dlgNombre');
+    $('#inNombre').value = '';
+    d.returnValue = '';
+    d.showModal();
+    d.addEventListener('close', function listo() {
+      d.removeEventListener('close', listo);
+      const v = $('#inNombre').value.trim();
+      if (d.returnValue === 'ok' && v) { guardarLocal('equipo.nombre', v); pintar(); resolve(v); }
+      else resolve(null);
+    });
+  });
+}
+
+/* ── Cambios ─────────────────────────────────────────────── */
+
+async function ajustar(n, cambios, que) {
+  const autor = await quienSoy();
+  if (!autor) { pintar(); return false; }
+  const antes = {};
+  Object.keys(cambios).forEach(k => { antes[k] = n[k]; });
+  Object.assign(n, cambios, { _autor: autor, _actualizado: new Date().toISOString() });
+  pintar();
+  try {
+    const hora = await rpc('compras_ajustar', { p_codigo: codigo, p_id: n.id, p_cambios: cambios, p_autor: autor, p_que: que || '' });
+    version = hora;
+    if (que) T.movimientos.unshift({ necesidad: n.id, autor, que, creado: hora });
+    pintarMovimientos();
+    return true;
+  } catch (e) {
+    Object.assign(n, antes); pintar();
+    avisar('No se guardó: ' + e.message);
+    return false;
+  }
+}
+
+async function aplicarPaquete(p) {
+  const autor = await quienSoy();
+  if (!autor) return;
+  const cambiar = necesidades().filter(n => cuenta(n) && !!n.incluida !== p.prioridades.includes(n.prioridad));
+  if (!cambiar.length) return;
+  cambiar.forEach(n => { n.incluida = p.prioridades.includes(n.prioridad); });
+  pintar();
+  try {
+    await Promise.all(cambiar.map((n, i) => rpc('compras_ajustar', {
+      p_codigo: codigo, p_id: n.id, p_cambios: { incluida: n.incluida }, p_autor: autor,
+      p_que: i === 0 ? 'armó el paquete ' + p.nombre + ' (' + pesos(totalDe(x => x.incluida)) + ')' : '',
+    })));
+    await recargar(true);
+  } catch (e) { avisar('No se guardó todo: ' + e.message); await recargar(true); }
+}
+
+async function comentar(idNec, texto) {
+  const autor = await quienSoy();
+  if (!autor || !texto.trim()) return false;
+  try {
+    await rpc('compras_comentar', { p_codigo: codigo, p_necesidad: idNec, p_autor: autor, p_texto: texto });
+    T.comentarios.push({ necesidad: idNec, autor, texto: texto.trim(), creado: new Date().toISOString() });
+    pintar();
+    return true;
+  } catch (e) { avisar('No se guardó el comentario: ' + e.message); return false; }
+}
+
+/* ── Pintar ──────────────────────────────────────────────── */
+
+function pintar() {
+  if (!T) return;
+  const aj = T.ajustes || {};
+  const activo = paqueteActivo();
+  const yo = leerLocal('equipo.nombre');
+  // Lo que el usuario tenía escrito en un comentario sobrevive al repintado.
+  const borradores = {};
+  $$('.nuevo-com textarea').forEach(t => { if (t.value) borradores[t.dataset.nec] = t.value; });
+  const enfocado = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.nec;
+
+  const visibles = necesidades().filter(n => filtroArea === 'todas' || n.area === filtroArea);
+
+  $('#app').innerHTML = `
+    <header class="portada envoltura">
+      <span class="rotulo">${esc(aj.rotulo || 'Diseño y Medios /')}</span>
+      <h1>${esc(T.titulo || 'Equipo multimedia')}</h1>
+      <p class="bajada">${esc(aj.bajada || '')}</p>
+    </header>
+
+    <div class="barra">
+      <div class="envoltura">
+        <div class="cifra"><small>En el presupuesto</small><strong>${pesos(totalDe(n => n.incluida))}</strong></div>
+        <div class="cifra aprobado"><small>Aprobado</small><strong>${pesos(totalDe(n => n.estado === 'aprobada' || n.estado === 'comprada'))}</strong></div>
+        <div class="paquetes" role="group" aria-label="Armar un paquete">
+          ${PAQUETES.map(p => `<button class="paquete${activo === p.id ? ' activo' : ''}" data-paquete="${p.id}" aria-pressed="${activo === p.id}">
+            <b>${p.nombre}</b><span>${pesos(totalDe(n => p.prioridades.includes(n.prioridad)))}</span></button>`).join('')}
+        </div>
+        <div class="acciones-barra">
+          <button class="boton-suave" id="btnQuien" title="Cambiar el nombre con el que apruebas y comentas">${yo ? esc(yo) : '¿Quién eres?'}</button>
+          <button class="boton-suave" id="btnImprimir">Imprimir</button>
+        </div>
+      </div>
+    </div>
+
+    <main class="envoltura">
+      <section>
+        <h2>Cómo estamos hoy</h2>
+        <p class="nota-seccion">${esc(aj.nota_diagnostico || '')}</p>
+        <div class="diagnostico">
+          ${(aj.diagnostico || []).map(d => `<div class="dato"><b>${esc(d.titulo)}</b><p>${esc(d.texto)}</p></div>`).join('')}
+        </div>
+        ${pintarInventario()}
+      </section>
+
+      <section>
+        <h2>Lo que hace falta</h2>
+        <p class="nota-seccion">Palomea lo que entra al presupuesto y elige una opción en cada renglón. Los botones de arriba arman un paquete de golpe. Todo se guarda solo y lo ven todos los que tienen esta liga.</p>
+        <div class="filtros" role="group" aria-label="Filtrar por área">
+          <span class="etq">Ver:</span>
+          ${[{ id: 'todas', nombre: 'Todas' }].concat(AREAS.filter(a => necesidades().some(n => n.area === a.id))).map(a =>
+            `<button class="chip-filtro" data-area="${a.id}" aria-pressed="${filtroArea === a.id}">${esc(a.nombre)}</button>`).join('')}
+        </div>
+        ${PRIORIDADES.map(p => pintarGrupo(p, visibles.filter(n => n.prioridad === p.id))).join('')}
+        <button class="agregar solo-pantalla" id="btnAgregar">+ Agregar una necesidad</button>
+      </section>
+
+      <section>
+        <h2>Comentarios generales</h2>
+        <div class="panel">${pintarHilo('')}</div>
+      </section>
+
+      <section id="seccionMovs">
+        <h2>Movimientos recientes</h2>
+        <div class="panel" id="movimientos"></div>
+      </section>
+    </main>
+
+    <footer class="envoltura">
+      Diseño y Medios · IBERO Tijuana · Precios de referencia en tiendas de México${aj.fecha_precios ? ', consultados el ' + esc(aj.fecha_precios) : ''}. Sirven para dimensionar; la compra se cotiza formalmente.
+    </footer>`;
+
+  pintarMovimientos();
+  Object.entries(borradores).forEach(([k, v]) => { const t = $(`.nuevo-com textarea[data-nec="${k}"]`); if (t) t.value = v; });
+  if (enfocado != null) { const t = $(`.nuevo-com textarea[data-nec="${enfocado}"]`); if (t) t.focus(); }
+}
+
+function pintarInventario() {
+  const inv = T.inventario || [];
+  if (!inv.length) return '';
+  const piezas = inv.reduce((s, e) => s + (Number(e.cantidad) || 1), 0);
+  let filas = '', cat = null;
+  inv.forEach(e => {
+    if (e.categoria !== cat) { cat = e.categoria; filas += `<tr class="cat"><td colspan="3">${esc(CATEGORIAS_INV[cat] || cat)}</td></tr>`; }
+    filas += `<tr><td>${esc(e.nombre)}${Number(e.cantidad) > 1 ? ` <span class="tenue">× ${e.cantidad}</span>` : ''}</td>
+      <td>${esc([e.marca, e.modelo].filter(Boolean).join(' '))}</td><td class="tenue">${esc(e.notas || '')}</td></tr>`;
+  });
+  return `<details class="inventario solo-pantalla"><summary>Ver el inventario completo (${inv.length} registros, ${piezas} piezas)</summary>
+    <div class="envoltura-tabla"><table class="tabla-inv"><thead><tr><th>Equipo</th><th>Marca y modelo</th><th>Notas</th></tr></thead><tbody>${filas}</tbody></table></div></details>`;
+}
+
+function pintarGrupo(p, lista) {
+  if (!lista.length) return '';
+  const sub = lista.filter(n => cuenta(n) && n.incluida).reduce((s, n) => s + costo(n), 0);
+  lista.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  return `<div class="grupo" style="--color-grupo:${p.color}">
+    <div class="grupo-cabeza"><h3>${esc(p.nombre)}</h3><p>${esc(p.que)}</p>
+      <span class="subtotal">${pesos(sub)}</span></div>
+    ${lista.map(pintarNecesidad).join('')}
+  </div>`;
+}
+
+function pintarNecesidad(n) {
+  const ops = n.opciones || [];
+  const elegida = opcionElegida(n);
+  const coms = T.comentarios.filter(c => c.necesidad === n.id);
+  const abierto = hilosAbiertos.has(n.id);
+  const clases = ['necesidad', n.incluida ? '' : 'fuera', n.estado === 'descartada' ? 'descartada' : ''].join(' ');
+  return `<article class="${clases}" data-id="${esc(n.id)}">
+    <div class="n-cabeza">
+      <label class="incluir" title="Incluir en el presupuesto">
+        <input type="checkbox" data-incluir ${n.incluida ? 'checked' : ''} aria-label="Incluir ${esc(n.titulo)} en el presupuesto">
+      </label>
+      <div class="n-cuerpo">
+        <div class="n-titulo-fila">
+          <h4 class="n-titulo">${esc(n.titulo)}</h4>
+          <span class="chip area-${esc(n.area)}">${esc(nombreDe(AREAS, n.area))}</span>
+          <div class="n-precio">${pesos(costo(n))}${elegida && (Number(elegida.cantidad) || 1) > 1 ? `<small>${elegida.cantidad} × ${pesos(elegida.precio)}</small>` : ''}</div>
+        </div>
+        <div class="n-textos">
+          ${n.porque ? `<p><b>Para qué</b>${esc(n.porque)}</p>` : ''}
+          ${n.riesgo ? `<p class="riesgo"><b>Si no se compra</b>${esc(n.riesgo)}</p>` : ''}
+        </div>
+        <div class="opciones" role="radiogroup" aria-label="Opciones para ${esc(n.titulo)}">
+          ${ops.map(o => `<label class="opcion${elegida && o.id === elegida.id ? ' elegida' : ''}">
+            <input type="radio" name="op-${esc(n.id)}" value="${esc(o.id)}" data-opcion ${elegida && o.id === elegida.id ? 'checked' : ''}>
+            <span class="o-nombre">${esc(o.nombre)}</span>
+            ${o.detalle ? `<span class="o-detalle">${esc(o.detalle)}</span>` : ''}
+            <span class="o-precio">
+              ${o.precio == null || o.precio === '' ? '<b>Por cotizar</b>' : `<b>${pesos((Number(o.precio) || 0) * (Number(o.cantidad) || 1))}</b>`}
+              ${(Number(o.cantidad) || 1) > 1 && o.precio ? `<span class="tenue">${o.cantidad} × ${pesos(o.precio)}</span>` : ''}
+              ${o.estimado ? '<span class="estimado" title="Precio aproximado, sin tienda consultada">estimado</span>' : ''}
+              ${o.tienda ? `<span class="tenue">${o.url ? `<a class="o-liga" href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.tienda)}</a>` : esc(o.tienda)}</span>` : ''}
+            </span>
+          </label>`).join('')}
+        </div>
+        <div class="n-pie">
+          <select class="estado-sel ${esc(n.estado || 'propuesta')}" data-estado aria-label="Estado de ${esc(n.titulo)}">
+            ${ESTADOS.map(e => `<option value="${e.id}"${(n.estado || 'propuesta') === e.id ? ' selected' : ''}>${e.nombre}</option>`).join('')}
+          </select>
+          ${n._autor ? `<span class="ultimo">Último cambio: ${esc(n._autor)}, ${hace(n._actualizado)}</span>` : ''}
+          <div class="pie-der">
+            <button class="boton-texto" data-hilo aria-expanded="${abierto}">💬 ${coms.length ? coms.length + (coms.length === 1 ? ' comentario' : ' comentarios') : 'Comentar'}</button>
+            <button class="boton-texto" data-editar>✎ Editar</button>
+          </div>
+        </div>
+        ${abierto ? `<div class="hilo">${pintarHilo(n.id)}</div>` : ''}
+      </div>
+    </div>
+  </article>`;
+}
+
+function pintarHilo(idNec) {
+  const coms = T.comentarios.filter(c => c.necesidad === idNec);
+  return `${coms.map(c => `<div class="comentario"><b>${esc(c.autor || 'Sin nombre')}</b><time>${hace(c.creado)}</time><p>${esc(c.texto)}</p></div>`).join('')}
+    <form class="nuevo-com" data-comentar="${esc(idNec)}">
+      <textarea data-nec="${esc(idNec)}" rows="1" maxlength="1500" placeholder="${idNec ? 'Escribe un comentario…' : 'Algo sobre la lista en general…'}" aria-label="Nuevo comentario"></textarea>
+      <button class="boton primario">Enviar</button>
+    </form>`;
+}
+
+function pintarMovimientos() {
+  const cont = $('#movimientos'); if (!cont) return;
+  const movs = (T.movimientos || []).slice(0, 25);
+  const titulo = id => (necesidades().find(n => n.id === id) || {}).titulo || '';
+  cont.innerHTML = movs.length ? movs.map(m => `<div class="movimiento"><b>${esc(m.autor || 'Alguien')}</b> ${esc(m.que)}${
+      m.necesidad && titulo(m.necesidad) && !/«/.test(m.que) ? ' en «' + esc(titulo(m.necesidad)) + '»' : ''}<time>${hace(m.creado)}</time></div>`).join('')
+    : '<p style="margin:0;color:var(--tinta-tenue)">Todavía nadie ha movido nada.</p>';
+}
+
+/* ── Editor ──────────────────────────────────────────────── */
+
+let edicion = null;
+
+function abrirEditor(n) {
+  const nueva = !n;
+  edicion = n ? JSON.parse(JSON.stringify(n)) : {
+    id: nuevoId(), titulo: '', area: filtroArea !== 'todas' ? filtroArea : 'foto', prioridad: 'importante',
+    porque: '', riesgo: '', opciones: [{ id: 'o1', nombre: '', detalle: '', precio: '', cantidad: 1, tienda: '', url: '', estimado: true }],
+    elegida: 'o1', incluida: true, estado: 'propuesta', orden: 999,
+  };
+  edicion._nueva = nueva;
+  $('#edTitulo').textContent = nueva ? 'Agregar necesidad' : 'Editar necesidad';
+  $('#edQuitar').hidden = nueva;
+  pintarEditor();
+  const d = $('#dlgEditar'); d.returnValue = ''; d.showModal();
+  setTimeout(() => $('#ed_titulo').focus(), 30);
+}
+
+function pintarEditor() {
+  const e = edicion;
+  $('#edCuerpo').innerHTML = `
+    <label class="campo"><span>Qué hace falta</span><input id="ed_titulo" value="${esc(e.titulo)}" maxlength="90" required placeholder="Ej. Micrófono de cañón"></label>
+    <div class="fila">
+      <label class="campo"><span>Área</span><select id="ed_area">${AREAS.map(a => `<option value="${a.id}"${a.id === e.area ? ' selected' : ''}>${a.nombre}</option>`).join('')}</select></label>
+      <label class="campo"><span>Prioridad</span><select id="ed_prioridad">${PRIORIDADES.map(p => `<option value="${p.id}"${p.id === e.prioridad ? ' selected' : ''}>${p.nombre}</option>`).join('')}</select></label>
+    </div>
+    <label class="campo"><span>Para qué</span><textarea id="ed_porque" maxlength="600">${esc(e.porque)}</textarea></label>
+    <label class="campo"><span>Si no se compra</span><textarea id="ed_riesgo" maxlength="600">${esc(e.riesgo)}</textarea></label>
+    <h3 style="font:700 18px var(--serif);margin:16px 0 10px">Opciones</h3>
+    <div id="edOpciones">${e.opciones.map((o, i) => `
+      <div class="ed-opcion" data-i="${i}">
+        <div class="ed-opcion-cabeza">Opción ${i + 1}${e.opciones.length > 1 ? `<button type="button" class="boton-texto" data-quitar-op="${i}">Quitar opción</button>` : ''}</div>
+        <label class="campo"><span>Nombre</span><input data-k="nombre" value="${esc(o.nombre)}" maxlength="90" placeholder="Ej. Rode VideoMic NTG"></label>
+        <label class="campo"><span>Por qué esta opción</span><input data-k="detalle" value="${esc(o.detalle)}" maxlength="220"></label>
+        <div class="fila3">
+          <label class="campo"><span>Precio unitario (MXN)</span><input data-k="precio" type="number" min="0" step="1" value="${esc(o.precio)}" placeholder="Por cotizar"></label>
+          <label class="campo"><span>Cantidad</span><input data-k="cantidad" type="number" min="1" step="1" value="${esc(o.cantidad || 1)}"></label>
+          <label class="campo"><span>Tienda</span><input data-k="tienda" value="${esc(o.tienda)}" maxlength="60"></label>
+        </div>
+        <label class="campo"><span>Liga a la tienda</span><input data-k="url" type="url" value="${esc(o.url)}" placeholder="https://"></label>
+        <label class="check-linea"><input type="checkbox" data-k="estimado" ${o.estimado ? 'checked' : ''}> Es un precio estimado, sin tienda consultada</label>
+      </div>`).join('')}
+    </div>
+    <button type="button" class="boton secundario" id="edMasOpcion">+ Agregar otra opción</button>`;
+}
+
+function leerEditor() {
+  const e = edicion;
+  e.titulo = $('#ed_titulo').value.trim();
+  e.area = $('#ed_area').value;
+  e.prioridad = $('#ed_prioridad').value;
+  e.porque = $('#ed_porque').value.trim();
+  e.riesgo = $('#ed_riesgo').value.trim();
+  $$('#edOpciones .ed-opcion').forEach(div => {
+    const o = e.opciones[Number(div.dataset.i)];
+    $$('[data-k]', div).forEach(inp => {
+      const k = inp.dataset.k;
+      if (k === 'estimado') o[k] = inp.checked;
+      else if (k === 'precio') o[k] = inp.value === '' ? null : Math.max(0, Math.round(Number(inp.value)));
+      else if (k === 'cantidad') o[k] = Math.max(1, Math.round(Number(inp.value) || 1));
+      else o[k] = inp.value.trim();
+    });
+  });
+}
+
+$('#dlgEditar').addEventListener('click', ev => {
+  const q = ev.target.closest('[data-quitar-op]');
+  if (q) { leerEditor(); edicion.opciones.splice(Number(q.dataset.quitarOp), 1); pintarEditor(); return; }
+  if (ev.target.id === 'edMasOpcion') {
+    leerEditor();
+    const n = edicion.opciones.length + 1;
+    let id = 'o' + n; while (edicion.opciones.some(o => o.id === id)) id += 'x';
+    edicion.opciones.push({ id, nombre: '', detalle: '', precio: null, cantidad: 1, tienda: '', url: '', estimado: true });
+    pintarEditor();
+    const todas = $$('#edOpciones .ed-opcion'); $('[data-k="nombre"]', todas[todas.length - 1]).focus();
+  }
+});
+
+$('#dlgEditar').addEventListener('close', async () => {
+  if ($('#dlgEditar').returnValue !== 'ok' || !edicion) return;
+  leerEditor();
+  const e = edicion; edicion = null;
+  if (!e.titulo) { avisar('Le faltó el nombre a la necesidad.'); return; }
+  e.opciones = e.opciones.filter(o => o.nombre);
+  if (!e.opciones.length) { avisar('Hace falta al menos una opción con nombre.'); return; }
+  if (!e.opciones.some(o => o.id === e.elegida)) e.elegida = e.opciones[0].id;
+  const campos = ['titulo', 'area', 'prioridad', 'porque', 'riesgo', 'opciones', 'elegida'];
+  const cambios = {}; campos.forEach(k => { cambios[k] = e[k]; });
+  if (e._nueva) {
+    Object.assign(cambios, { incluida: true, estado: 'propuesta', orden: Date.now() / 1e10 + 900 });
+    const n = Object.assign({ id: e.id }, cambios);
+    T.necesidades.push(n);
+    await ajustar(n, cambios, 'agregó «' + e.titulo + '»');
+  } else {
+    const n = necesidades().find(x => x.id === e.id);
+    if (n) await ajustar(n, cambios, 'editó los datos');
+  }
+});
+
+$('#edQuitar').addEventListener('click', async () => {
+  if (!edicion) return;
+  const n = necesidades().find(x => x.id === edicion.id);
+  if (!n) return;
+  if (!confirm('¿Quitar «' + n.titulo + '» de la lista?\n\nDesaparece para todos. Si fue un error, Leo la puede recuperar.')) return;
+  const autor = await quienSoy(); if (!autor) return;
+  $('#dlgEditar').close('cancelar'); edicion = null;
+  try {
+    await rpc('compras_quitar', { p_codigo: codigo, p_id: n.id, p_autor: autor });
+    await recargar(true);
+    avisar('Se quitó «' + n.titulo + '».');
+  } catch (e) { avisar('No se pudo quitar: ' + e.message); }
+});
+
+/* ── Eventos de la página ────────────────────────────────── */
+
+$$('dialog [data-cerrar]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close('cancelar')));
+
+document.addEventListener('change', ev => {
+  const art = ev.target.closest('.necesidad'); if (!art) return;
+  const n = necesidades().find(x => x.id === art.dataset.id); if (!n) return;
+  if (ev.target.matches('[data-incluir]')) {
+    const si = ev.target.checked;
+    ajustar(n, { incluida: si }, si ? 'lo metió al presupuesto' : 'lo sacó del presupuesto');
+  } else if (ev.target.matches('[data-opcion]')) {
+    const o = (n.opciones || []).find(x => x.id === ev.target.value);
+    ajustar(n, { elegida: ev.target.value }, 'eligió ' + (o ? o.nombre : 'otra opción'));
+  } else if (ev.target.matches('[data-estado]')) {
+    const est = ev.target.value;
+    const cambios = { estado: est };
+    // Aprobar algo que no estaba en el presupuesto lo mete; descartarlo lo saca.
+    if ((est === 'aprobada' || est === 'comprada') && !n.incluida) cambios.incluida = true;
+    if (est === 'descartada') cambios.incluida = false;
+    ajustar(n, cambios, 'lo marcó como ' + nombreDe(ESTADOS, est).toLowerCase());
+  }
+});
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.dataset.paquete) { aplicarPaquete(PAQUETES.find(p => p.id === b.dataset.paquete)); return; }
+  if (b.dataset.area) { filtroArea = b.dataset.area; guardarLocal('equipo.filtro', filtroArea); pintar(); return; }
+  if (b.id === 'btnAgregar') { quienSoy().then(q => { if (q) abrirEditor(null); }); return; }
+  if (b.id === 'btnImprimir') { window.print(); return; }
+  if (b.id === 'btnQuien') {
+    try { localStorage.removeItem('equipo.nombre'); } catch (e) { /* nada que borrar */ }
+    quienSoy(); return;
+  }
+  const art = b.closest('.necesidad');
+  if (art && b.hasAttribute('data-hilo')) {
+    const id = art.dataset.id;
+    hilosAbiertos.has(id) ? hilosAbiertos.delete(id) : hilosAbiertos.add(id);
+    pintar();
+    if (hilosAbiertos.has(id)) { const t = $(`.nuevo-com textarea[data-nec="${id}"]`); if (t) t.focus(); }
+    return;
+  }
+  if (art && b.hasAttribute('data-editar')) { abrirEditor(necesidades().find(x => x.id === art.dataset.id)); }
+});
+
+document.addEventListener('submit', async ev => {
+  const f = ev.target.closest('[data-comentar]'); if (!f) return;
+  ev.preventDefault();
+  const t = $('textarea', f);
+  const texto = t.value; t.value = '';
+  if (!(await comentar(f.dataset.comentar, texto))) {
+    const t2 = $(`.nuevo-com textarea[data-nec="${f.dataset.comentar}"]`); if (t2) t2.value = texto;
+  }
+});
+
+document.addEventListener('keydown', ev => {
+  // Enter manda el comentario; Shift+Enter hace un renglón nuevo.
+  if (ev.key === 'Enter' && !ev.shiftKey && ev.target.matches('.nuevo-com textarea')) {
+    ev.preventDefault(); ev.target.form.requestSubmit();
+  }
+});
+
+/* ── Carga y sincronía ───────────────────────────────────── */
+
+async function recargar(silencioso) {
+  const t = await rpc('compras_abrir', { p_codigo: codigo });
+  if (!t) return false;
+  const ajenos = !silencioso && T && t.movimientos[0] && T.movimientos[0] &&
+    t.movimientos[0].creado !== T.movimientos[0].creado ? t.movimientos[0] : null;
+  T = t; version = t.version;
+  pintar();
+  if (ajenos) avisar(ajenos.autor + ' ' + ajenos.que);
+  return true;
+}
+
+// Cada 20 s pregunta sólo la hora del último cambio; baja el tablero
+// completo nada más si alguien movió algo. No interrumpe si hay una
+// ventana abierta o si se está escribiendo un comentario.
+setInterval(async () => {
+  if (!T || document.hidden || $('#dlgEditar').open || $('#dlgNombre').open) return;
+  if (document.activeElement && document.activeElement.matches('textarea, input')) return;
+  try {
+    const v = await rpc('compras_version', { p_codigo: codigo });
+    if (v && v !== version) await recargar(false);
+  } catch (e) { /* sin red por un momento: se intenta en la siguiente vuelta */ }
+}, 20000);
+
+function pantallaCodigo(error) {
+  document.title = 'Equipo multimedia · IBERO Tijuana';
+  $('#app').innerHTML = `<div class="pantalla-codigo">
+    <span class="rotulo">Diseño y Medios /</span>
+    <h1 style="font:700 30px var(--serif);margin:18px 0 8px">Equipo multimedia</h1>
+    <p style="color:var(--tinta-media)">${error ? esc(error) : 'Esta página se abre con la liga que te compartieron. Si te dieron un código, escríbelo aquí.'}</p>
+    <form id="formCodigo"><label class="campo"><span class="solo-lectores" style="position:absolute;left:-9999px">Código</span>
+      <input id="inCodigo" maxlength="8" autocomplete="off" placeholder="CÓDIGO"></label>
+      <button class="boton primario" style="width:100%">Abrir</button></form></div>`;
+  $('#formCodigo').addEventListener('submit', ev => {
+    ev.preventDefault();
+    location.hash = $('#inCodigo').value.trim().toUpperCase();
+  });
+}
+
+async function arrancar() {
+  codigo = (location.hash || '').replace('#', '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{8}$/.test(codigo)) { pantallaCodigo(); return; }
+  try {
+    if (!(await recargar(true))) { pantallaCodigo('Ese código no abre ningún tablero. Revisa la liga.'); return; }
+    document.title = (T.titulo || 'Equipo multimedia') + ' · IBERO Tijuana';
+  } catch (e) {
+    pantallaCodigo('No se pudo conectar. Revisa tu internet y vuelve a cargar la página.');
+  }
+}
+
+window.addEventListener('hashchange', arrancar);
+arrancar();
+</script>
+</body>
+</html>
