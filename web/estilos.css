@@ -4345,7 +4345,48 @@ body.solo-creacion #progreso { display: none; }
   text-transform: uppercase; padding: 3px 6px; border-radius: 4px;
 }
 
+/* ── El cajón de herramientas ──────────────────────────────
+   Antes la barra tenía un solo botón, el del generador de piezas.
+   Con tres herramientas, tres botones se comían las pestañas: va
+   uno solo que abre el cajón. */
+.grupo-herramientas { position: relative; }
+.btn-herramienta { border: 0; cursor: pointer; }
+.btn-herramienta .flecha { font-size: 10px; margin-left: -3px; transition: transform .15s; }
+.btn-herramienta[aria-expanded="true"] .flecha { transform: rotate(180deg); }
+
+.panel-herramientas {
+  position: absolute; top: calc(100% + 12px); left: 0; width: 360px;
+  background: var(--superficie); border: 1px solid var(--borde);
+  border-radius: var(--r-lg); box-shadow: var(--sombra-alta);
+  padding: 14px 12px 10px; z-index: 60; color: var(--texto);
+  display: grid; gap: 2px;
+}
+.panel-herramientas[hidden] { display: none; }
+.panel-herramientas-titulo {
+  margin: 0 8px 8px; font-size: var(--t-micro); font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--texto-tenue);
+}
+.herramienta {
+  display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: center;
+  padding: 10px; border-radius: 9px; border: 1px solid transparent;
+  text-decoration: none; color: inherit;
+}
+.herramienta:hover, .herramienta:focus-visible {
+  background: var(--superficie-2); border-color: var(--borde); outline: none;
+}
+.herramienta img { display: block; border-radius: 7px; }
+.herramienta-texto { display: grid; gap: 2px; min-width: 0; }
+.herramienta-nombre {
+  font-weight: 700; font-size: var(--t-base);
+  display: flex; align-items: center; gap: 8px;
+}
+.herramienta-que { font-size: var(--t-mini); color: var(--texto-medio); line-height: 1.4; }
+/* Dentro del cajón la etiqueta va en la tinta de la marca, que se
+   invierte con el tema; la de la barra va sobre la barra, que no. */
+.herramienta .pin-nuevo { background: var(--marca-velo); color: var(--marca-tinta); }
+
 @media (max-width: 1180px) {
   .btn-herramienta { padding: 0 10px; }
   .btn-herramienta .pin-nuevo { display: none; }
+  .panel-herramientas { position: fixed; top: 70px; left: 10px; right: 10px; width: auto; }
 }

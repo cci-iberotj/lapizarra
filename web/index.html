@@ -84,11 +84,39 @@
     <button class="tab" id="tabAjustes" data-vista="ajustes" hidden>Ajustes</button>
   </nav>
   <div class="barra-derecha">
-    <a class="btn-herramienta" href="herramientas/generador-piezas.html"
-       target="_blank" rel="noopener"
-       title="Armar carteles, avisos y publicaciones con la identidad institucional">
-      Generador de piezas <span class="pin-nuevo">Nuevo</span>
-    </a>
+    <div class="grupo-herramientas">
+      <button class="btn-herramienta" id="btnHerramientas" type="button"
+              aria-expanded="false" aria-controls="panelHerramientas"
+              title="Generadores con la identidad institucional">
+        Herramientas <span class="pin-nuevo">Nuevo</span><span class="flecha" aria-hidden="true">▾</span>
+      </button>
+      <!-- Cada herramienta es un solo archivo en herramientas/: abre en
+           pestaña aparte, no pide sesión y se puede mandar por correo. -->
+      <div class="panel-herramientas" id="panelHerramientas" hidden>
+        <p class="panel-herramientas-titulo">Herramientas de Diseño y Medios</p>
+        <a class="herramienta" href="herramientas/generador-piezas.html" target="_blank" rel="noopener">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E00034'/%3E%3Crect x='6' y='4.5' width='20' height='23' rx='2.5' fill='%23fff'/%3E%3Crect x='9' y='8' width='14' height='6' rx='1' fill='%23E00034'/%3E%3Crect x='9' y='18' width='14' height='2.6' rx='1' fill='%23E00034'/%3E%3Crect x='9' y='22.5' width='9' height='2.6' rx='1' fill='%23E00034'/%3E%3C/svg%3E" alt="" width="32" height="32">
+          <span class="herramienta-texto">
+            <span class="herramienta-nombre">Generador de piezas</span>
+            <span class="herramienta-que">Carteles, avisos y publicaciones con la identidad institucional.</span>
+          </span>
+        </a>
+        <a class="herramienta" href="herramientas/diplomas.html" target="_blank" rel="noopener">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E00034'/%3E%3Crect x='3.5' y='7' width='25' height='18' rx='2.5' fill='%23fff'/%3E%3Crect x='6.5' y='7' width='5.5' height='10' rx='1' fill='%23E00034'/%3E%3Crect x='14.5' y='12' width='11' height='3' rx='1' fill='%23231F20'/%3E%3Crect x='16' y='18' width='8' height='2.6' rx='1' fill='%23E00034'/%3E%3C/svg%3E" alt="" width="32" height="32">
+          <span class="herramienta-texto">
+            <span class="herramienta-nombre">Diplomas y reconocimientos <span class="pin-nuevo">Nuevo</span></span>
+            <span class="herramienta-que">Se pega la lista de nombres y sale un solo PDF carta horizontal con todos.</span>
+          </span>
+        </a>
+        <a class="herramienta" href="herramientas/personificadores.html" target="_blank" rel="noopener">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23E00034'/%3E%3Cpath d='M9 9 H23 L27 25 H5 Z' fill='%23fff'/%3E%3Crect x='9' y='9' width='14' height='3' rx='1' fill='%23231F20'/%3E%3Crect x='10' y='17' width='12' height='3' rx='1' fill='%23E00034'/%3E%3C/svg%3E" alt="" width="32" height="32">
+          <span class="herramienta-texto">
+            <span class="herramienta-nombre">Personificadores</span>
+            <span class="herramienta-que">Las tarjetas de mesa del presidium, listas para doblar.</span>
+          </span>
+        </a>
+      </div>
+    </div>
     <div class="grupo-historial">
       <button class="btn-barra" id="btnDeshacer" title="Deshacer (Ctrl+Z)" disabled>↶</button>
       <button class="btn-barra" id="btnRehacer" title="Rehacer (Ctrl+Y)" disabled>↷</button>

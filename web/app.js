@@ -756,6 +756,13 @@ function iniciarTema() {
   aplicarTema(guardado || (prefiereOscuro ? 'oscuro' : 'claro'));
 }
 
+function alternarHerramientas(forzar) {
+  const panel = $('#panelHerramientas');
+  const abrir = forzar !== undefined ? forzar : panel.hidden;
+  panel.hidden = !abrir;
+  $('#btnHerramientas').setAttribute('aria-expanded', String(abrir));
+}
+
 function alternarPanelHistorial(forzar) {
   const panel = $('#panelHistorial');
   const abrir = forzar !== undefined ? forzar : panel.hidden;
@@ -7866,6 +7873,17 @@ function conectarEventos() {
   $('#btnTema').addEventListener('click', () =>
     aplicarTema(document.documentElement.dataset.tema === 'oscuro' ? 'claro' : 'oscuro'));
 
+  $('#btnHerramientas').addEventListener('click', () => alternarHerramientas());
+  // Al elegir una herramienta se abre en otra pestaña: el cajón se cierra
+  // para que al volver no siga ahí estorbando.
+  $('#panelHerramientas').addEventListener('click', ev => {
+    if (ev.target.closest('a')) alternarHerramientas(false);
+  });
+  document.addEventListener('click', ev => {
+    if ($('#panelHerramientas').hidden || ev.target.closest('.grupo-herramientas')) return;
+    alternarHerramientas(false);
+  });
+
   // Clic fuera del panel de historial lo cierra
   document.addEventListener('click', ev => {
     const panel = $('#panelHistorial');
@@ -7881,6 +7899,7 @@ function conectarEventos() {
       if (modalAbierto) { intentarCerrarModal(); return; }
       if (!$('#panelAvisos').hidden) { alternarPanelAvisos(false); return; }
       if (!$('#panelHistorial').hidden) { alternarPanelHistorial(false); return; }
+      if (!$('#panelHerramientas').hidden) { alternarHerramientas(false); $('#btnHerramientas').focus(); return; }
     }
     if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && modalAbierto) { guardarModal(); return; }
 
@@ -8450,6 +8469,19 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-09-30',
+    version: '2026-09-30',
+    titulo: 'Las herramientas tienen su propio cajón',
+    puntos: [
+      { t: 'Un solo botón: Herramientas',
+        d: 'Arriba a la derecha, donde estaba el del generador de piezas. Abre la lista de lo que hace el área con la identidad institucional; cada una se abre en su pestaña.' },
+      { t: 'Nuevo: Diplomas y reconocimientos',
+        d: 'Se pega la lista de nombres, se escribe el programa, las horas y quién firma, y sale un solo PDF carta horizontal con un diploma por persona. Los apellidos bajan solos al segundo renglón y los nombres en mayúsculas se corrigen.' },
+      { t: 'Los personificadores ya se encuentran',
+        d: 'Estaban publicados pero no había por dónde llegar a ellos. Ahora están en el mismo cajón.' },
+    ],
+  },
   {
     clave: '2026-09-23-d',
     version: '2026-09-23',
