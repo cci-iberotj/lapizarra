@@ -587,23 +587,29 @@ function guardar(coleccion) {
 
 /* Repintar todo. Se usa cuando el estado cambió por debajo:
    al deshacer un rechazo o al traer trabajo de los demás. */
-/* Creacion no es del area: le sobra casi toda la aplicacion. Se
-   deja el calendario --para saber cuando sale lo suyo-- y su
-   bandeja. Esto es cosmetico y lo se: quien de verdad cierra la
-   puerta es puede_leer() en Postgres, que ni siquiera manda los
-   datos de las demas secciones. Esconder la pestaña sin eso no
-   habria cerrado nada. */
-const VISTAS_DE_CREACION = ['parrilla', 'entregas'];
+/* Cada rol ve sus pestañas y ya. Esto es cosmetico y lo se: quien
+   de verdad cierra la puerta es puede_leer() en Postgres, que ni
+   siquiera manda los datos de las demas secciones. Esconder la
+   pestaña sin eso no habria cerrado nada.
 
+   POR QUE ESTA FUNCION LEE vistasQueVeo()
+   Habia dos funciones escondiendo pestañas: aplicarVistasPorRol()
+   recortaba segun VISTAS_POR_ROL, y esta corria DESPUES --las dos
+   dentro de refrescarTodo()-- y volvia a encenderlo todo con un
+   t.hidden = false. El efecto medido era que VISTAS_POR_ROL no
+   servia para nada: cualquier rol veia las ocho pestañas. Ahora
+   las dos leen la misma lista y no hay forma de que se separen. */
 function recortarParaCreacion() {
   const recortar = soyCreacion();
+  const mias = vistasQueVeo();
   $$('.tab').forEach(t => {
     const v = t.dataset.vista;
     if (!v) return;
     // Ajustes es de quien administra. Se decide con rolUI y no con
     // el usuario real: si no, al ponerse en la piel de otro seguia
-    // viendose y la simulacion mentia.
-    const fuera = (recortar && !VISTAS_DE_CREACION.includes(v))
+    // viendose y la simulacion mentia. Los demas llegan a lo suyo
+    // por el engrane de la barra, que sigue encendido para todos.
+    const fuera = !mias.includes(v)
                || (v === 'ajustes' && rolUI() !== 'admin');
     t.hidden = fuera;
     if (fuera && t.classList.contains('activo')) {
@@ -1423,7 +1429,7 @@ const ROLES_SISTEMA = [
   { id: 'direccion',   nombre: 'Dirección',   que: 'Todo lo editorial, sin inventario' },
   { id: 'redaccion',   nombre: 'Redacción',   que: 'Notas, temas y expertos' },
   { id: 'publicacion', nombre: 'Publicación', que: 'Piezas y eventos' },
-  { id: 'produccion',  nombre: 'Producción',  que: 'Piezas, ideas y eventos' },
+  { id: 'produccion',  nombre: 'Producción',  que: 'Piezas y eventos del calendario' },
   /* Gente que produce contenido para nosotros sin ser del area.
      Entrega material y ve el calendario; no mueve la parrilla ni
      decide cuando sale algo. Se llama por su funcion, como los
@@ -1672,8 +1678,18 @@ async function pintarAjustes() {
           return `<div class="ficha-plana"><b>${esc(t ? t.textContent : v)}</b></div>`;
         }).join('')}
       </div>
+      <div style="margin-top:14px">
+        <button class="btn-plano" id="aj_recorrido">Ver el recorrido de bienvenida</button>
+        <span class="ayuda" style="display:block;margin-top:6px">
+          Las seis tarjetas que recibe quien entra por primera vez. Se arman
+          según tu rol, así que aquí lo ves tal como le sale a esa persona.
+        </span>
+      </div>
     </section>
   `;
+
+  const btnRecorrido = $('#aj_recorrido');
+  if (btnRecorrido) btnRecorrido.addEventListener('click', pintarBienvenida);
 
   const btnRedes = $('#aj_redes');
   if (btnRedes) btnRedes.addEventListener('click', async () => {
@@ -8190,14 +8206,14 @@ function marcarPendientes() {
 
 const VISTAS_POR_ROL = {
   admin: {
-    ve: ['parrilla', 'escritorio', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'entregas', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Administra y opera todo',
   },
   direccion: {
     // La jefa: el plan, la mesa de redacción que es su trabajo, los
     // expertos que entrevista, y el diagnóstico. El inventario no:
     // no administra cámaras.
-    ve: ['parrilla', 'escritorio', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'entregas', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
@@ -8209,13 +8225,20 @@ const VISTAS_POR_ROL = {
     // la mesa de redacción, que es de donde le llegan. No necesita
     // el directorio de expertos — él no entrevista a nadie — ni el
     // inventario, ni el diagnóstico del área.
-    ve: ['parrilla', 'escritorio', 'redaccion', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'entregas', 'redaccion', 'ajustes'],
     porque: 'Publica las notas en el sitio',
   },
   produccion: {
-    // La agencia: sube piezas e ideas y nada más.
+    // Quien produce las piezas: el calendario y lo suyo. Sin
+    // inventario, sin la mesa de redacción, sin el diagnóstico.
     ve: ['parrilla', 'escritorio', 'ajustes'],
-    porque: 'Produce contenido',
+    porque: 'Produce las piezas del calendario',
+  },
+  creacion: {
+    // No es del área: el calendario para saber cuándo sale lo suyo,
+    // y su bandeja. Nada más.
+    ve: ['parrilla', 'entregas'],
+    porque: 'Entrega material y ve el calendario',
   },
 };
 
@@ -8223,7 +8246,9 @@ function vistasQueVeo() {
   if (!Almacen.enLaNube || !Almacen.usuario) {
     return ['parrilla', 'escritorio', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'];
   }
-  const r = VISTAS_POR_ROL[Almacen.usuario.rol];
+  // rolUI y no el rol real: si no, "ver como" enseñaba las pestañas
+  // de quien administra mientras decia estar viendo otra cosa.
+  const r = VISTAS_POR_ROL[rolUI()];
   return r ? r.ve : ['parrilla', 'escritorio', 'ajustes'];
 }
 
@@ -8442,7 +8467,8 @@ async function pasarAdentro(usuario) {
   registrar('Estado al abrir LA PIZARRA');
   refrescarTodo();
   arrancarSincronizacion();
-  avisarNovedades();
+  if (acabaDeLlegar) { acabaDeLlegar = false; pintarBienvenida(); }
+  else avisarNovedades();
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -8469,6 +8495,28 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-02',
+    version: '2026-10-02',
+    titulo: 'Somos uno más',
+    puntos: [
+      { t: 'Llegó Silvia a Diseño Gráfico',
+        d: 'Ya tiene cuenta. Entra como Producción: mueve piezas y eventos del ' +
+           'calendario, que es lo suyo. Si algo de lo que anotes es para ella, ' +
+           'ponle su nombre y le aparece en Mi escritorio.' },
+      { t: 'Quien llega nuevo recibe un recorrido, no el historial',
+        d: 'Antes, el primer ingreso de alguien nuevo le soltaba de golpe todas ' +
+           'las tandas de "qué cambió" de los últimos meses — cambios sobre cosas ' +
+           'que nunca vio. Ahora recibe seis tarjetas que explican la herramienta ' +
+           'y nada más. Se puede volver a ver desde el engrane.' },
+      { t: 'Y las pestañas ya hacen caso al rol',
+        d: 'Si te desapareció alguna, es a propósito y no se rompió nada. Había ' +
+           'dos funciones escondiendo pestañas y la segunda deshacía a la primera, ' +
+           'así que todos veíamos las ocho aunque la mitad no fuera de nuestro ' +
+           'trabajo. Lo que ves ahora es lo que siempre dijo el código. Si te falta ' +
+           'algo que sí ocupas, se destapa en un renglón: dilo.' },
+    ],
+  },
   {
     clave: '2026-09-30',
     version: '2026-09-30',
@@ -8609,6 +8657,157 @@ function pintarNovedades(lista) {
 function avisarNovedades() { pintarNovedades(novedadesPendientes()); }
 function verNovedadesTodas() { pintarNovedades(NOVEDADES); }
 
+
+/* ══════════════════════════════════════════════════════════
+   BIENVENIDA — el primer día
+
+   NO ES LO MISMO QUE NOVEDADES
+   "Qué cambió" le sirve a quien ya conoce la herramienta. A quien
+   acaba de llegar le dice lo contrario de lo útil: cinco tandas de
+   cambios sobre cosas que nunca vio. Por eso quien entra por
+   primera vez recibe esto en su lugar, y al cerrarlo se le marca
+   el historial de novedades como visto — no se le echan encima
+   las dos cosas.
+
+   SE ARMA SOLO SEGÚN EL ROL
+   Cada paso puede declarar la vista de la que habla. Los pasos
+   cuya vista no le toca a esta persona se caen antes de pintar,
+   así que nadie lee instrucciones de una pestaña que no tiene. Al
+   cambiar VISTAS_POR_ROL, el recorrido se ajusta solo.
+
+   CÓMO SE SABE QUIÉN ACABA DE LLEGAR
+   Por la contraseña provisional: quien acaba de cambiarla está,
+   por definición, entrando por primera vez. No hace falta una
+   columna nueva en la base ni confiar en lo que diga el navegador.
+   ══════════════════════════════════════════════════════════ */
+
+const BIENVENIDA = [
+  {
+    t: 'Esto es LA PIZARRA',
+    d: 'El calendario del área: qué va a salir, cuándo sale y quién lo trae. ' +
+       'Regla única de la casa: lo que no está aquí, no existe — y sí, eso ' +
+       'incluye lo que se acordó de pasada en el pasillo.',
+  },
+  {
+    vista: 'parrilla',
+    t: 'La parrilla es el mes completo',
+    d: 'Hoy viene marcado y los días que ya pasaron se hunden al fondo: siguen ' +
+       'ahí, pero dejan de competir con lo que viene. Los botones de arriba ' +
+       'filtran por red y cada uno trae su número.',
+  },
+  {
+    vista: 'parrilla',
+    t: 'Pieza y evento no son lo mismo',
+    d: 'Una PIEZA es algo que se publica. Un EVENTO es algo que ocurre y hay ' +
+       'que ir a cubrir. El evento no se publica solo: de ahí salen las piezas. ' +
+       'Si ves una estrella es un cumpleaños, y ese sí es puro asunto interno.',
+  },
+  {
+    vista: 'escritorio',
+    t: 'Mi escritorio es lo tuyo',
+    d: 'La misma información sin el ruido de los demás: nada más lo que te ' +
+       'toca. Si el primer día sale vacío, está bien. Aprovéchalo.',
+  },
+  {
+    t: 'Si un botón está apagado, no se descompuso',
+    d: 'Cada cuenta mueve lo suyo. Un control atenuado quiere decir que eso lo ' +
+       'mueve alguien más, no que falle. La lista exacta de lo que te toca está ' +
+       'en el engrane de la barra, en «Qué ves tú».',
+  },
+  {
+    t: 'Nada se rompe de verdad',
+    d: 'Aquí no se borra nada: lo que desaparece queda marcado para que el ' +
+       'resto se entere, y hay deshacer. Así que mueve, prueba y equivócate con ' +
+       'confianza; lo peor que puede pasar es que haya que acomodarlo, y eso ' +
+       'siempre se puede.',
+  },
+];
+
+/* Los pasos que hablan de una pestaña que esta persona no tiene se
+   caen aquí, ANTES de contarlos: si no, el "paso 3 de 6" mentiría. */
+function pasosDeBienvenida() {
+  const mias = vistasQueVeo();
+  return BIENVENIDA.filter(p => !p.vista || mias.includes(p.vista));
+}
+
+function pintarBienvenida() {
+  const pasos = pasosDeBienvenida();
+  if (!pasos.length) return;
+
+  const yo = Almacen.usuario || {};
+  const miRol = ROLES_SISTEMA.find(r => r.id === rolUI());
+  const nombre = (yo.nombre || '').trim();
+  let i = 0;
+
+  const fondo = document.createElement('div');
+  fondo.className = 'modal-fondo novedades-fondo';
+  fondo.innerHTML = `
+    <div class="modal modal-novedades modal-bienvenida" role="dialog" aria-modal="true"
+         aria-labelledby="bienvTitulo">
+      <div class="novedades-cabeza">
+        <span class="novedades-pin">Bienvenida</span>
+        <h3 id="bienvTitulo">${nombre ? 'Qué gusto, ' + esc(nombre) : 'Qué gusto tenerte'}</h3>
+        <p class="novedades-fecha">Diseño y Medios · IBERO Tijuana${
+          miRol ? ' · ' + esc(miRol.que) : ''}</p>
+      </div>
+      <div class="novedades-cuerpo bienv-cuerpo">
+        <p class="bienv-paso" id="bienvPaso"></p>
+        <h4 class="bienv-titulo" id="bienvT"></h4>
+        <p class="bienv-texto" id="bienvD"></p>
+      </div>
+      <div class="novedades-pie bienv-pie">
+        <div class="bienv-puntos" id="bienvPuntos" aria-hidden="true"></div>
+        <div class="bienv-botones">
+          <button type="button" class="btn-plano" id="bienvAtras">Atrás</button>
+          <button type="button" class="btn-primario" id="bienvSigue"></button>
+        </div>
+      </div>
+    </div>`;
+
+  const pintar = () => {
+    const p = pasos[i];
+    $('#bienvPaso', fondo).textContent = `Paso ${i + 1} de ${pasos.length}`;
+    $('#bienvT', fondo).textContent = p.t;
+    $('#bienvD', fondo).textContent = p.d;
+    $('#bienvAtras', fondo).disabled = i === 0;
+    $('#bienvSigue', fondo).textContent = i === pasos.length - 1 ? 'Empezar' : 'Siguiente';
+    $('#bienvPuntos', fondo).innerHTML = pasos
+      .map((_, n) => `<span class="bienv-punto${n === i ? ' aqui' : ''}"></span>`).join('');
+  };
+
+  /* Al cerrar se marca TAMBIÉN el historial de novedades como visto.
+     Sin esto, en cuanto termina el recorrido le caerían encima las
+     tandas de "qué cambió" de los últimos meses, que es justo lo que
+     este recorrido existe para evitar. */
+  const cerrar = () => {
+    try { localStorage.setItem(LLAVE_NOVEDADES, claveDe(NOVEDADES[0])); } catch (e) {}
+    fondo.remove();
+    document.removeEventListener('keydown', porTecla);
+  };
+  const porTecla = ev => {
+    if (ev.key === 'Escape') cerrar();
+    if (ev.key === 'ArrowRight') $('#bienvSigue', fondo).click();
+    if (ev.key === 'ArrowLeft' && i > 0) $('#bienvAtras', fondo).click();
+  };
+
+  document.body.appendChild(fondo);
+  pintar();
+  $('#bienvSigue', fondo).addEventListener('click', () => {
+    if (i === pasos.length - 1) return cerrar();
+    i++; pintar();
+  });
+  $('#bienvAtras', fondo).addEventListener('click', () => { if (i > 0) { i--; pintar(); } });
+  /* A propósito NO se cierra con clic afuera: en un recorrido de seis
+     pasos, un clic distraído en el fondo lo tiraría a la mitad. */
+  document.addEventListener('keydown', porTecla);
+  $('#bienvSigue', fondo).focus();
+}
+
+/* Se enciende al cambiar la clave provisional, que es el único
+   momento en que se sabe de cierto que alguien entra por primera
+   vez. Se apaga en cuanto se usa. */
+let acabaDeLlegar = false;
+
 function conectarPuerta() {
   $('#formEntrar').addEventListener('submit', async ev => {
     ev.preventDefault();
@@ -8630,6 +8829,7 @@ function conectarPuerta() {
         await Almacen.cambiarClave(a);
         $('#claveNueva').value = ''; $('#claveRepite').value = '';
         avisar('Contraseña cambiada. Ya sólo tú la conoces.');
+        acabaDeLlegar = true;
         await pasarAdentro(Almacen.usuario);
       }
     } catch (e) {

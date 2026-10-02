@@ -3124,6 +3124,53 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   .novedades-pie .btn-primario { width: 100%; }
 }
 
+
+/* ── Bienvenida ────────────────────────────────────────────
+   El recorrido del primer dia. Hereda toda la caja de
+   .modal-novedades: lo unico propio es que aqui se lee UN paso a
+   la vez, no una lista. Un recien llegado no necesita verlo todo
+   junto; necesita terminar el primero. */
+.modal-bienvenida { max-width: 520px; }
+
+.bienv-cuerpo { padding: 28px 26px 26px; min-height: 186px; }
+
+.bienv-paso {
+  margin: 0 0 12px; font-size: var(--t-micro);
+  text-transform: uppercase; letter-spacing: .12em;
+  font-weight: var(--peso-fuerte); color: var(--tinta-tenue);
+}
+.bienv-titulo {
+  margin: 0 0 10px; font-size: var(--t-med);
+  letter-spacing: -.015em; color: var(--tinta); text-transform: none;
+}
+.bienv-texto {
+  margin: 0; color: var(--tinta-media);
+  font-size: var(--t-meta); line-height: 1.55;
+}
+
+.bienv-pie { justify-content: space-between; }
+.bienv-botones { display: flex; gap: var(--e-3); }
+
+/* Los puntos dicen cuanto falta sin ocupar un renglon de texto.
+   Son decorativos --el "Paso 2 de 6" ya lo dice en palabras-- asi
+   que van con aria-hidden y nadie los oye dos veces. */
+.bienv-puntos { display: flex; gap: 6px; align-items: center; }
+.bienv-punto {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--linea-sutil);
+}
+.bienv-punto.aqui { background: var(--marca-solida); }
+
+/* El boton de Atras en el primer paso se apaga, no desaparece: si
+   se quitara, los dos botones brincarian de lugar en cada paso. */
+.bienv-botones .btn-plano[disabled] { opacity: .4; cursor: default; }
+
+@media (max-width: 620px) {
+  .bienv-pie { flex-direction: column; align-items: stretch; gap: var(--e-4); }
+  .bienv-puntos { justify-content: center; }
+  .bienv-botones .btn-primario { flex: 1; }
+}
+
 /* ── Cumpleaños ────────────────────────────────────────────
    El unico evento que no es trabajo, y el unico que no se puede
    mover ni cancelar. En el calendario todo lo demas se dibuja
