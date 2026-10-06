@@ -8496,6 +8496,21 @@ async function pasarAdentro(usuario) {
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
   {
+    clave: '2026-10-06',
+    version: '2026-10-06',
+    titulo: 'Documentos oficiales: el generador de diplomas ahora hace de todo',
+    puntos: [
+      { t: 'Primero pregunta qué documento necesitas',
+        d: 'Diploma, constancia de participación, reconocimiento, certificado, mención honorífica, mérito escolar, constancia de estudios, reconocimiento y otorgamiento de beca, o uno en blanco. Cada tarjeta enseña cómo sale.' },
+      { t: 'Sustituye a los PowerPoint de Imagen Institucional',
+        d: 'Ahí el encabezado era una imagen y cada tipo necesitaba su lámina. Aquí todo es texto: solo se llenan los datos de ese documento y la identidad la pone la herramienta.' },
+      { t: 'Ella o él, carrera por persona y registro al reverso',
+        d: '"Egresada" o "Egresado" según el nombre; de Excel se puede pegar la carrera de cada quien; y los documentos académicos llevan atrás su número de registro, numerado solo.' },
+      { t: 'La liga vieja sigue sirviendo',
+        d: 'herramientas/diplomas.html lleva directo al diploma dentro de la herramienta nueva.' },
+    ],
+  },
+  {
     clave: '2026-10-02',
     version: '2026-10-02',
     titulo: 'Somos uno más',
