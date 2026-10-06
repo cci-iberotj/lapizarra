@@ -3241,6 +3241,11 @@ function asentarLaminas(mensaje) {
      decia una cosa y la tarjeta de atras otra, y las dos con razon
      desde su punto de vista. */
   refrescarParrilla();
+  /* El acomodo cambia cual es la PRIMERA lamina, y la primera es la
+     que decide a que proporcion recorta Instagram las demas: el
+     mismo carrusel pasa de salir entero a salir cortado sin que
+     nadie toque un archivo. */
+  refrescarAvisoProporciones();
   avisar(mensaje);
 }
 
@@ -3649,6 +3654,9 @@ function abrirPieza(idPieza, prellenado) {
           : `<span class="ayuda">Carrusel mixto: ${vids.length} de video y ${fotos} de foto.
              Instagram lo acepta.</span>`;
       })()}
+      <!-- Lo llena refrescarAvisoProporciones(). Va vacio al pintar
+           porque las laminas viejas se miden despues, al abrir. -->
+      <div id="avisoProporciones"></div>
       <input type="file" id="f_archivo" accept="${
         info.quiere === 'documento' ? '.doc,.docx,.pdf,.odt,.rtf,.txt'
         : info.quiere === 'video' ? 'video/mp4,video/quicktime'
@@ -3867,6 +3875,7 @@ function abrirPieza(idPieza, prellenado) {
       renumerarLaminas();
       refrescarRotuloLaminas();
       pintarMiniaturas(caja);
+      refrescarAvisoProporciones();
       conectarArrastreLaminas(laminas);
       asentarLaminas(`${elegidos.length} lámina(s) arriba.`);
     } catch (e) {
@@ -3950,6 +3959,13 @@ function abrirPieza(idPieza, prellenado) {
 
 
   pintarMiniaturas($('#modalCuerpo'));
+  /* Las laminas que ya estaban se subieron antes de que se
+     guardaran las medidas, asi que se sacan de su miniatura --que
+     conserva la proporcion-- y recien entonces se puede avisar. Va
+     sin await a proposito: la ficha no se queda esperando a que
+     carguen diez miniaturas para abrirse. */
+  refrescarAvisoProporciones();
+  asegurarMedidas(archivosDe(modalCtx.datos)).then(refrescarAvisoProporciones);
   conectarArrastreLaminas(laminas);
 
   const conectarDescargar = b => b.addEventListener('click', async () => {
@@ -4258,6 +4274,128 @@ function extensionDe(a) {
   return p < 0 ? 'DOC' : r.slice(p + 1).toUpperCase();
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   PROPORCION DE LAS LAMINAS
+
+   Instagram publica por la Graph API con dos reglas que no se
+   negocian, y las dos muerden en carruseles:
+
+   1. CADA foto tiene que caer entre 4:5 (0.8) y 1.91:1. Una sola
+      lamina fuera de rango y Meta rechaza el carrusel COMPLETO con
+      el error 36003 -- "The submitted image with aspect ratio X
+      cannot be published". No sale nada, ni las que si cumplian.
+      El caso tipico: colar una exportacion de historia (1080x1920,
+      0.56:1) entre laminas de 4:5.
+
+   2. Todas se recortan a la proporcion de la PRIMERA. Esto no
+      falla: publica y corta. Peor, porque nadie se entera hasta
+      que ve cabezas cortadas en el muro.
+
+   Las dos se avisan aqui, al armar la pieza, y no el dia que toca
+   publicar. La segunda red de seguridad esta en revisarArte() del
+   publicador, que se niega antes de mandarle nada a Meta.
+   ══════════════════════════════════════════════════════════ */
+
+const IG_PROP_MIN = 0.8;    // 4:5   vertical, el limite alto
+const IG_PROP_MAX = 1.91;   // 1.91:1 horizontal, el limite ancho
+/* Margen: una foto de 1080x1349 es 4:5 para cualquiera menos para
+   una comparacion exacta de flotantes. */
+const IG_PROP_HOLGURA = 0.01;
+
+function propDeLamina(a) {
+  return (a && a.ancho && a.alto) ? a.ancho / a.alto : 0;
+}
+
+function proporcionLegible(a) {
+  const p = propDeLamina(a);
+  return p ? p.toFixed(2) + ':1' : '';
+}
+
+function revisarProporciones(archivos) {
+  const fotos = (archivos || []).filter(a => !laminaEsVideo(a) && !laminaEsDocumento(a));
+  const medidas = fotos.filter(a => propDeLamina(a) > 0);
+
+  const fuera = medidas.filter(a => {
+    const p = propDeLamina(a);
+    return p < IG_PROP_MIN - IG_PROP_HOLGURA || p > IG_PROP_MAX + IG_PROP_HOLGURA;
+  });
+
+  /* Se comparan contra la PRIMERA y no entre si: la primera es la
+     que manda, porque a su proporcion recorta Instagram las demas. */
+  let recortadas = [];
+  if (medidas.length > 1) {
+    const base = propDeLamina(medidas[0]);
+    recortadas = medidas.slice(1).filter(
+      a => Math.abs(propDeLamina(a) - base) > 0.02);
+    /* Lo que ya va a ser rechazado no se menciona dos veces: si no
+       sale el carrusel, que ademas se habria recortado no le sirve
+       a nadie. */
+    recortadas = recortadas.filter(a => !fuera.includes(a));
+  }
+
+  return { fuera, recortadas, medidas, sinMedir: fotos.length - medidas.length };
+}
+
+/* Las laminas viejas se subieron antes de que esto existiera y no
+   traen medidas. Se sacan de la miniatura, que conserva la
+   proporcion del original, asi que la regla tambien aplica a lo que
+   ya estaba. Se escriben en el objeto y quedan guardadas la
+   proxima vez que se guarde la pieza. */
+function medirPorMiniatura(a) {
+  return new Promise(async listo => {
+    if (propDeLamina(a) > 0 || laminaEsVideo(a) || laminaEsDocumento(a)) return listo(false);
+    try {
+      const url = await urlDeArchivo(selloDe(a));
+      const i = new Image();
+      i.onload = () => { a.ancho = i.naturalWidth; a.alto = i.naturalHeight; listo(true); };
+      i.onerror = () => listo(false);
+      i.src = url;
+    } catch (e) { listo(false); }
+  });
+}
+
+async function asegurarMedidas(archivos) {
+  const r = await Promise.all((archivos || []).map(medirPorMiniatura));
+  return r.some(Boolean);
+}
+
+/* El aviso, en el mismo sitio y con la misma pinta que los demas
+   de la ficha. Devuelve HTML vacio cuando no hay nada que decir. */
+function avisoProporciones(archivos) {
+  const r = revisarProporciones(archivos);
+  const nom = a => esc(a.nombre || (a.ruta || '').split('/').pop());
+  let html = '';
+
+  if (r.fuera.length) {
+    html += `<span class="ayuda alerta-campo"><b>Instagram va a rechazar esto.</b>
+      ${r.fuera.length === 1 ? 'Una lámina se sale' : r.fuera.length + ' láminas se salen'}
+      del rango que acepta (de 4:5 a 1.91:1):
+      ${r.fuera.map(a => `«${nom(a)}» ${a.ancho}×${a.alto} (${proporcionLegible(a)})`).join(', ')}.
+      Basta una para que <b>no salga el carrusel completo</b>, ni siquiera las que sí cumplen.
+      Recórtalas a 1080×1350 (4:5), 1080×1080 (1:1) o 1080×566 (1.91:1).</span>`;
+  }
+
+  if (r.recortadas.length) {
+    html += `<span class="ayuda alerta-campo">Esto <b>sí se publica, pero sale cortado</b>.
+      Instagram recorta todas las láminas a la proporción de la primera
+      (${proporcionLegible(r.medidas[0])}), y
+      ${r.recortadas.length === 1 ? 'ésta tiene otra' : 'éstas tienen otra'}:
+      ${r.recortadas.map(a => `«${nom(a)}» (${proporcionLegible(a)})`).join(', ')}.
+      Déjalas todas en la misma proporción o acepta que se recorten.</span>`;
+  }
+
+  return html;
+}
+
+/* Se vuelve a pintar sin reconstruir la ficha: reconstruirla
+   borraria lo que se haya escrito y no guardado. */
+function refrescarAvisoProporciones() {
+  const caja = document.getElementById('avisoProporciones');
+  if (!caja || !modalCtx || !modalCtx.datos) return;
+  caja.innerHTML = avisoProporciones(archivosDe(modalCtx.datos));
+}
+
 function dibujarLamina(a, i) {
   return `<div class="lamina" data-lamina="${i}" tabindex="0"
        title="${esc(a.nombre || a.ruta.split('/').pop())} — arrástrala para moverla">
@@ -4334,6 +4472,15 @@ function pintarMiniaturas(raiz) {
 async function subirLamina(idPieza, f) {
   const lamina = { ruta: await subirArchivo(idPieza, f),
                    nombre: f.name, peso: f.size, tipo: f.type };
+
+  /* Las medidas se guardan AQUI, al subir, porque es el unico
+     momento en que tenemos el archivo en la mano. Sin ellas nada
+     puede saber la proporcion de una lamina, y la proporcion es lo
+     que decide si Instagram acepta el carrusel o lo rechaza
+     entero. Ver revisarProporciones(). */
+  const med = /^image\//.test(f.type) ? await medirImagen(f)
+            : /^video\//.test(f.type) ? await medirVideo(f) : null;
+  if (med && med.ancho) { lamina.ancho = med.ancho; lamina.alto = med.alto; }
   const raiz = f.name.replace(/\.[^.]+$/, '');
   const ligera = await versionLigera(f, ANCHO_PREVIA, 0.82);
   if (ligera) {
@@ -8495,6 +8642,32 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-06-b',
+    version: '2026-10-06',
+    titulo: 'La ficha avisa si un carrusel no va a salir',
+    puntos: [
+      { t: 'Una sola lámina tumba el carrusel completo',
+        d: 'Instagram sólo acepta fotos de 4:5 a 1.91:1. Si una se sale ' +
+           '—lo típico es colar una exportación de historia, 1080×1920— Meta ' +
+           'rechaza TODAS y la publicación programada no sale. El error que ' +
+           'devolvía era un número, sin decir cuál de las diez láminas era.' },
+      { t: 'Ahora se avisa al armar la pieza, no el día que toca',
+        d: 'Debajo de las láminas sale el aviso con el nombre del archivo, sus ' +
+           'medidas y a cuánto recortarlo. Vale para las nuevas y para las que ' +
+           'ya estaban: a ésas se les mide la miniatura al abrir la ficha.' },
+      { t: 'Y un segundo aviso para las que se recortan',
+        d: 'Instagram recorta todas las láminas a la proporción de la PRIMERA. ' +
+           'Eso no falla: publica y corta. Enterarse por una cabeza cortada en ' +
+           'el muro es tarde. Ojo: reacomodar cambia cuál es la primera, y con ' +
+           'eso cambia qué se recorta.' },
+      { t: 'Los fallos ya quedan escritos aunque publiques a mano',
+        d: 'Si fallaba la publicación automática quedaba el motivo guardado, ' +
+           'pero si fallaba el botón sólo lo veía quien le dio y se perdía al ' +
+           'cerrar. Por eso no se sabía por qué no salían las cosas. Los dos ' +
+           'caminos escriben ya en el mismo sitio.' },
+    ],
+  },
   {
     clave: '2026-10-06',
     version: '2026-10-06',

@@ -382,6 +382,38 @@ function revisarArte(pieza: any, red: 'ig' | 'fb') {
         `Instagram solo acepta JPEG y «${nombre(malos[0])}» no lo es. ` +
         `Vuelve a exportarla como JPG y reemplázala en la pieza.`);
     }
+
+    /* PROPORCION
+
+       Meta acepta de 4:5 a 1.91:1 y nada mas. Una sola lamina fuera
+       de rango y rechaza el carrusel ENTERO con el error 36003, que
+       dice "The submitted image with aspect ratio X cannot be
+       published" -- un numero, sin decir cual de las diez fue.
+
+       Aqui se niega ANTES de mandar nada, nombrando el archivo. La
+       ficha ya lo avisa al armar la pieza; esto es por si la pieza
+       se armo con una version vieja de la pagina, o si alguien
+       reemplazo una lamina por fuera.
+
+       Solo se juzga lo que trae medidas: las laminas de antes de
+       que esto existiera no las tienen, y negarse por no poder
+       medir seria peor que el problema. */
+    const fuera = archivos.filter((a: any) => !esVideo(a))
+      .filter((a: any) => {
+        if (!a.ancho || !a.alto) return false;
+        const p = a.ancho / a.alto;
+        return p < 0.79 || p > 1.92;
+      });
+    if (fuera.length) {
+      const d = (a: any) => `«${nombre(a)}» ${a.ancho}×${a.alto} ` +
+                            `(${(a.ancho / a.alto).toFixed(2)}:1)`;
+      throw new Error(
+        `Instagram acepta de 4:5 a 1.91:1 y ${fuera.length === 1
+          ? 'esta lámina se sale' : 'estas láminas se salen'}: ` +
+        `${fuera.map(d).join(', ')}. ` +
+        `Con una basta para que rebote el carrusel completo. ` +
+        `Recórtalas a 1080×1350, 1080×1080 o 1080×566.`);
+    }
   }
 }
 
@@ -770,6 +802,30 @@ Deno.serve(async (peticion) => {
         } catch (e) {
           fallos[red] = (e as Error).message;
         }
+      }
+
+      /* EL FALLO SE GUARDA AUNQUE SEA A MANO
+
+         Hasta aqui, un fallo de la tanda automatica quedaba escrito
+         en pieza.autoerror, pero uno del boton solo se le enseñaba
+         a quien le dio y se perdia al cerrar. Resultado: una
+         publicacion que no sale varias veces seguidas no deja ni un
+         rastro, y averiguar por que acaba siendo adivinar.
+
+         Ahora los dos caminos escriben en el mismo sitio. */
+      if (Object.keys(fallos).length) {
+        pieza.autoerror = {
+          cuando: new Date().toISOString(),
+          quien: quien.nombre,
+          texto: Object.entries(fallos).map(([r, m]) => `${r}: ${m}`).join(' · '),
+        };
+        await fetch(
+          `${URL_BASE}/rest/v1/registros?coleccion=eq.parrilla_piezas&id=eq.${encodeURIComponent(idPieza)}`, {
+            method: 'PATCH',
+            headers: { apikey: LLAVE_ADMIN, Authorization: 'Bearer ' + LLAVE_ADMIN,
+                       'Content-Type': 'application/json', Prefer: 'return=minimal' },
+            body: JSON.stringify({ datos: pieza, actualizado: new Date().toISOString() }),
+          });
       }
 
       if (!Object.keys(salidas).length) {
