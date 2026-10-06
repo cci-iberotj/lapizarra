@@ -47,6 +47,7 @@
   --tinta-tenue:#655C54;
   --papel:#FFFFFF;
   --capa-0:#F1EDE9;
+  --velo:#F6E9EB;
   --titulos:'Alverata',Georgia,serif;
   --texto:'Myriad','Segoe UI',system-ui,sans-serif;
 }
@@ -186,6 +187,21 @@ h1 em,h2 em{font-style:normal;color:var(--rojo)}
 .portada .bajada{color:rgba(255,255,255,.92);font-size:42px;max-width:none}
 .portada .pie{color:rgba(255,255,255,.75)}
 
+/* ───────────── carátulas de sección ─────────────
+   Las tenía el Canva y hacen falta: marcan el cambio de tema y dan
+   respiro entre bloques. Mismo tratamiento que la portada. */
+.seccion{background:radial-gradient(120% 120% at 78% 14%,#EA242F 0%,#B3162A 48%,#6E0F1E 100%);color:#fff}
+.seccion .marco{justify-content:center}
+.seccion .paso-n{font-weight:600;font-size:28px;letter-spacing:.3em;text-transform:uppercase;
+                 color:rgba(255,255,255,.72)}
+.seccion .raya{width:112px;height:7px;border-radius:4px;background:#fff;opacity:.9;margin:34px 0 40px}
+.seccion h1{color:#fff;font-size:156px}
+/* el rojo de marca sobre el rojo del fondo no se lee: aqui el enfasis
+   va en un rosa claro, que si contrasta contra el degradado */
+.seccion h1 em{color:#FFC9C2}
+.seccion .bajada{color:rgba(255,255,255,.9);max-width:1100px;font-size:40px}
+.seccion .pie{color:rgba(255,255,255,.75)}
+
 /* ───────────── QR ───────────── */
 /* una sola tarjeta: los dos QR juntos se leían por error entre sí */
 .qr-solo{display:flex;align-items:center;gap:72px;margin-top:52px;background:var(--capa-0);
@@ -270,14 +286,20 @@ h1 em,h2 em{font-style:normal;color:var(--rojo)}
 .lista-req li{font-size:32px;line-height:1.3;color:var(--tinta-media);padding-left:40px;position:relative}
 .lista-req li::before{content:"";position:absolute;left:0;top:8px;width:20px;height:20px;border-radius:50%;border:5px solid var(--rojo)}
 
-.tabla{margin-top:46px;border-radius:24px;overflow:hidden}
-.tabla .fila{display:flex;align-items:center}
-.tabla .fila>div{padding:22px 30px;font-size:30px}
-.tabla .c1{flex:1.4}.tabla .c2{width:250px;flex:none;text-align:center}.tabla .c3{flex:1.2}
-.tabla .cab{background:var(--tinta);color:#fff}
-.tabla .cab>div{font-size:24px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
-.tabla .fila:nth-child(even){background:var(--capa-0)}
-.tabla .fila:not(.cab) .c2{font-family:var(--titulos);font-weight:700;font-size:42px;color:var(--rojo)}
+/* rejilla, no filas sueltas: así la celda de "3er semestre en adelante"
+   puede ocupar las tres filas que le corresponden y se entiende el grupo */
+.tabla{margin-top:44px;border-radius:24px;overflow:hidden;
+       display:grid;grid-template-columns:1.5fr 250px 1.2fr}
+.tabla>div{padding:21px 30px;font-size:30px;display:flex;align-items:center;color:var(--tinta)}
+.tabla .cab{background:var(--tinta);color:#fff;font-size:23px;font-weight:700;
+            letter-spacing:.16em;text-transform:uppercase}
+.tabla .cen{justify-content:center;text-align:center}
+.tabla .pct{font-family:var(--titulos);font-weight:700;font-size:42px;color:var(--rojo);justify-content:center}
+.tabla .raya{background:var(--capa-0)}
+/* el bloque de 3er semestre en adelante: un tinte propio para los tres renglones */
+.tabla .grupo{grid-row:span 3;background:var(--velo);font-weight:600;line-height:1.2}
+.tabla .eng{background:var(--velo)}
+.tabla .eng.pct{background:var(--velo)}
 
 .bene{display:grid;grid-template-columns:1fr 1fr;gap:26px 60px;margin-top:54px}
 .bene li{list-style:none;font-size:36px;line-height:1.3;color:var(--tinta);padding-left:60px;position:relative}
@@ -541,6 +563,17 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="pie"><span>AUSJAL · Red de universidades jesuitas</span><span class="sitio">tijuana.ibero.mx</span></div>
   </section>
 
+  <!-- ◆ CARÁTULA · Oferta académica -->
+  <section class="lamina seccion">
+    <div class="marco centro">
+      <div class="paso-n" data-sube style="--i:0">Primera parte</div>
+      <div class="raya" data-sube style="--i:1"></div>
+      <h1 data-sube style="--i:2">Qué puedes<br><em>estudiar</em>.</h1>
+      <div class="bajada" data-sube style="--i:3">Once licenciaturas y una vida universitaria que no cabe en el salón.</div>
+    </div>
+    <div class="pie" data-sube style="--i:4"><span>Casa Abierta 2027</span><span class="sitio">tijuana.ibero.mx</span></div>
+  </section>
+
   <!-- 06 · OFERTA ACADÉMICA -->
   <section class="lamina">
     <div class="barra-sup"></div>
@@ -599,6 +632,17 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="pie"><span>Selecciones y actividades libres</span><span class="sitio">tijuana.ibero.mx</span></div>
   </section>
 
+  <!-- ◆ CARÁTULA · Proceso de admisión -->
+  <section class="lamina seccion">
+    <div class="marco centro">
+      <div class="paso-n" data-sube style="--i:0">Segunda parte</div>
+      <div class="raya" data-sube style="--i:1"></div>
+      <h1 data-sube style="--i:2">Cómo <em>entrar</em>.</h1>
+      <div class="bajada" data-sube style="--i:3">Ocho pasos, de la solicitud a tu inscripción.</div>
+    </div>
+    <div class="pie" data-sube style="--i:4"><span>Casa Abierta 2027</span><span class="sitio">tijuana.ibero.mx</span></div>
+  </section>
+
   <!-- 09 · PROCESO · ETAPA 1 -->
   <section class="lamina">
     <div class="barra-sup"></div>
@@ -641,6 +685,17 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="pie"><span>Etapa 2 de 2</span><span class="sitio">tijuana.ibero.mx</span></div>
   </section>
 
+  <!-- ◆ CARÁTULA · Becas -->
+  <section class="lamina seccion">
+    <div class="marco centro">
+      <div class="paso-n" data-sube style="--i:0">Tercera parte</div>
+      <div class="raya" data-sube style="--i:1"></div>
+      <h1 data-sube style="--i:2">Becas <em>IBERO</em>.</h1>
+      <div class="bajada" data-sube style="--i:3">Tres caminos para estudiar aquí, y los tres te acompañan toda la carrera.</div>
+    </div>
+    <div class="pie" data-sube style="--i:4"><span>Casa Abierta 2027</span><span class="sitio">tijuana.ibero.mx</span></div>
+  </section>
+
   <!-- 11 · BECAS -->
   <section class="lamina">
     <div class="barra-sup"></div>
@@ -663,8 +718,9 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco">
-      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Beca Confianza · Promedio 9.0</span></div>
-      <h2 data-sube style="--i:1">Sólo para estudiantes<br><em>de tu preparatoria</em>.</h2>
+      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio 9.0</span></div>
+      <h2 data-sube style="--i:1">Beca <em>Confianza</em></h2>
+      <div class="bajada" data-sube style="--i:2;margin-top:18px">Sólo para estudiantes de tu preparatoria.</div>
       <div class="panel">
         <div class="texto" data-sube style="--i:2">
           <ul class="lista-req">
@@ -686,15 +742,20 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco centro">
-      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Beca impulso MAGIS · Promedio 8.0 · 8.5 para Medicina</span></div>
-      <h2 data-sube style="--i:1">Tu promedio <em>la sostiene</em>.</h2>
+      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio 8.0 · 8.5 para Medicina</span></div>
+      <h2 data-sube style="--i:1">Beca impulso <em>MAGIS</em></h2>
+      <div class="bajada" data-sube style="--i:2;margin-top:18px">Tu promedio la sostiene semestre a semestre.</div>
       <div class="tabla" data-sube style="--i:2">
-        <div class="fila cab"><div class="c1">Semestre</div><div class="c2">% de beca</div><div class="c3">Promedio requerido</div></div>
-        <div class="fila"><div class="c1">1er semestre</div><div class="c2">50%</div><div class="c3">8.0 en preparatoria</div></div>
-        <div class="fila"><div class="c1">2do semestre</div><div class="c2">25%</div><div class="c3">8.5 en licenciatura</div></div>
-        <div class="fila"><div class="c1">3er semestre en adelante</div><div class="c2">25%</div><div class="c3">8.5 a 8.9</div></div>
-        <div class="fila"><div class="c1"></div><div class="c2">30%</div><div class="c3">9.0 a 9.4</div></div>
-        <div class="fila"><div class="c1"></div><div class="c2">35%</div><div class="c3">9.5 a 10</div></div>
+        <div class="cab">Semestre</div><div class="cab cen">% de beca</div><div class="cab">Promedio requerido</div>
+
+        <div>1er semestre</div><div class="pct">50%</div><div>8.0 en preparatoria</div>
+
+        <div class="raya">2do semestre</div><div class="pct raya">25%</div><div class="raya">8.5 en licenciatura</div>
+
+        <div class="grupo">3er semestre<br>en adelante</div>
+        <div class="pct eng">25%</div><div class="eng">8.5 a 8.9</div>
+        <div class="pct eng">30%</div><div class="eng">9.0 a 9.4</div>
+        <div class="pct eng">35%</div><div class="eng">9.5 a 10</div>
       </div>
     </div>
     <div class="pie"><span>Beca impulso MAGIS</span><span class="sitio">tijuana.ibero.mx</span></div>
@@ -704,8 +765,9 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco">
-      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Beca por estudio socioeconómico · Promedio 8.0</span></div>
-      <h2 data-sube style="--i:1">Si lo necesitas,<br><em>se estudia tu caso</em>.</h2>
+      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio 8.0</span></div>
+      <h2 data-sube style="--i:1">Beca por estudio <em>socioeconómico</em></h2>
+      <div class="bajada" data-sube style="--i:2;margin-top:18px">Si lo necesitas, se estudia tu caso.</div>
       <div class="panel">
         <div class="texto" data-sube style="--i:2">
           <div class="bajada" style="max-width:none;margin-top:0">La valoración la hace el <b>Comité de Becas</b> junto con una agencia externa. Son los únicos órganos autorizados para otorgar o negar el apoyo, y para definir su porcentaje.</div>
