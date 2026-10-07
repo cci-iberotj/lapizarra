@@ -875,17 +875,36 @@ addEventListener('resize', escalar); escalar();
   const luz    = espera.querySelector('.luz');
   const nucleo = espera.querySelector('.luz-nucleo');
   const capas  = [...espera.querySelectorAll('.capa')];
+  const INACTIVIDAD = 3500;   // ms sin ratón antes de volver al recorrido solo
+  const VUELTA      = 26000;  // ms que tarda una vuelta completa al infinito
   let mx = innerWidth / 2, my = innerHeight / 2;
   let lx = mx, ly = my, nx = mx, ny = my;
+  let ultimoRaton = -Infinity;
 
   espera.addEventListener('mousemove', e => {
     mx = e.clientX; my = e.clientY;
-    espera.classList.add('vivo');
+    ultimoRaton = performance.now();
   });
 
-  (function animar(){
-    lx += (mx - lx) * .055;  ly += (my - ly) * .055;
-    nx += (mx - nx) * .16;   ny += (my - ny) * .16;
+  // el haz se ve desde el principio: en reposo recorre el ∞ él solo
+  setTimeout(() => espera.classList.add('vivo'), 500);
+
+  /* Lemniscata de Bernoulli, centrada en la pantalla. Es el ∞ clásico:
+     dos lóbulos que se cruzan en el centro, sin esquinas ni tirones. */
+  function infinito(t){
+    const s = Math.sin(t), c = Math.cos(t), d = 1 + s * s;
+    return [innerWidth  / 2 + innerWidth  * 0.33 * c / d,
+            innerHeight / 2 + innerHeight * 0.40 * s * c / d];
+  }
+
+  (function animar(ahora){
+    let tx = mx, ty = my;
+    if (ahora - ultimoRaton > INACTIVIDAD){
+      const punto = infinito((ahora % VUELTA) / VUELTA * Math.PI * 2);
+      tx = punto[0]; ty = punto[1];
+    }
+    lx += (tx - lx) * .055;  ly += (ty - ly) * .055;
+    nx += (tx - nx) * .16;   ny += (ty - ny) * .16;
     luz.style.transform    = 'translate(' + lx + 'px,' + ly + 'px) translate(-50%,-50%)';
     nucleo.style.transform = 'translate(' + nx + 'px,' + ny + 'px) translate(-50%,-50%)';
     const dx = (lx / innerWidth - .5), dy = (ly / innerHeight - .5);
@@ -894,7 +913,7 @@ addEventListener('resize', escalar); escalar();
       c.style.transform = 'translate(' + (dx * f) + 'px,' + (dy * f) + 'px)';
     });
     requestAnimationFrame(animar);
-  })();
+  })(performance.now());
 })();
 
 /* ───────── contadores ───────── */
