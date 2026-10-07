@@ -8984,6 +8984,23 @@ async function pasarAdentro(usuario) {
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
   {
+    clave: '2026-10-07-d',
+    version: '2026-10-07',
+    titulo: 'Firmas: ya se puede elegir el diseño nuevo',
+    puntos: [
+      { t: '«Elige lo Humano», además de la clásica',
+        d: 'En el generador de firmas hay un selector arriba. Las dos conviven ' +
+           'mientras aprueban la nueva, así que nadie se queda sin poder hacer ' +
+           'la suya.' },
+      { t: 'Ojo con el código HTML del diseño nuevo',
+        d: 'La clásica se copia como texto vivo: se selecciona y no depende de ' +
+           'que carguen imágenes. La nueva no puede —su fondo va DETRÁS del ' +
+           'texto y Outlook no pinta fondos bajo texto— así que viaja como ' +
+           'imagen, y Outlook no la muestra hasta que la persona autoriza las ' +
+           'imágenes. La nota de instalación lo dice según cuál elijas.' },
+    ],
+  },
+  {
     clave: '2026-10-07-c',
     version: '2026-10-07',
     titulo: 'Se retiró «Lo que llega»',
