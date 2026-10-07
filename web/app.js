@@ -8643,6 +8643,22 @@ async function pasarAdentro(usuario) {
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
   {
+    clave: '2026-10-07',
+    version: '2026-10-07',
+    titulo: 'El generador de firmas ya vive en el cajón',
+    puntos: [
+      { t: 'Estaba suelto y ahora está con las demás',
+        d: 'Vivía en una carpeta de Proyectos Web y había que saber la ruta ' +
+           'para abrirlo. Ya sale en Herramientas, junto al generador de ' +
+           'piezas y los demás, y se abre en su pestaña como todos.' },
+      { t: 'Qué hace',
+        d: 'La firma de correo del área con la tipografía y el logotipo ' +
+           'oficiales. Sale en PNG o como código HTML para pegar en Outlook. ' +
+           'Si pegas el texto de varias firmas de una vez, las separa y las ' +
+           'llena solas.' },
+    ],
+  },
+  {
     clave: '2026-10-06-b',
     version: '2026-10-06',
     titulo: 'La ficha avisa si un carrusel no va a salir',
