@@ -3125,6 +3125,82 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 }
 
 
+
+/* ── Bandeja de solicitudes ────────────────────────────────
+   Lo que piden las areas desde la plataforma publica. Reusa la
+   rejilla y los filtros de "Por verificar": son la misma clase de
+   pantalla --una lista de cosas que alguien tiene que atender-- y
+   que se vean distinto solo haria pensar que funcionan distinto. */
+.sol-ficha {
+  background: var(--capa-2); border: 1px solid var(--borde);
+  border-left: 3px solid var(--linea-sutil);
+  border-radius: var(--r-caja); padding: 18px 20px; margin-bottom: 14px;
+}
+/* El filo rojo es la unica diferencia visual de lo urgente. Se marco
+   asi y no con fondo de color porque la lista se lee de corrido y un
+   bloque teñido se vuelve ruido en cuanto hay dos. */
+.sol-ficha.urge { border-left-color: var(--peligro); }
+
+.sol-cabeza {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: var(--e-4); margin-bottom: 10px; flex-wrap: wrap;
+}
+.sol-tipo {
+  font-size: var(--t-micro); font-weight: var(--peso-fuerte);
+  text-transform: uppercase; letter-spacing: .1em; color: var(--marca-tinta);
+}
+.sol-urge {
+  font-size: var(--t-micro); font-weight: var(--peso-fuerte);
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--texto-sobre-pilar); background: var(--peligro);
+  padding: 2px 8px; border-radius: var(--r-pastilla); margin-left: 8px;
+}
+/* Monoespaciado para poder dictarlo por telefono sin perderse. */
+.sol-folio {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: var(--t-micro); color: var(--tinta-tenue);
+  letter-spacing: .08em; margin-left: 10px;
+}
+.sol-estado {
+  font-size: var(--t-micro); font-weight: var(--peso-fuerte);
+  padding: 3px 10px; border-radius: var(--r-pastilla);
+  border: 1px solid var(--borde); color: var(--tinta-media);
+}
+.sol-estado.sol-pendiente  { color: var(--alerta); border-color: var(--alerta); }
+.sol-estado.sol-aceptada   { color: var(--ok);     border-color: var(--ok); }
+.sol-estado.sol-descartada { color: var(--tinta-tenue); }
+
+.sol-titulo { margin: 0 0 4px; font-size: var(--t-med); color: var(--tinta); }
+.sol-quien, .sol-cuando {
+  margin: 0 0 4px; font-size: var(--t-meta); color: var(--tinta-media);
+}
+
+.sol-detalle {
+  margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--linea-sutil);
+  display: grid; gap: 8px;
+}
+.sol-dato { font-size: var(--t-meta); line-height: 1.5; }
+.sol-dato b {
+  display: block; color: var(--tinta-tenue); font-size: var(--t-micro);
+  text-transform: uppercase; letter-spacing: .08em; margin-bottom: 1px;
+}
+.sol-dato span { color: var(--tinta-media); white-space: pre-wrap; }
+
+.sol-archivos { margin: 10px 0 0; font-size: var(--t-meta); color: var(--tinta-media); }
+
+.sol-acciones {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--linea-sutil);
+  display: flex; gap: var(--e-3); flex-wrap: wrap;
+}
+.sol-cerrada {
+  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--linea-sutil);
+  font-size: var(--t-meta); color: var(--tinta-tenue);
+}
+
+@media (max-width: 620px) {
+  .sol-acciones { flex-direction: column; align-items: stretch; }
+}
+
 /* ── Bienvenida ────────────────────────────────────────────
    El recorrido del primer dia. Hereda toda la caja de
    .modal-novedades: lo unico propio es que aqui se lee UN paso a

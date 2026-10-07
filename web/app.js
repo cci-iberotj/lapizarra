@@ -648,6 +648,11 @@ function refrescarTodo() {
   if (Almacen.enLaNube && !revisiones.length && vistasQueVeo().includes('verificar')) {
     pintarVerificar().catch(() => {});
   } else marcarPendientes();
+  /* Igual que la bandeja de revisiones: se pide una vez al cargar
+     para que el globo diga cuantas hay sin que nadie entre a mirar. */
+  if (Almacen.enLaNube && !solicitudes.length && vistasQueVeo().includes('solicitudes')) {
+    pintarSolicitudes().catch(() => {});
+  } else marcarSolicitudes();
   pintarCuenta();
   aplicarPermisos();
   recortarParaCreacion();
@@ -7998,6 +8003,8 @@ function conectarEventos() {
   $('#nuevoVuelo').addEventListener('click', () => abrirVuelo(null));
 
   $('#verNovedades').addEventListener('click', verNovedadesTodas);
+  const recargarSol = $('#solicitudesRecargar');
+  if (recargarSol) recargarSol.addEventListener('click', () => pintarSolicitudes(true));
 
   const bNuevaIdea = $('#nuevaIdea');   // retirado de la pagina; ver pintarIdeas()
   if (bNuevaIdea) bNuevaIdea.addEventListener('click', () => {
@@ -8340,6 +8347,338 @@ async function contestarRevision(codigo, texto) {
 
 /* El globo con el numero de pendientes, para verlo sin entrar. El de
    avisos vive dentro de pintarContadorAvisos y no se puede reusar. */
+
+/* ══════════════════════════════════════════════════════════
+   BANDEJA DE SOLICITUDES
+
+   Lo que las areas piden desde la plataforma de solicitudes
+   (cci-iberotj.github.io/solicitudes-cci) cae en la tabla
+   `solicitudes` y se atiende aqui.
+
+   POR QUE HAY UN PASO DE POR MEDIO
+   La plataforma es publica: la llena cualquiera con un navegador.
+   Si lo que llega entrara directo al calendario, el plan del area
+   lo escribiria gente de fuera y habria que limpiarlo a mano. Aqui
+   alguien del equipo acepta --y entonces si nace el evento o la
+   pieza, con lo que ya escribieron-- o descarta dejando el motivo.
+
+   DESCARTAR NO BORRA
+   Queda el renglon con su nota. Una solicitud que desaparece sin
+   explicacion vuelve a llegar la semana siguiente.
+   ══════════════════════════════════════════════════════════ */
+
+let solicitudes = [];
+let cargandoSolicitudes = false;
+let filtroSolicitudes = 'pendiente';
+
+const ESTADOS_SOLICITUD = [
+  { id: 'pendiente',  nombre: 'Pendientes',  tono: 'var(--alerta)' },
+  { id: 'aceptada',   nombre: 'Aceptadas',   tono: 'var(--ok)' },
+  { id: 'descartada', nombre: 'Descartadas', tono: 'var(--tinta-tenue)' },
+  { id: '',           nombre: 'Todas',       tono: 'var(--tinta-media)' },
+];
+
+/* Que nace al aceptar, segun lo que pidieron. Es una SUGERENCIA: los
+   dos botones salen siempre y el de esta columna va primero, porque
+   quien acepta conoce su caso mejor que esta tabla. */
+const NACE_COMO = {
+  'Evento o actividad':       'evento',
+  'Diseño':                   'pieza',
+  'Actividad que ya ocurrió': 'pieza',
+  'Otro':                     'pieza',
+};
+
+function solicitudesVisibles() {
+  return solicitudes.filter(x => !filtroSolicitudes || x.estado === filtroSolicitudes);
+}
+
+function pendientesSolicitudes() {
+  return solicitudes.filter(x => x.estado === 'pendiente').length;
+}
+
+function marcarSolicitudes() {
+  const t = $('#tabSolicitudes');
+  if (!t) return;
+  const n = pendientesSolicitudes();
+  let g = $('.tab-globo', t);
+  if (!n) { if (g) g.remove(); return; }
+  if (!g) { g = document.createElement('span'); g.className = 'tab-globo'; t.appendChild(g); }
+  g.textContent = n > 9 ? '9+' : n;
+  g.title = n === 1 ? 'una solicitud sin atender' : n + ' solicitudes sin atender';
+}
+
+/* Los campos del formulario que vale la pena enseñar en la ficha.
+   El jsonb trae mas --el tipo, el correo, cosas que ya salen arriba--
+   y volcarlo entero haria la tarjeta ilegible. */
+const CAMPOS_SOLICITUD = [
+  ['descripcion',  'Lo que cuentan'],
+  ['tipo_pieza',   'Material que piden'],
+  ['d_refs',       'Referencias de estilo'],
+  ['horario',      'Horario'],
+  ['lugar',        'Lugar'],
+  ['publico',      'Público'],
+  ['d_modal',      'Modalidad'],
+  ['d_asist',      'Asistentes'],
+  ['d_ponentes',   'Ponentes'],
+  ['d_part',       'Participantes'],
+  ['d_resultados', 'Resultados'],
+  ['materiales',   'Enlace a materiales'],
+  ['notas',        'Notas'],
+  ['telefono',     'Extensión'],
+];
+
+function pintarFiltrosSolicitudes() {
+  const caja = $('#solicitudesFiltros');
+  if (!caja) return;
+  caja.innerHTML = ESTADOS_SOLICITUD.map(e => {
+    const n = e.id ? solicitudes.filter(x => x.estado === e.id).length : solicitudes.length;
+    return `<button type="button" class="vc-op${filtroSolicitudes === e.id ? ' activo' : ''}${
+      n ? '' : ' vacio'}" data-filtro-sol="${e.id}" style="--tono:${e.tono}">
+      ${esc(e.nombre)} <b>${n}</b></button>`;
+  }).join('');
+  $$('[data-filtro-sol]', caja).forEach(b => b.addEventListener('click', () => {
+    filtroSolicitudes = b.dataset.filtroSol;
+    pintarSolicitudes(false);
+  }));
+}
+
+async function pintarSolicitudes(recargar = true) {
+  const cont = $('#solicitudesLista');
+  if (!cont) return;
+
+  if (recargar) {
+    if (cargandoSolicitudes) return;
+    cargandoSolicitudes = true;
+    cont.innerHTML = '<div class="vacio"><div>Buscando lo que ha llegado…</div></div>';
+    try {
+      solicitudes = await Almacen.solicitudes();
+    } catch (e) {
+      cont.innerHTML = `<div class="vacio">
+        <div class="vacio-titulo">No se pudo leer la bandeja</div>
+        <div>${esc(e.message || 'Intenta de nuevo en un momento.')}</div></div>`;
+      cargandoSolicitudes = false;
+      return;
+    }
+    cargandoSolicitudes = false;
+  }
+
+  marcarSolicitudes();
+  pintarFiltrosSolicitudes();
+
+  const lista = solicitudesVisibles();
+  if (!lista.length) {
+    cont.innerHTML = `<div class="vacio">
+      <div class="vacio-titulo">${filtroSolicitudes === 'pendiente'
+        ? 'Nada sin atender' : 'Nada por aquí'}</div>
+      <div>${filtroSolicitudes === 'pendiente'
+        ? 'Cuando un área mande una solicitud, aparece aquí.'
+        : 'Cambia el filtro de arriba para ver las demás.'}</div></div>`;
+    return;
+  }
+
+  /* Las pendientes se ordenan por la FECHA QUE PIDEN, no por cuando
+     llegaron: lo que se viene encima primero. Las ya atendidas, al
+     reves, por lo ultimo que se movio. */
+  const orden = filtroSolicitudes === 'pendiente'
+    ? (a, b) => String(a.fecha || '9999').localeCompare(String(b.fecha || '9999'))
+    : (a, b) => String(b.creado).localeCompare(String(a.creado));
+
+  cont.innerHTML = lista.slice().sort(orden).map(fichaSolicitud).join('');
+  conectarSolicitudes(cont);
+}
+
+function fichaSolicitud(x) {
+  const d = x.datos || {};
+  const detalle = CAMPOS_SOLICITUD
+    .filter(([k]) => d[k] && String(d[k]).trim())
+    .map(([k, rotulo]) =>
+      `<div class="sol-dato"><b>${esc(rotulo)}</b><span>${esc(String(d[k]))}</span></div>`)
+    .join('');
+
+  const archivos = Array.isArray(d.archivos) ? d.archivos : [];
+  const nace = NACE_COMO[x.tipo] || 'pieza';
+
+  return `<article class="sol-ficha${x.urgente ? ' urge' : ''}" data-folio="${esc(x.folio)}">
+    <header class="sol-cabeza">
+      <div>
+        <span class="sol-tipo">${esc(x.tipo || 'Solicitud')}</span>
+        ${x.urgente ? '<span class="sol-urge">Urgente</span>' : ''}
+        <span class="sol-folio">${esc(x.folio)}</span>
+      </div>
+      <span class="sol-estado sol-${esc(x.estado)}">${
+        x.estado === 'pendiente' ? 'Sin atender'
+        : x.estado === 'aceptada' ? 'Aceptada' : 'Descartada'}</span>
+    </header>
+
+    <h3 class="sol-titulo">${esc(x.titulo)}</h3>
+    <p class="sol-quien">${esc(x.de || 'Sin nombre')}${
+      x.area ? ' · ' + esc(x.area) : ''}${
+      x.correo ? ` · <a href="mailto:${esc(x.correo)}">${esc(x.correo)}</a>` : ''}</p>
+    ${x.fecha ? `<p class="sol-cuando">${
+      x.tipo === 'Diseño' ? 'La necesitan para el' : 'Fecha'} <b>${esc(x.fecha)}</b></p>` : ''}
+
+    ${detalle ? `<div class="sol-detalle">${detalle}</div>` : ''}
+    ${archivos.length ? `<p class="sol-archivos">${archivos.length === 1
+      ? 'Mandó un archivo' : 'Mandó ' + archivos.length + ' archivos'}: ${
+      archivos.map(a => `<a href="${esc(a.url || a.enlace || '#')}" target="_blank"
+        rel="noopener">${esc(a.nombre || 'archivo')}</a>`).join(', ')}</p>` : ''}
+
+    ${x.estado === 'pendiente' ? `
+      <div class="sol-acciones">
+        <button type="button" class="btn-primario" data-aceptar="${esc(nace)}">
+          Aceptar como ${nace === 'evento' ? 'evento' : 'pieza'}</button>
+        <button type="button" class="btn-plano" data-aceptar="${nace === 'evento' ? 'pieza' : 'evento'}">
+          …o como ${nace === 'evento' ? 'pieza' : 'evento'}</button>
+        <button type="button" class="btn-plano" data-descartar="1">Descartar</button>
+      </div>`
+    : `<p class="sol-cerrada">${esc(x.estado === 'aceptada' ? 'Aceptada' : 'Descartada')}${
+        x.atendido_por ? ' por ' + esc(x.atendido_por) : ''}${
+        x.atendido ? ' el ' + esc(String(x.atendido).slice(0, 10)) : ''}${
+        x.nota ? ' — ' + esc(x.nota) : ''}</p>`}
+  </article>`;
+}
+
+function conectarSolicitudes(cont) {
+  $$('[data-aceptar]', cont).forEach(b => b.addEventListener('click', () => {
+    const folio = b.closest('.sol-ficha').dataset.folio;
+    aceptarSolicitud(folio, b.dataset.aceptar);
+  }));
+  $$('[data-descartar]', cont).forEach(b => b.addEventListener('click', () => {
+    const folio = b.closest('.sol-ficha').dataset.folio;
+    descartarSolicitud(folio);
+  }));
+}
+
+/* Lo que escribio el area, completo, al pie de las notas de lo que
+   nace. Se copia tal cual: resumirlo aqui seria perder justo el
+   detalle por el que existe el formulario. */
+function notasDeSolicitud(x) {
+  const d = x.datos || {};
+  const renglones = CAMPOS_SOLICITUD
+    .filter(([k]) => d[k] && String(d[k]).trim())
+    .map(([k, rotulo]) => rotulo + ': ' + String(d[k]));
+  const archivos = Array.isArray(d.archivos) ? d.archivos : [];
+
+  return [
+    'Viene de la plataforma de solicitudes · folio ' + x.folio,
+    'Lo pidió ' + (x.de || 'alguien sin nombre') +
+      (x.area ? ' (' + x.area + ')' : '') + (x.correo ? ' · ' + x.correo : ''),
+    x.urgente ? 'LO MARCARON COMO URGENTE' : '',
+    '',
+    renglones.join('\n'),
+    archivos.length ? '\nArchivos que mandó:\n' +
+      archivos.map(a => '· ' + (a.nombre || 'archivo') + ' — ' + (a.url || a.enlace || '')).join('\n') : '',
+  ].filter(Boolean).join('\n');
+}
+
+async function aceptarSolicitud(folio, como) {
+  const x = solicitudes.find(s => s.folio === folio);
+  if (!x) return;
+  if (x.estado !== 'pendiente') return avisar('Esa solicitud ya se atendió.');
+
+  const nuevoId = id();
+  const ahoraISO = ahora();
+  const quien = (Almacen.usuario && Almacen.usuario.nombre) || 'alguien';
+
+  if (como === 'evento') {
+    datos.parrilla.eventos = datos.parrilla.eventos || [];
+    datos.parrilla.eventos.push({
+      id: nuevoId,
+      tipo: 'cobertura',
+      /* Entra como AVISADO, no como confirmado: que alguien lo haya
+         pedido no quiere decir que ya esté confirmado con el área. */
+      estado: 'avisado',
+      titulo: x.titulo,
+      fecha: x.fecha || aTexto(new Date()),
+      hora: (x.datos && horaDeTexto(x.datos.horario)) || '',
+      lugar: (x.datos && x.datos.lugar) || '',
+      necesita: ['foto'],
+      solicita: x.area || x.de || '',
+      notas: notasDeSolicitud(x),
+      creado: ahoraISO,
+      creadoPor: quien,
+      actualizado: ahoraISO,
+      solicitudFolio: x.folio,
+    });
+  } else {
+    datos.parrilla.piezas = datos.parrilla.piezas || [];
+    datos.parrilla.piezas.push({
+      id: nuevoId,
+      /* IDEA y no producción: nadie ha decidido todavía que esto se
+         hace, ni con qué pilar ni en qué canal. Aceptar la solicitud
+         es ponerla en la mesa, no programarla. */
+      estado: 'idea',
+      titulo: x.titulo,
+      fecha: x.fecha || aTexto(new Date()),
+      pilar: '',
+      canales: [],
+      no_despues: '',
+      notas: notasDeSolicitud(x),
+      creado: ahoraISO,
+      creadoPor: quien,
+      actualizado: ahoraISO,
+      solicitudFolio: x.folio,
+    });
+  }
+
+  guardar('parrilla');
+
+  try {
+    await Almacen.atenderSolicitud(folio, {
+      estado: 'aceptada',
+      atendido: new Date().toISOString(),
+      atendido_por: quien,
+      pizarra_coleccion: como === 'evento' ? 'parrilla_eventos' : 'parrilla_piezas',
+      pizarra_id: nuevoId,
+    });
+  } catch (e) {
+    return avisar('Se creó en el calendario, pero la bandeja no se pudo marcar: ' + e.message);
+  }
+
+  Object.assign(x, { estado: 'aceptada', atendido_por: quien,
+                     atendido: new Date().toISOString(), pizarra_id: nuevoId });
+  refrescarTodo();
+  pintarSolicitudes(false);
+  avisar(como === 'evento'
+    ? 'Aceptada. Ya está en el calendario como evento por cubrir.'
+    : 'Aceptada. Ya está en la parrilla como idea.');
+}
+
+async function descartarSolicitud(folio) {
+  const x = solicitudes.find(s => s.folio === folio);
+  if (!x) return;
+  const nota = prompt(
+    '¿Por qué se descarta? Lo va a leer quien pregunte por el folio ' + folio + '.', '');
+  if (nota === null) return;
+  const quien = (Almacen.usuario && Almacen.usuario.nombre) || 'alguien';
+
+  try {
+    await Almacen.atenderSolicitud(folio, {
+      estado: 'descartada',
+      atendido: new Date().toISOString(),
+      atendido_por: quien,
+      nota: String(nota).slice(0, 600),
+    });
+  } catch (e) {
+    return avisar('No se pudo descartar: ' + e.message);
+  }
+
+  Object.assign(x, { estado: 'descartada', atendido_por: quien,
+                     atendido: new Date().toISOString(), nota: nota });
+  pintarSolicitudes(false);
+  avisar('Descartada. El motivo queda escrito.');
+}
+
+/* "10:00 – 13:00 hrs" -> "10:00". El formulario pide el horario como
+   texto libre, asi que se saca la primera hora que parezca hora y, si
+   no hay ninguna, se deja vacio en vez de inventarla. */
+function horaDeTexto(txt) {
+  const m = String(txt || '').match(/(\d{1,2})[:.](\d{2})/);
+  if (!m) return '';
+  const h = Math.min(23, parseInt(m[1], 10));
+  return String(h).padStart(2, '0') + ':' + m[2];
+}
+
 function marcarPendientes() {
   const t = $('#tabVerificar');
   if (!t) return;
@@ -8353,18 +8692,18 @@ function marcarPendientes() {
 
 const VISTAS_POR_ROL = {
   admin: {
-    ve: ['parrilla', 'escritorio', 'entregas', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'entregas', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Administra y opera todo',
   },
   direccion: {
     // La jefa: el plan, la mesa de redacción que es su trabajo, los
     // expertos que entrevista, y el diagnóstico. El inventario no:
     // no administra cámaras.
-    ve: ['parrilla', 'escritorio', 'entregas', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'entregas', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
-    ve: ['parrilla', 'escritorio', 'redaccion', 'expertos', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'redaccion', 'expertos', 'ajustes'],
     porque: 'Escribe las notas académicas',
   },
   publicacion: {
@@ -8372,13 +8711,13 @@ const VISTAS_POR_ROL = {
     // la mesa de redacción, que es de donde le llegan. No necesita
     // el directorio de expertos — él no entrevista a nadie — ni el
     // inventario, ni el diagnóstico del área.
-    ve: ['parrilla', 'escritorio', 'entregas', 'redaccion', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'entregas', 'redaccion', 'ajustes'],
     porque: 'Publica las notas en el sitio',
   },
   produccion: {
     // Quien produce las piezas: el calendario y lo suyo. Sin
     // inventario, sin la mesa de redacción, sin el diagnóstico.
-    ve: ['parrilla', 'escritorio', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'ajustes'],
     porque: 'Produce las piezas del calendario',
   },
   creacion: {
@@ -8642,6 +8981,30 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-07-b',
+    version: '2026-10-07',
+    titulo: 'Las solicitudes de las áreas llegan aquí',
+    puntos: [
+      { t: 'Pestaña nueva: Solicitudes',
+        d: 'Lo que las áreas piden desde la plataforma de solicitudes cae en ' +
+           'esta bandeja, además del correo de siempre. Con todo lo que ' +
+           'escribieron: fechas, lugar, qué piden y los archivos que subieron.' },
+      { t: 'Aceptar una la convierte en evento o en pieza',
+        d: 'Y nace con el texto completo del área en las notas, así que se acabó ' +
+           'volver a teclear a mano lo que ya habían escrito. Los eventos entran ' +
+           'como «avisado» y las piezas como «idea»: que alguien lo pida no es ' +
+           'que ya esté decidido.' },
+      { t: 'Descartar no borra',
+        d: 'Pide el motivo y lo guarda. Quien mandó la solicitud tiene un folio ' +
+           'de ocho caracteres y puede preguntar por él; una solicitud que ' +
+           'desaparece sin explicación vuelve a llegar la semana siguiente.' },
+      { t: 'Y el equipo de la plataforma se actualizó',
+        d: 'Diseño Gráfico ahora le llega a Silvia, Foto y Video a Leo, y lo de ' +
+           'Medios lo cubre Marysol mientras. La jefatura va en copia en TODAS ' +
+           'las solicitudes, sin excepción.' },
+    ],
+  },
   {
     clave: '2026-10-07',
     version: '2026-10-07',

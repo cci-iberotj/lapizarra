@@ -76,6 +76,7 @@
     <button class="tab activo" data-vista="parrilla">Parrilla</button>
     <button class="tab" data-vista="escritorio">Mi escritorio</button>
     <button class="tab" id="tabEntregas" data-vista="entregas">Lo que llega</button><!-- el texto lo pone pintarEntregas -->
+    <button class="tab" id="tabSolicitudes" data-vista="solicitudes">Solicitudes</button>
     <button class="tab" id="tabVerificar" data-vista="verificar">Por verificar</button>
     <button class="tab" data-vista="inventario">Inventario</button>
     <button class="tab" data-vista="redaccion">Redacción</button>
@@ -334,6 +335,22 @@
   </section>
 
   <section class="entregas-lista" id="entregasLista"></section>
+</main>
+
+<main id="vista-solicitudes" class="vista">
+  <section class="entregas-cabecera">
+    <div>
+      <h2>Solicitudes</h2>
+      <p class="tenue nota">Lo que las áreas piden desde la plataforma de solicitudes.
+        Al aceptar una, nace sola en el calendario con lo que ya escribieron —
+        no hay que volver a teclearlo.</p>
+    </div>
+    <div class="entregas-acciones">
+      <button type="button" class="btn-plano" id="solicitudesRecargar">Actualizar</button>
+    </div>
+  </section>
+  <section class="verificar-filtros" id="solicitudesFiltros"></section>
+  <section class="verificar-lista" id="solicitudesLista"></section>
 </main>
 
 <main id="vista-verificar" class="vista">

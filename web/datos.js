@@ -346,6 +346,21 @@ const MotorSupabase = {
      Por eso no pasan por la maquinaria de sincronización de arriba:
      no son estado compartido, son una bandeja de entrada. */
 
+  /* La bandeja de solicitudes. `datos` SI se pide: es el formulario
+     completo y pesa unos kilobytes, no un mega como la pieza de una
+     revision. Sin el no se puede decidir si aceptar. */
+  listarSolicitudes() {
+    return this._rest('/solicitudes?select=*&order=creado.desc&limit=300');
+  },
+
+  atenderSolicitud(folio, campos) {
+    return this._rest('/solicitudes?folio=eq.' + encodeURIComponent(folio), {
+      method: 'PATCH',
+      headers: { Prefer: 'return=minimal' },
+      body: campos,
+    });
+  },
+
   listarRevisiones() {
     /* `pieza` no se pide: pesa un mega por renglón y aquí no se usa. Se baja
        una sola, y sólo al abrirla en el generador. */
@@ -526,6 +541,16 @@ const Almacen = {
   /* ── Piezas por verificar ────────────────────────────
      Sin nube no hay bandeja: el motor local no la tiene, y devolver
      una lista vacía es más honesto que tronar. */
+
+  async solicitudes() {
+    if (!this.enLaNube) return [];
+    return (await this.motor.listarSolicitudes()) || [];
+  },
+
+  atenderSolicitud(folio, campos) {
+    if (!this.enLaNube) return Promise.resolve();
+    return this.motor.atenderSolicitud(folio, campos);
+  },
 
   async revisiones() {
     if (!this.enLaNube) return [];
