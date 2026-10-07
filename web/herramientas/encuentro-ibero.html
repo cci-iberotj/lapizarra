@@ -178,7 +178,13 @@ h1 em,h2 em{font-style:normal;color:var(--rojo)}
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
-.espera-centro{position:relative;z-index:3;text-align:center;color:#fff;padding:0 60px}
+/* se escala con --k igual que las laminas: en pixeles fijos no cabia
+   en laptops de 1366x768 y el contenido se encimaba */
+/* centrado con posicion absoluta, NO con grid: cuando el bloque mide mas
+   que la pantalla (1920 en una laptop de 1366) el grid lo recorre a un lado */
+.espera-centro{position:absolute;left:50%;top:50%;z-index:3;text-align:center;color:#fff;
+  width:1920px;padding:0 60px;
+  transform:translate(-50%,-50%) scale(var(--k,1));transform-origin:center center}
 .marcas{display:flex;align-items:center;justify-content:center;gap:66px;margin-bottom:60px}
 .marcas .ibero{width:360px;height:auto;fill:#F6EFE7;animation:respira 7s ease-in-out infinite}
 .marcas .division{width:2px;height:150px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.55),transparent)}
@@ -413,10 +419,6 @@ body.sin-hud #contador,body.sin-hud #ayuda{display:none}
 #pantalla:hover{background:var(--rojo);color:#fff;transform:scale(1.07)}
 #pantalla svg{width:25px;height:25px;fill:currentColor}
 
-/* pista dentro de la espera: el renglón de ayuda de abajo queda tapado por ella */
-.espera-pista{position:absolute;left:0;right:0;bottom:46px;z-index:4;text-align:center;
-  font-size:21px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.42)}
-.espera-pista b{font-weight:700;color:rgba(255,255,255,.72)}
 
 #tuerca{position:fixed;right:26px;bottom:16px;z-index:60;width:54px;height:54px;border:0;border-radius:50%;
         background:rgba(255,255,255,.12);color:rgba(255,255,255,.72);cursor:pointer;display:grid;place-items:center;
@@ -483,7 +485,6 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
       </div>
     </div>
   </div>
-  <div class="espera-pista"><b>F</b> pantalla completa · cualquier tecla para comenzar</div>
 </div>
 
 <div id="progreso"></div>
