@@ -75,7 +75,6 @@
   <nav class="tabs">
     <button class="tab activo" data-vista="parrilla">Parrilla</button>
     <button class="tab" data-vista="escritorio">Mi escritorio</button>
-    <button class="tab" id="tabEntregas" data-vista="entregas">Lo que llega</button><!-- el texto lo pone pintarEntregas -->
     <button class="tab" id="tabSolicitudes" data-vista="solicitudes">Solicitudes</button>
     <button class="tab" id="tabVerificar" data-vista="verificar">Por verificar</button>
     <button class="tab" data-vista="inventario">Inventario</button>
@@ -310,32 +309,16 @@
 </main>
 
 <!-- ══════════════════════ INVENTARIO ══════════════════════ -->
-<!-- ══ Lo que llega ══
-     Quien produce contenido para nosotros entrega aqui, y aqui se
-     decide que hacer con eso. Entregar y programar son cosas
-     distintas a proposito: quien entrega no elige cuando sale. -->
-<main id="vista-entregas" class="vista">
-  <section class="entregas-cabecera">
-    <div>
-      <h2 id="entregasTitulo">Lo que llega</h2><!-- lo pone pintarEntregas segun quien mira -->
-      <p class="tenue nota" id="entregasNota"></p>
-    </div>
-    <div class="entregas-acciones" id="entregasAcciones"></div>
-  </section>
+<!-- ══ Lo que llega: retirada el 7-oct-2026 ══
+     La agencia subia aqui el material y el area decidia que hacer con
+     el. Cambio el protocolo: ahora suben directo y no siempre hay que
+     subir nada, asi que la pestaña sobraba.
 
-  <section id="entregasSubir" hidden>
-    <div class="soltar" id="soltarEntrega">
-      <input type="file" id="archivoEntrega" accept="video/mp4,video/quicktime,image/jpeg,image/png,image/webp" multiple hidden>
-      <div class="soltar-icono" aria-hidden="true">&#9633;</div>
-      <div class="soltar-titulo">Suelta aquí el material listo para publicar</div>
-      <div class="soltar-nota">Video vertical 1080&#215;1920 en MP4 con H.264, o fotos de 1080 px. Hasta 50 MB por archivo.</div>
-      <button type="button" class="btn-primario" id="elegirEntrega">Elegir archivos</button>
-    </div>
-    <div id="revisionEntrega"></div>
-  </section>
-
-  <section class="entregas-lista" id="entregasLista"></section>
-</main>
+     Se retiro la PANTALLA y nada mas. La tabla, sus permisos, la capa
+     de datos y pintarEntregas() siguen en su sitio --no habia ni una
+     entrega guardada, asi que no se perdio nada-- y la vista puede
+     volver reponiendo este bloque y su pestaña. Es lo mismo que se
+     hizo con el banco de ideas. -->
 
 <main id="vista-solicitudes" class="vista">
   <section class="entregas-cabecera">

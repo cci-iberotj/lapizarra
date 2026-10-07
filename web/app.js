@@ -612,20 +612,16 @@ function recortarParaCreacion() {
     const fuera = !mias.includes(v)
                || (v === 'ajustes' && rolUI() !== 'admin');
     t.hidden = fuera;
+    /* A la parrilla siempre: era 'entregas' para quien crea, pero esa
+       vista se retiro y el click sobre una pestaña que ya no existe
+       reventaba aqui mismo. */
     if (fuera && t.classList.contains('activo')) {
-      $(`.tab[data-vista="${recortar ? 'entregas' : 'parrilla'}"]`).click();
+      $('.tab[data-vista="parrilla"]').click();
     }
   });
 
-  /* Para quien crea, la aplicación ES su bandeja: el calendario lo
-     mira de vez en cuando, pero llega aquí a mandar algo. Sólo la
-     primera vez -- después manda lo que el usuario haya picado. */
-  if (recortar && !recortarParaCreacion.yaAterrizo) {
-    recortarParaCreacion.yaAterrizo = true;
-    const t = $('.tab[data-vista="entregas"]');
-    if (t && !t.classList.contains('activo')) t.click();
-  }
-  if (!recortar) recortarParaCreacion.yaAterrizo = false;
+  /* Aqui aterrizaba en su bandeja quien venia a entregar. Ya no hay
+     bandeja: con una sola vista no hay a donde mandarlo. */
   // Los carriles laterales de la parrilla son de trabajo interno:
   // el banco de ideas y las efemerides no le sirven a quien entrega.
   const carriles = $('#carriles');
@@ -8692,14 +8688,14 @@ function marcarPendientes() {
 
 const VISTAS_POR_ROL = {
   admin: {
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'entregas', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Administra y opera todo',
   },
   direccion: {
     // La jefa: el plan, la mesa de redacción que es su trabajo, los
     // expertos que entrevista, y el diagnóstico. El inventario no:
     // no administra cámaras.
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'entregas', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
@@ -8711,7 +8707,7 @@ const VISTAS_POR_ROL = {
     // la mesa de redacción, que es de donde le llegan. No necesita
     // el directorio de expertos — él no entrevista a nadie — ni el
     // inventario, ni el diagnóstico del área.
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'entregas', 'redaccion', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'solicitudes', 'redaccion', 'ajustes'],
     porque: 'Publica las notas en el sitio',
   },
   produccion: {
@@ -8721,10 +8717,16 @@ const VISTAS_POR_ROL = {
     porque: 'Produce las piezas del calendario',
   },
   creacion: {
-    // No es del área: el calendario para saber cuándo sale lo suyo,
-    // y su bandeja. Nada más.
-    ve: ['parrilla', 'entregas'],
-    porque: 'Entrega material y ve el calendario',
+    /* Este rol existia para la bandeja «Lo que llega», que se retiro
+       el 7-oct-2026 porque la agencia pasó a subir directo. Le queda
+       el calendario, para saber cuando sale lo suyo.
+
+       NO SE BORRO EL ROL a proposito: hay una cuenta con el (Less) y
+       quitarselo de golpe la dejaria sin poder entrar. Si el trato con
+       la agencia ya no contempla que miren el calendario, se da de
+       baja la cuenta desde Ajustes y entonces si sobra este renglon. */
+    ve: ['parrilla'],
+    porque: 'Ve el calendario',
   },
 };
 
@@ -8981,6 +8983,22 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-07-c',
+    version: '2026-10-07',
+    titulo: 'Se retiró «Lo que llega»',
+    puntos: [
+      { t: 'Cambió el protocolo con la agencia',
+        d: 'Esa pestaña existía para que subieran ahí el material y el área ' +
+           'decidiera qué hacer con él. Ahora suben directo y no siempre hay que ' +
+           'subir nada, así que sobraba.' },
+      { t: 'No se borró nada',
+        d: 'No había ni una entrega guardada. Y la tabla, sus permisos y el ' +
+           'código que pintaba la bandeja siguen en su sitio: si el protocolo ' +
+           'vuelve a cambiar, la pestaña regresa reponiendo su bloque. Es lo ' +
+           'mismo que se hizo con el banco de ideas.' },
+    ],
+  },
   {
     clave: '2026-10-07-b',
     version: '2026-10-07',
