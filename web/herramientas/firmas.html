@@ -189,7 +189,9 @@
     overflow-x: auto;
     box-shadow: var(--sombra);
   }
-  #lienzo { display: block; width: 530px; max-width: 100%; margin: 0 auto; }
+  /* Sin ancho fijo: lo pone cada diseño al dibujar, y el alto se
+     deduce solo para que la proporcion aguante al encogerse. */
+  #lienzo { display: block; max-width: 100%; height: auto; margin: 0 auto; }
   .acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
   button.btn {
     padding: 12px 20px;
@@ -466,7 +468,8 @@ function dibujarHumano(d) {
   const cv = $("lienzo");
   cv.width = G.W * SCALE;
   cv.height = G.H * SCALE;
-  cv.style.height = G.H + "px";
+  cv.style.width  = G.W + "px";
+  cv.style.height = "auto";
   const ctx = cv.getContext("2d");
   ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
   ctx.clearRect(0, 0, G.W, G.H);
@@ -523,7 +526,8 @@ function dibujar() {
   const cv = $("lienzo");
   cv.width = W * SCALE;
   cv.height = H * SCALE;
-  cv.style.height = H + "px";
+  cv.style.width  = W + "px";
+  cv.style.height = "auto";
   const ctx = cv.getContext("2d");
   ctx.scale(SCALE, SCALE);
   ctx.clearRect(0, 0, W, H);
