@@ -430,6 +430,8 @@ body.sin-hud #contador,body.sin-hud #ayuda{display:none}
 
 #ajustes{position:fixed;right:26px;bottom:88px;z-index:61;width:430px;background:#fff;border-radius:22px;
          padding:30px 30px 26px;box-shadow:0 30px 70px rgba(0,0,0,.45);
+         /* en laptops de 768 px de alto el panel con varias prepas se salía */
+         max-height:calc(100vh - 110px);overflow-y:auto;
          opacity:0;visibility:hidden;transform:translateY(14px);
          transition:opacity .25s ease,transform .25s ease,visibility 0s linear .25s}
 #ajustes.abierto{opacity:1;visibility:visible;transform:none;transition-delay:0s}
@@ -450,6 +452,37 @@ body.sin-hud #contador,body.sin-hud #ayuda{display:none}
                          padding:13px;cursor:pointer}
 #ajustes .guardar{background:var(--rojo);color:#fff}
 #ajustes .limpiar{background:var(--capa-0);color:var(--tinta-media)}
+
+/* BIBLIOTECA DE PREPARATORIAS
+   Cada una se guarda con su logotipo y se cambia haciendo clic en el
+   logotipo. Vive en localStorage de este navegador; el archivo no se toca. */
+#ajustes .prepas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;
+  max-height:356px;overflow-y:auto;margin:6px -6px 0;padding:6px;scrollbar-width:thin}
+#ajustes .prepa{position:relative;font-family:var(--texto);background:var(--capa-0);
+  border:2px solid transparent;border-radius:14px;padding:9px 8px 8px;cursor:pointer;text-align:center;
+  transition:border-color .18s ease,background .18s ease,transform .18s ease}
+#ajustes .prepa:hover{background:#fff;border-color:#DCD6D0;transform:translateY(-2px)}
+#ajustes .prepa.activa{border-color:var(--rojo);background:#fff}
+#ajustes .prepa i{display:grid;place-items:center;width:100%;height:62px;background-color:#fff;
+  border-radius:9px;background-size:contain;background-repeat:no-repeat;background-position:center;
+  background-origin:content-box;padding:5px;
+  font-family:var(--titulos);font-size:20px;font-style:normal;color:var(--tinta-tenue)}
+#ajustes .prepa b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  margin-top:7px;font-size:11.5px;font-weight:600;line-height:1.25;color:var(--tinta-media)}
+#ajustes .prepa.activa b{color:var(--rojo)}
+#ajustes .prepa .borra{position:absolute;top:-5px;right:-5px;width:22px;height:22px;border-radius:50%;
+  background:var(--tinta);color:#fff;font-size:15px;line-height:21px;opacity:0;transition:opacity .18s ease}
+#ajustes .prepa:hover .borra{opacity:1}
+#ajustes .prepa .borra:hover{background:var(--rojo)}
+#ajustes .mas{border:2px dashed #DCD6D0;background:#fff;color:var(--tinta-tenue);
+  display:grid;place-items:center;min-height:96px;font-size:13px;line-height:1.3;font-weight:600}
+#ajustes .mas:hover{border-color:var(--rojo);color:var(--rojo);transform:none}
+#ajustes .nueva{display:none;margin-top:14px;border-top:1px solid #EDE8E3}
+#ajustes .nueva.abierta{display:block}
+#ajustes .nueva .guardar{width:100%;margin-top:14px;font-family:var(--texto);font-size:15px;
+  font-weight:600;border:0;border-radius:11px;padding:13px;cursor:pointer}
+#ajustes .dicho{display:none;font-size:13px;line-height:1.4;color:var(--rojo);margin-top:10px}
+#ajustes .dicho.visible{display:block}
 
 /* modo quieto: ?quieto=1 · apaga animaciones para capturar y medir sin falsos */
 html.quieto *,html.quieto *::before,html.quieto *::after{animation:none!important;transition:none!important}
@@ -502,17 +535,24 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
 </button>
 
 <div id="ajustes">
-  <h3>Ajustes</h3>
-  <p class="nota">Para dejar lista la presentación con otra preparatoria. Se guarda en este navegador; el archivo no se toca.</p>
-  <label class="et" for="a-nombre">Nombre de la preparatoria</label>
-  <input type="text" id="a-nombre" placeholder="Playas Junior High &amp; High School">
-  <label class="et">Logotipo</label>
-  <label class="archivo" for="a-logo">Elegir imagen (PNG o SVG)</label>
-  <input type="file" id="a-logo" accept="image/*">
+  <h3>Preparatorias</h3>
+  <p class="nota">Clic en un logotipo para dejar la presentación lista con esa preparatoria.
+  Se guardan en este navegador; el archivo no se toca.</p>
+  <div class="prepas" id="a-prepas"></div>
+
+  <div class="nueva" id="a-nueva">
+    <label class="et" for="a-nombre">Nombre de la preparatoria</label>
+    <input type="text" id="a-nombre" placeholder="Colegio…">
+    <label class="et">Logotipo</label>
+    <label class="archivo" for="a-logo" id="a-rotulo">Elegir imagen (PNG o SVG)</label>
+    <input type="file" id="a-logo" accept="image/*">
+    <p class="dicho" id="a-dicho"></p>
+    <button type="button" class="guardar" id="a-guardar">Agregar a la lista</button>
+  </div>
+
   <div class="fila"><input type="checkbox" id="a-hud" checked><span>Mostrar contador y ayuda</span></div>
   <div class="botones">
-    <button class="limpiar">Restablecer</button>
-    <button class="guardar">Guardar</button>
+    <button type="button" class="limpiar">Borrar lo guardado</button>
   </div>
 </div>
 
@@ -1072,53 +1112,172 @@ addEventListener('click', e => {
   arrancado ? mostrar(i+1, 1) : arrancar();
 });
 
-/* ───────── ajustes: nombre y logotipo de la preparatoria ───────── */
+/* ───────── ajustes: biblioteca de preparatorias ─────────
+   Cada preparatoria se guarda con su nombre y su logotipo, y se cambia de
+   una a otra haciendo clic en el logotipo. Todo vive en el localStorage de
+   este navegador: el index.html nunca se modifica.                       */
 (function(){
-  const tuerca = document.getElementById('tuerca');
-  const caja   = document.getElementById('ajustes');
-  const nombre = document.getElementById('a-nombre');
-  const logo   = document.getElementById('a-logo');
-  const hud    = document.getElementById('a-hud');
-  const LLAVE  = 'casa-abierta-2027';
+  const tuerca  = document.getElementById('tuerca');
+  const caja    = document.getElementById('ajustes');
+  const rejilla = document.getElementById('a-prepas');
+  const nueva   = document.getElementById('a-nueva');
+  const nombre  = document.getElementById('a-nombre');
+  const logo    = document.getElementById('a-logo');
+  const rotulo  = document.getElementById('a-rotulo');
+  const dicho   = document.getElementById('a-dicho');
+  const hud     = document.getElementById('a-hud');
+  const LLAVE   = 'casa-abierta-2027';
+  const MAX_LADO = 800;        // px al guardar: se proyecta a 200 px de ancho
+  const ROTULO   = 'Elegir imagen (PNG o SVG)';
 
-  const leer = () => { try { return JSON.parse(localStorage.getItem(LLAVE)) || {}; } catch(e){ return {}; } };
+  /* La preparatoria que viene incrustada en el archivo. Se lee del documento
+     ANTES de aplicar nada, para no duplicar su base64 en localStorage. */
+  const NOMBRE_BASE = document.querySelector('[data-escuela]').textContent.trim();
+  const LOGO_BASE   = getComputedStyle(document.querySelector('.logo-escuela')).backgroundImage;
 
-  function aplicar(c){
-    if (c.nombre) document.querySelectorAll('[data-escuela]').forEach(el => el.textContent = c.nombre);
-    if (c.logo) document.querySelectorAll('.logo-escuela').forEach(el => el.style.backgroundImage = 'url(' + c.logo + ')');
-    document.body.classList.toggle('sin-hud', c.hud === false);
+  let elegido = null;          // logotipo que se está agregando, ya reducido
+
+  function leer(){
+    let d; try { d = JSON.parse(localStorage.getItem(LLAVE)); } catch(e){ d = null; }
+    d = d || {};
+    if (!d.escuelas){          // formato viejo, de una sola escuela
+      const v = d;
+      d = { escuelas: [], activa: 'base', hud: v.hud !== false };
+      if (v.nombre || v.logo){
+        d.escuelas.push({ id: 'e' + Date.now(), nombre: v.nombre || 'Preparatoria', logo: v.logo || '' });
+        d.activa = d.escuelas[0].id;
+      }
+    }
+    return d;
+  }
+  function escribir(d){
+    try { localStorage.setItem(LLAVE, JSON.stringify(d)); return true; }
+    catch(e){ avisar('Ya no cabe otra en este navegador. Quita alguna de la lista.'); return false; }
+  }
+  function avisar(t){ dicho.textContent = t || ''; dicho.classList.toggle('visible', !!t); }
+
+  const todas = d => [{ id: 'base', nombre: NOMBRE_BASE }].concat(d.escuelas);
+  const fondo = p => p.id === 'base' ? LOGO_BASE : (p.logo ? 'url("' + p.logo + '")' : LOGO_BASE);
+  const iniciales = n => n.replace(/[^\p{L} ]/gu, ' ').trim().split(/\s+/)
+                          .slice(0, 2).map(p => p[0]).join('').toUpperCase();
+
+  function aplicar(d){
+    const p = todas(d).find(x => x.id === d.activa) || { id: 'base', nombre: NOMBRE_BASE };
+    document.querySelectorAll('[data-escuela]').forEach(el => el.textContent = p.nombre);
+    document.querySelectorAll('.logo-escuela').forEach(el => el.style.backgroundImage = fondo(p));
+    document.body.classList.toggle('sin-hud', d.hud === false);
   }
 
-  const guardado = leer();
-  if (guardado.nombre) nombre.value = guardado.nombre;
-  if (guardado.hud === false) hud.checked = false;
-  aplicar(guardado);
+  function pintar(){
+    const d = leer();
+    rejilla.textContent = '';
+    todas(d).forEach(p => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'prepa' + (p.id === d.activa ? ' activa' : '');
+      b.title = p.nombre;
+      const i = document.createElement('i');
+      if (p.id !== 'base' && !p.logo) i.textContent = iniciales(p.nombre);
+      else i.style.backgroundImage = fondo(p);
+      const et = document.createElement('b');
+      et.textContent = p.nombre;
+      b.append(i, et);
+      if (p.id !== 'base'){
+        const x = document.createElement('span');
+        x.className = 'borra'; x.textContent = '×'; x.title = 'Quitar de la lista';
+        x.addEventListener('click', ev => {
+          ev.stopPropagation();
+          if (!confirm('¿Quitar ' + p.nombre + ' de la lista?')) return;
+          const n = leer();
+          n.escuelas = n.escuelas.filter(e => e.id !== p.id);
+          if (n.activa === p.id) n.activa = 'base';
+          if (escribir(n)){ aplicar(n); pintar(); }
+        });
+        b.appendChild(x);
+      }
+      b.addEventListener('click', () => {
+        const n = leer(); n.activa = p.id;
+        if (escribir(n)){ aplicar(n); pintar(); }
+      });
+      rejilla.appendChild(b);
+    });
+    const mas = document.createElement('button');
+    mas.type = 'button'; mas.className = 'prepa mas'; mas.textContent = '+ Agregar';
+    mas.addEventListener('click', () => {
+      nueva.classList.toggle('abierta');
+      if (nueva.classList.contains('abierta')){
+        nombre.focus();
+        /* en laptops de poca altura el formulario queda abajo del borde */
+        nueva.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    });
+    rejilla.appendChild(mas);
+  }
 
-  tuerca.addEventListener('click', e => { e.stopPropagation(); caja.classList.toggle('abierto'); });
-  caja.addEventListener('click', e => e.stopPropagation());
+  /* Los PNG y JPG se reducen antes de guardarlos: localStorage ronda los 5 MB
+     y un logotipo a tamaño original se los come en tres o cuatro escuelas.
+     Los SVG se guardan tal cual, que pesan poco y no se pixelan al proyectar. */
+  function preparar(archivo, listo){
+    const fr = new FileReader();
+    fr.onerror = () => avisar('No se pudo leer ese archivo.');
+    fr.onload = () => {
+      if (/svg/i.test(archivo.type)) return listo(fr.result);
+      const im = new Image();
+      im.onerror = () => avisar('Eso no parece una imagen.');
+      im.onload = () => {
+        const k = Math.min(1, MAX_LADO / Math.max(im.width, im.height));
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, Math.round(im.width * k));
+        cv.height = Math.max(1, Math.round(im.height * k));
+        cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height);
+        listo(cv.toDataURL('image/png'));
+      };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(archivo);
+  }
 
   logo.addEventListener('change', () => {
     const f = logo.files[0];
     if (!f) return;
-    const fr = new FileReader();
-    fr.onload = () => {
-      const c = leer(); c.logo = fr.result;
-      localStorage.setItem(LLAVE, JSON.stringify(c)); aplicar(c);
-    };
-    fr.readAsDataURL(f);
+    avisar('');
+    preparar(f, url => { elegido = url; rotulo.textContent = f.name; });
   });
 
-  caja.querySelector('.guardar').addEventListener('click', () => {
-    const c = leer();
-    c.nombre = nombre.value.trim() || c.nombre;
-    c.hud = hud.checked;
-    localStorage.setItem(LLAVE, JSON.stringify(c));
-    aplicar(c);
-    caja.classList.remove('abierto');
+  document.getElementById('a-guardar').addEventListener('click', () => {
+    const n = nombre.value.trim();
+    if (!n)       return avisar('Falta el nombre de la preparatoria.');
+    if (!elegido) return avisar('Falta elegir el logotipo.');
+    const d = leer();
+    const id = 'e' + Date.now();
+    d.escuelas.push({ id: id, nombre: n, logo: elegido });
+    d.activa = id;
+    if (!escribir(d)) return;
+    nombre.value = ''; logo.value = ''; elegido = null;
+    rotulo.textContent = ROTULO;
+    avisar('');
+    nueva.classList.remove('abierta');
+    aplicar(d); pintar();
   });
+
+  hud.addEventListener('change', () => {
+    const d = leer(); d.hud = hud.checked;
+    escribir(d); aplicar(d);
+  });
+
   caja.querySelector('.limpiar').addEventListener('click', () => {
-    localStorage.removeItem(LLAVE); location.reload();
+    if (!confirm('Se borran todas las preparatorias guardadas en este navegador. ¿Seguir?')) return;
+    localStorage.removeItem(LLAVE);
+    location.reload();
   });
+
+  tuerca.addEventListener('click', e => { e.stopPropagation(); caja.classList.toggle('abierto'); });
+  caja.addEventListener('click', e => e.stopPropagation());
+
+  const inicio = leer();
+  hud.checked = inicio.hud !== false;
+  aplicar(inicio);
+  pintar();
 })();
 
 /* abrir directo en una lámina: index.html#7 — para revisar y para capturas */
