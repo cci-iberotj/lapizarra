@@ -401,11 +401,22 @@ h1 em,h2 em{font-style:normal;color:var(--rojo)}
 /* ───────────── navegación y ajustes ───────────── */
 #progreso{position:fixed;left:0;top:0;height:5px;background:var(--rojo);width:0;z-index:40;
           transition:width .5s cubic-bezier(.22,.61,.36,1)}
-#contador{position:fixed;right:104px;bottom:22px;z-index:40;font-size:17px;letter-spacing:.2em;
+#contador{position:fixed;right:150px;bottom:22px;z-index:40;font-size:17px;letter-spacing:.2em;
           color:rgba(255,255,255,.5);font-variant-numeric:tabular-nums}
 #ayuda{position:fixed;left:26px;bottom:22px;z-index:40;font-size:15px;letter-spacing:.14em;
        text-transform:uppercase;color:rgba(255,255,255,.34)}
 body.sin-hud #contador,body.sin-hud #ayuda{display:none}
+
+#pantalla{position:fixed;right:88px;bottom:16px;z-index:60;width:54px;height:54px;border:0;
+          border-radius:50%;background:rgba(255,255,255,.12);color:rgba(255,255,255,.72);cursor:pointer;
+          display:grid;place-items:center;transition:background .2s ease,transform .2s ease}
+#pantalla:hover{background:var(--rojo);color:#fff;transform:scale(1.07)}
+#pantalla svg{width:25px;height:25px;fill:currentColor}
+
+/* pista dentro de la espera: el renglón de ayuda de abajo queda tapado por ella */
+.espera-pista{position:absolute;left:0;right:0;bottom:46px;z-index:4;text-align:center;
+  font-size:21px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.42)}
+.espera-pista b{font-weight:700;color:rgba(255,255,255,.72)}
 
 #tuerca{position:fixed;right:26px;bottom:16px;z-index:60;width:54px;height:54px;border:0;border-radius:50%;
         background:rgba(255,255,255,.12);color:rgba(255,255,255,.72);cursor:pointer;display:grid;place-items:center;
@@ -472,11 +483,16 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
       </div>
     </div>
   </div>
+  <div class="espera-pista"><b>F</b> pantalla completa · cualquier tecla para comenzar</div>
 </div>
 
 <div id="progreso"></div>
 <div id="contador"></div>
 <div id="ayuda">← → avanzar · espacio pausa el video · F pantalla completa</div>
+
+<button id="pantalla" aria-label="Pantalla completa">
+  <svg viewBox="0 0 24 24"><path d="M4 9V4h5v2H6v3H4zm11-5h5v5h-2V6h-3V4zM4 15h2v3h3v2H4v-5zm14 3v-3h2v5h-5v-2h3z"/></svg>
+</button>
 
 <button id="tuerca" aria-label="Ajustes">
   <svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3.4h-4l-.3 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1l.3 2.6h4l.3-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4zM13 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
@@ -988,6 +1004,14 @@ function mostrar(n, dir){
   barra.style.width = ((i+1) / laminas.length * 100) + '%';
   cuenta.textContent = String(i+1).padStart(2,'0') + ' / ' + String(laminas.length).padStart(2,'0');
 }
+function pantallaCompleta(){
+  document.fullscreenElement ? document.exitFullscreen()
+                             : document.documentElement.requestFullscreen().catch(() => {});
+}
+document.getElementById('pantalla').addEventListener('click', e => {
+  e.stopPropagation(); pantallaCompleta();
+});
+
 function arrancar(){
   if (arrancado) return;
   arrancado = true;
@@ -1000,7 +1024,14 @@ function arrancar(){
 
 addEventListener('keydown', e => {
   if (document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
-  if (!arrancado){ arrancar(); e.preventDefault(); return; }
+  if (!arrancado){
+    // F11 y los atajos del sistema los maneja el navegador, no arrancan nada
+    if (e.key === 'F11' || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (['Escape','Tab','Shift','Control','Alt','Meta','CapsLock'].includes(e.key)) return;
+    // F pone pantalla completa SIN arrancar: era justo lo que no se podía hacer
+    if (e.key.toLowerCase() === 'f'){ pantallaCompleta(); e.preventDefault(); return; }
+    arrancar(); e.preventDefault(); return;
+  }
   const lam = laminas[i], vid = lam.querySelector('video');
   if (vid){
     if (e.key === ' '){ lam.alterna(); lam.asomar(); e.preventDefault(); return; }
@@ -1012,10 +1043,10 @@ addEventListener('keydown', e => {
   if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){ mostrar(i-1, -1); e.preventDefault(); }
   if (e.key === 'Home') mostrar(0, -1);
   if (e.key === 'End')  mostrar(laminas.length-1, 1);
-  if (e.key.toLowerCase() === 'f') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  if (e.key.toLowerCase() === 'f') pantallaCompleta();
 });
 addEventListener('click', e => {
-  if (e.target.closest('.btn-play,#tuerca,#ajustes,.ctrl')) return;
+  if (e.target.closest('.btn-play,#tuerca,#pantalla,#ajustes,.ctrl')) return;
   arrancado ? mostrar(i+1, 1) : arrancar();
 });
 
