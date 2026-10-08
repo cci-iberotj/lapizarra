@@ -487,6 +487,9 @@ body.sin-hud #contador,body.sin-hud #ayuda{display:none}
 #ajustes .dicho{display:none;font-size:13px;line-height:1.4;color:var(--rojo);margin-top:10px}
 #ajustes .apunte{font-size:12.5px;line-height:1.45;color:var(--tinta-tenue);
   background:var(--capa-0);border-radius:10px;padding:10px 12px;margin:14px 0 2px}
+#ajustes .pendiente{display:none;font-size:12.5px;line-height:1.45;color:var(--rojo-hondo);
+  background:var(--velo);border-radius:10px;padding:10px 12px;margin-top:14px}
+#ajustes .pendiente.visible{display:block}
 #ajustes .apunte b{color:var(--tinta-media)}
 /* las que alguien agregó sólo en su navegador se distinguen de las del archivo */
 #ajustes .prepa.temporal i{border:1px dashed #CFC7BF}
@@ -553,8 +556,10 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
   <div class="prepas" id="a-prepas"></div>
 
   <div class="nueva" id="a-nueva">
-    <p class="apunte">Esto la agrega <b>sólo en esta computadora</b>, para salir del paso.
-    Para que quede en el archivo y la vean todos, pásale el logotipo a Diseño y Medios.</p>
+    <p class="apunte"><b>Ojo:</b> esto la deja <b>sólo en esta computadora</b>, para salir
+    del paso hoy. <b>No la ven los demás</b> ni aparece en la dirección de internet.
+    Para que quede para todos hay que agregarla al catálogo, con PREPARATORIAS.bat
+    en la carpeta del proyecto (Diseño y Medios).</p>
     <label class="et" for="a-nombre">Nombre de la preparatoria</label>
     <input type="text" id="a-nombre" placeholder="Colegio…">
     <label class="et">Logotipo</label>
@@ -563,6 +568,8 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <p class="dicho" id="a-dicho"></p>
     <button type="button" class="guardar" id="a-guardar">Agregar por hoy</button>
   </div>
+
+  <p class="pendiente" id="a-pendiente"></p>
 
   <div class="fila"><input type="checkbox" id="a-hud" checked><span>Mostrar contador y ayuda</span></div>
 </div>
@@ -1141,6 +1148,7 @@ addEventListener('click', e => {
   const rotulo  = document.getElementById('a-rotulo');
   const dicho   = document.getElementById('a-dicho');
   const hud     = document.getElementById('a-hud');
+  const pendiente = document.getElementById('a-pendiente');
   const LLAVE   = 'casa-abierta-2027';
   const MAX_LADO = 800;
   const ROTULO   = 'Elegir imagen (PNG o SVG)';
@@ -1193,6 +1201,7 @@ addEventListener('click', e => {
 
   function pintar(){
     const d = leer();
+    recordar(d);
     const activa = (todas(d).find(x => x.id === d.activa) || todas(d)[0]).id;
     rejilla.textContent = '';
     todas(d).forEach(p => {
@@ -1251,8 +1260,9 @@ addEventListener('click', e => {
       rejilla.appendChild(b);
     });
     const mas = document.createElement('button');
-    mas.type = 'button'; mas.className = 'prepa mas'; mas.textContent = '+ Agregar';
-    mas.title = 'Agregar una preparatoria sólo en esta computadora';
+    mas.type = 'button'; mas.className = 'prepa mas';
+    mas.innerHTML = '+ Sólo<br>por hoy';
+    mas.title = 'Para salir del paso en esta computadora. Para el catálogo de todos, PREPARATORIAS.bat';
     mas.addEventListener('click', () => {
       nueva.classList.toggle('abierta');
       if (nueva.classList.contains('abierta')){
@@ -1317,6 +1327,18 @@ addEventListener('click', e => {
 
   tuerca.addEventListener('click', e => { e.stopPropagation(); caja.classList.toggle('abierto'); });
   caja.addEventListener('click', e => e.stopPropagation());
+
+  /* mientras haya temporales se avisa, porque son las que NO ve nadie más */
+  function recordar(d){
+    const n = d.temporales.length;
+    if (!n){ pendiente.classList.remove('visible'); return; }
+    pendiente.textContent = n === 1
+      ? 'Hay 1 preparatoria que sólo existe en esta computadora. Para que la vean '
+        + 'los demás falta agregarla al catálogo con PREPARATORIAS.bat.'
+      : 'Hay ' + n + ' preparatorias que sólo existen en esta computadora. Para que las '
+        + 'vean los demás falta agregarlas al catálogo con PREPARATORIAS.bat.';
+    pendiente.classList.add('visible');
+  }
 
   const inicio = leer();
   hud.checked = inicio.hud !== false;
