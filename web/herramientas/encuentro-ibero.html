@@ -470,10 +470,13 @@ body.sin-hud #contador,body.sin-hud #ayuda{display:none}
 #ajustes .prepa b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   margin-top:7px;font-size:11.5px;font-weight:600;line-height:1.25;color:var(--tinta-media)}
 #ajustes .prepa.activa b{color:var(--rojo)}
-#ajustes .prepa .borra{position:absolute;top:-5px;right:-5px;width:22px;height:22px;border-radius:50%;
-  background:var(--tinta);color:#fff;font-size:15px;line-height:21px;opacity:0;transition:opacity .18s ease}
-#ajustes .prepa:hover .borra{opacity:1}
-#ajustes .prepa .borra:hover{background:var(--rojo)}
+#ajustes .prepa .borra,#ajustes .prepa .edita{position:absolute;top:-5px;width:22px;height:22px;
+  border-radius:50%;background:var(--tinta);color:#fff;font-size:13px;line-height:22px;
+  opacity:0;transition:opacity .18s ease}
+#ajustes .prepa .borra{right:-5px;font-size:15px;line-height:21px}
+#ajustes .prepa .edita{left:-5px}
+#ajustes .prepa:hover .borra,#ajustes .prepa:hover .edita{opacity:1}
+#ajustes .prepa .borra:hover,#ajustes .prepa .edita:hover{background:var(--rojo)}
 #ajustes .mas{border:2px dashed #DCD6D0;background:#fff;color:var(--tinta-tenue);
   display:grid;place-items:center;min-height:96px;font-size:13px;line-height:1.3;font-weight:600}
 #ajustes .mas:hover{border-color:var(--rojo);color:var(--rojo);transform:none}
@@ -1196,20 +1199,46 @@ addEventListener('click', e => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'prepa' + (p.id === activa ? ' activa' : '') + (p.temporal ? ' temporal' : '');
-      b.title = p.nombre + (p.temporal ? ' · agregada sólo en esta computadora' : '');
+      b.title = p.nombre + (p.temporal
+        ? ' · agregada sólo en esta computadora'
+        : ' · viene del catálogo del archivo');
       const i = document.createElement('i');
       i.style.backgroundImage = fondo(p);
       const et = document.createElement('b');
       et.textContent = p.nombre;
       b.append(i, et);
       if (p.temporal){
+        /* corregir el nombre: equivocarse al teclearlo no debería obligar a
+           borrarla y volver a cargar el logotipo */
+        const e = document.createElement('span');
+        e.className = 'edita'; e.textContent = '✎'; e.title = 'Corregir el nombre';
+        e.addEventListener('click', ev => {
+          ev.stopPropagation();
+          const puesto = prompt('Nombre de la preparatoria:', p.nombre);
+          if (puesto === null) return;
+          const limpio = puesto.trim();
+          if (!limpio) return;
+          const n = leer();
+          if (limpio.toLowerCase() !== p.nombre.toLowerCase() &&
+              todas(n).some(q => q.nombre.toLowerCase() === limpio.toLowerCase())){
+            alert('Ya hay una con ese nombre en la lista.');
+            return;
+          }
+          const cual = n.temporales.find(q => 't:' + q.nombre === p.id);
+          if (!cual) return;
+          cual.nombre = limpio;
+          if (n.activa === p.id) n.activa = 't:' + limpio;
+          if (escribir(n)){ aplicar(n); pintar(); }
+        });
+        b.appendChild(e);
+
         const x = document.createElement('span');
         x.className = 'borra'; x.textContent = '×'; x.title = 'Quitar';
         x.addEventListener('click', ev => {
           ev.stopPropagation();
           if (!confirm('¿Quitar ' + p.nombre + ' de esta computadora?')) return;
           const n = leer();
-          n.temporales = n.temporales.filter(e => 't:' + e.nombre !== p.id);
+          n.temporales = n.temporales.filter(q => 't:' + q.nombre !== p.id);
           if (n.activa === p.id) delete n.activa;
           if (escribir(n)){ aplicar(n); pintar(); }
         });
