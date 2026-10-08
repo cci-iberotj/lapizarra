@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Agenda tu grabación · INTERSUJ 2026 · IBERO Tijuana</title>
+<meta name="description" content="Aparta tu día para la sesión de video de INTERSUJ 2026 con fondo proyectado. IBERO Tijuana.">
+<meta name="theme-color" content="#121011">
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOS DÍAS QUE SE OFRECEN
+     Esto es lo único que hay que tocar para cambiar las fechas.
+     Al guardar se ven al recargar: no hay que correr nada.
+
+       id      queda guardado en la base, no se repite ni se recicla
+       fecha   AAAA-MM-DD
+       desde   hora de inicio, 24 h
+       hasta   hora de término
+       lugar   dónde se graba
+       nota    opcional, sale en chiquito en la tarjeta
+
+     Las de ahora son DE PRUEBA: la semana del 12 de octubre.
+     ═══════════════════════════════════════════════════════════ -->
+<script id="dias-datos" type="application/json">
+[
+  { "id": "d1", "fecha": "2026-10-13", "desde": "10:00", "hasta": "11:00",
+    "lugar": "Foro · Diseño y Medios", "nota": "" },
+  { "id": "d2", "fecha": "2026-10-15", "desde": "13:00", "hasta": "14:00",
+    "lugar": "Foro · Diseño y Medios", "nota": "" },
+  { "id": "d3", "fecha": "2026-10-16", "desde": "11:00", "hasta": "12:00",
+    "lugar": "Foro · Diseño y Medios", "nota": "" }
+]
+</script>
+
+<style>
+@font-face{font-family:'Alverata';font-weight:400;font-style:normal;font-display:swap;
+  src:url(assets/alverata-400.woff2) format('woff2')}
+@font-face{font-family:'Alverata';font-weight:700;font-style:normal;font-display:swap;
+  src:url(assets/alverata-700.woff2) format('woff2')}
+/* La Myriad del sistema no tiene Regular y Windows la sustituye por cursiva.
+   Por eso se empotra con otro nombre: así nunca gana la del sistema. */
+@font-face{font-family:'MyriadIbero';font-weight:400;font-style:normal;font-display:swap;
+  src:url(assets/myriad-400.woff2) format('woff2')}
+@font-face{font-family:'MyriadIbero';font-weight:600;font-style:normal;font-display:swap;
+  src:url(assets/myriad-600.woff2) format('woff2')}
+@font-face{font-family:'MyriadIbero';font-weight:700;font-style:normal;font-display:swap;
+  src:url(assets/myriad-700.woff2) format('woff2')}
+
+:root{
+  --rojo:#EA242F;            /* el institucional, sólo como acento */
+  --rojo-hondo:#7B1E2E;
+  --rojo-noche:#3D0A12;
+  --tinta:#191713;
+  --tinta-media:#463F38;
+  --tinta-tenue:#655C54;
+  --papel:#FFFFFF;
+  --capa-0:#F1EDE9;
+  --velo:#F6E9EB;
+  --linea:#E2DBD4;
+  --negro:#121011;
+  --ok:#2E6B41;
+  --titulos:'Alverata',Georgia,serif;
+  --texto:'MyriadIbero','Segoe UI',system-ui,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--texto);background:var(--capa-0);color:var(--tinta);
+  -webkit-font-smoothing:antialiased;line-height:1.5}
+
+/* ───────────── portada con el video ───────────── */
+.portada{position:relative;background:var(--negro);overflow:hidden;isolation:isolate}
+.portada video,.portada .respaldo{position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;z-index:0}
+.portada .respaldo{background:url(assets/poster.jpg) center/cover no-repeat}
+/* el degradado es lo que deja leer el texto encima del video */
+.portada::after{content:"";position:absolute;inset:0;z-index:1;
+  background:linear-gradient(180deg,rgba(18,16,17,.80) 0%,rgba(18,16,17,.42) 38%,
+    rgba(18,16,17,.72) 72%,rgba(18,16,17,.97) 100%)}
+.portada .dentro{position:relative;z-index:2;max-width:1100px;margin:0 auto;
+  padding:clamp(54px,11vw,120px) 24px clamp(40px,7vw,70px);text-align:center;color:#fff}
+.gallardete{display:inline-block;font-size:13px;font-weight:700;letter-spacing:.28em;
+  text-transform:uppercase;color:#fff;background:var(--rojo);
+  padding:8px 16px;border-radius:999px;margin-bottom:26px}
+.portada h1{font-family:var(--titulos);font-weight:700;line-height:.92;
+  font-size:clamp(46px,11vw,110px);letter-spacing:-.02em;
+  text-shadow:0 6px 40px rgba(0,0,0,.5)}
+.portada h1 .anio{display:block;color:#fff;opacity:.72}
+.portada .bajada{margin:22px auto 0;max-width:620px;font-size:clamp(17px,2.5vw,22px);
+  line-height:1.45;color:rgba(255,255,255,.9)}
+.portada .abajo{margin-top:34px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.pildora{font-size:14px;letter-spacing:.04em;color:rgba(255,255,255,.92);
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  padding:9px 15px;border-radius:999px;backdrop-filter:blur(6px)}
+
+/* ───────────── cuerpo ───────────── */
+.hoja{max-width:780px;margin:0 auto;padding:clamp(34px,6vw,62px) 20px 90px}
+.explica{background:var(--papel);border-radius:20px;padding:clamp(22px,4vw,34px);
+  box-shadow:0 2px 20px rgba(25,23,19,.07);margin-bottom:34px}
+.explica h2{font-family:var(--titulos);font-size:clamp(23px,3.4vw,30px);
+  line-height:1.15;margin-bottom:14px}
+.explica p{color:var(--tinta-media);font-size:17px;margin-bottom:12px}
+.explica p:last-child{margin-bottom:0}
+.explica b{color:var(--tinta);font-weight:600}
+.puntos{list-style:none;margin-top:18px;border-top:1px solid var(--linea);padding-top:18px;
+  display:grid;gap:11px}
+.puntos li{display:flex;gap:11px;align-items:flex-start;font-size:16px;color:var(--tinta-media)}
+.puntos li::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;
+  background:var(--rojo);margin-top:8px}
+
+h3.rotulo{font-size:13px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--tinta-tenue);margin:0 0 4px}
+.seccion{margin-bottom:34px}
+.seccion > p.pie{font-size:15px;color:var(--tinta-tenue);margin:6px 0 16px}
+.seccion h2{font-family:var(--titulos);font-size:clamp(25px,4vw,34px);line-height:1.1}
+
+/* ───────────── los días ───────────── */
+.dias{display:grid;gap:13px}
+.dia{position:relative;display:block;cursor:pointer}
+.dia input{position:absolute;opacity:0;width:0;height:0}
+.dia .caja{display:flex;align-items:center;gap:18px;background:var(--papel);
+  border:2px solid var(--linea);border-radius:17px;padding:17px 19px;
+  transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.dia:hover .caja{border-color:#C9BFB6;transform:translateY(-2px)}
+.dia input:focus-visible + .caja{outline:3px solid var(--rojo);outline-offset:3px}
+.dia input:checked + .caja{border-color:var(--rojo);background:var(--velo);
+  box-shadow:0 10px 26px rgba(123,30,46,.14)}
+.dia .num{flex:none;width:76px;text-align:center;border-right:1px solid var(--linea);
+  padding-right:16px}
+.dia input:checked + .caja .num{border-color:rgba(123,30,46,.22)}
+.dia .num .d{display:block;font-family:var(--titulos);font-weight:700;font-size:34px;line-height:1;
+  color:var(--tinta)}
+.dia input:checked + .caja .num .d{color:var(--rojo-hondo)}
+.dia .num .m{display:block;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--tinta-tenue);margin-top:4px}
+.dia .txt{flex:1;min-width:0}
+.dia .txt .sem{display:block;font-size:19px;font-weight:600;color:var(--tinta);text-transform:capitalize}
+.dia .txt .hora{display:block;font-size:16px;color:var(--tinta-media);margin-top:2px}
+.dia .txt .lugar{display:block;font-size:14px;color:var(--tinta-tenue);margin-top:3px}
+.dia .marca{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid #CFC7BF;
+  display:grid;place-items:center;transition:border-color .18s,background .18s}
+.dia input:checked + .caja .marca{border-color:var(--rojo);background:var(--rojo)}
+.dia .marca::after{content:"";width:9px;height:9px;border-radius:50%;background:#fff;
+  transform:scale(0);transition:transform .18s}
+.dia input:checked + .caja .marca::after{transform:scale(1)}
+
+/* ───────────── campos ───────────── */
+.campos{display:grid;gap:17px}
+.campo label{display:block;font-size:14px;font-weight:600;color:var(--tinta-media);
+  margin-bottom:6px}
+.campo label .op{font-weight:400;color:var(--tinta-tenue)}
+.campo input{width:100%;font-family:var(--texto);font-size:17px;color:var(--tinta);
+  background:var(--papel);border:2px solid var(--linea);border-radius:13px;
+  padding:14px 16px;outline:none;transition:border-color .18s}
+.campo input:focus{border-color:var(--rojo)}
+.campo input::placeholder{color:#B5ACA3}
+.campo.mal input{border-color:var(--rojo)}
+.campo .error{display:none;font-size:14px;color:var(--rojo-hondo);margin-top:6px}
+.campo.mal .error{display:block}
+.dos{display:grid;gap:17px;grid-template-columns:1fr 1fr}
+@media (max-width:560px){.dos{grid-template-columns:1fr}}
+
+.flexible{display:flex;gap:11px;align-items:flex-start;margin-top:20px;
+  background:var(--papel);border:1px solid var(--linea);border-radius:14px;padding:15px 17px}
+.flexible input{flex:none;width:20px;height:20px;margin-top:1px;accent-color:var(--rojo)}
+.flexible span{font-size:15px;color:var(--tinta-media);line-height:1.4}
+
+.enviar{width:100%;margin-top:26px;font-family:var(--texto);font-size:19px;font-weight:700;
+  letter-spacing:.02em;color:#fff;background:var(--rojo);border:0;border-radius:15px;
+  padding:19px;cursor:pointer;transition:background .18s,transform .12s}
+.enviar:hover{background:#C91B26}
+.enviar:active{transform:scale(.99)}
+.enviar[disabled]{background:var(--tinta-tenue);cursor:default;transform:none}
+.aviso{display:none;margin-top:16px;font-size:16px;line-height:1.45;color:var(--rojo-hondo);
+  background:var(--velo);border-radius:13px;padding:14px 16px}
+.aviso.visible{display:block}
+.letra-chica{margin-top:20px;font-size:13.5px;line-height:1.5;color:var(--tinta-tenue)}
+
+/* ───────────── gracias ───────────── */
+.gracias{display:none;text-align:center;background:var(--papel);border-radius:22px;
+  padding:clamp(34px,7vw,60px) 26px;box-shadow:0 2px 24px rgba(25,23,19,.08)}
+.gracias.visible{display:block}
+.gracias .palomita{width:78px;height:78px;border-radius:50%;background:var(--ok);
+  display:grid;place-items:center;margin:0 auto 22px}
+.gracias .palomita svg{width:40px;height:40px;stroke:#fff;stroke-width:3.4;fill:none;
+  stroke-linecap:round;stroke-linejoin:round}
+.gracias h2{font-family:var(--titulos);font-size:clamp(28px,5vw,40px);line-height:1.08;
+  margin-bottom:12px}
+.gracias .cuando{display:inline-block;margin:18px 0 6px;background:var(--velo);
+  border-radius:15px;padding:17px 24px;font-size:19px;color:var(--rojo-hondo);font-weight:600}
+.gracias .folio{margin-top:20px;font-size:14px;color:var(--tinta-tenue)}
+.gracias .folio b{font-family:var(--titulos);font-size:21px;letter-spacing:.1em;
+  color:var(--tinta);display:block;margin-top:5px}
+.gracias .otra{margin-top:26px;font-size:15px;color:var(--tinta-tenue)}
+.gracias .otra button{font-family:var(--texto);font-size:15px;color:var(--rojo-hondo);
+  background:none;border:0;border-bottom:1px solid currentColor;cursor:pointer;padding:0}
+
+.firma{text-align:center;padding:0 20px 46px;font-size:13.5px;color:var(--tinta-tenue);
+  letter-spacing:.04em}
+.firma b{font-weight:600;color:var(--tinta-media)}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<header class="portada">
+  <div class="respaldo"></div>
+  <video id="clip" autoplay muted loop playsinline preload="metadata" poster="assets/poster.jpg">
+    <source src="assets/banner.mp4" type="video/mp4">
+  </video>
+  <div class="dentro">
+    <span class="gallardete">Intersuj 2026</span>
+    <h1>Te toca <span class="anio">frente a cámara</span></h1>
+    <p class="bajada">Cerramos la cobertura con una sesión distinta: tú al frente y los
+      gráficos del torneo proyectados atrás. Así se va a ver.</p>
+    <div class="abajo">
+      <span class="pildora">Toma individual</span>
+      <span class="pildora">10 minutos por persona</span>
+      <span class="pildora">Sólo estos días</span>
+    </div>
+  </div>
+</header>
+
+<main class="hoja">
+
+  <section class="explica">
+    <h2>Aparta tu día</h2>
+    <p>Ya grabamos a los equipos en cancha. Falta esta última sesión, la del fondo
+      proyectado, y es la que se usa para las presentaciones de cada deportista.</p>
+    <p><b>Son los únicos días que vamos a grabar.</b> Fuera de ahí ya no hay otra fecha:
+      el foro se desmonta y seguimos con la edición.</p>
+    <ul class="puntos">
+      <li>Llega con el uniforme de tu disciplina, limpio y sin arrugas.</li>
+      <li>Son unos 10 minutos. Te damos indicaciones ahí mismo, no hay que preparar nada.</li>
+      <li>Si traes algo del deporte (balón, raqueta, careta), tráelo.</li>
+      <li>Puntualidad: el bloque es de una hora para todo el grupo de ese día.</li>
+    </ul>
+  </section>
+
+  <form id="forma" novalidate>
+
+    <section class="seccion">
+      <h3 class="rotulo">Paso 1</h3>
+      <h2>¿Qué día te acomoda?</h2>
+      <p class="pie">Escoge uno. Si te sirven varios, marca el mejor y avísanos abajo.</p>
+      <div class="dias" id="dias" role="radiogroup" aria-label="Días disponibles"></div>
+      <div class="campo" id="campo-dia"><p class="error">Falta escoger el día.</p></div>
+
+      <label class="flexible">
+        <input type="checkbox" id="flexible">
+        <span>Si hace falta mover gente, también podría venir otro de los días.</span>
+      </label>
+    </section>
+
+    <section class="seccion">
+      <h3 class="rotulo">Paso 2</h3>
+      <h2>¿Quién eres?</h2>
+      <p class="pie">Es para avisarte si algo cambia de última hora.</p>
+
+      <div class="campos">
+        <div class="campo" id="campo-nombre">
+          <label for="nombre">Nombre completo</label>
+          <input type="text" id="nombre" name="nombre" autocomplete="name"
+                 placeholder="Como quieres que aparezca en el video" maxlength="90">
+          <p class="error">Falta tu nombre.</p>
+        </div>
+
+        <div class="campo" id="campo-equipo">
+          <label for="equipo">Equipo o disciplina</label>
+          <input type="text" id="equipo" name="equipo" list="disciplinas"
+                 placeholder="Voleibol femenino, flag, tae kwon do…" maxlength="70">
+          <datalist id="disciplinas">
+            <option value="Flag femenil"></option>
+            <option value="Voleibol femenino"></option>
+            <option value="Voleibol masculino"></option>
+            <option value="Tae kwon do"></option>
+          </datalist>
+          <p class="error">Falta tu equipo o disciplina.</p>
+        </div>
+
+        <div class="dos">
+          <div class="campo" id="campo-tel">
+            <label for="tel">WhatsApp</label>
+            <input type="tel" id="tel" name="tel" inputmode="tel" autocomplete="tel"
+                   placeholder="664 000 0000" maxlength="25">
+            <p class="error">Falta tu teléfono, o le faltan números.</p>
+          </div>
+          <div class="campo" id="campo-correo">
+            <label for="correo">Correo</label>
+            <input type="email" id="correo" name="correo" autocomplete="email"
+                   placeholder="tucuenta@tijuana.ibero.mx" maxlength="90">
+            <p class="error">Ese correo no se ve bien escrito.</p>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="enviar" id="enviar">Apartar mi lugar</button>
+      <p class="aviso" id="aviso"></p>
+      <p class="letra-chica">Tus datos los usa nada más Diseño y Medios de la IBERO Tijuana
+        para organizar esta grabación y avisarte si algo cambia. No se comparten con nadie más.</p>
+    </section>
+  </form>
+
+  <section class="gracias" id="gracias">
+    <div class="palomita"><svg viewBox="0 0 24 24"><path d="M4 12.5l5.5 5.5L20 7"/></svg></div>
+    <h2>Quedaste apuntado</h2>
+    <p style="color:var(--tinta-media);font-size:17px">Te esperamos. Si algo cambia te
+      escribimos al WhatsApp que dejaste.</p>
+    <div class="cuando" id="gracias-cuando"></div>
+    <p class="folio">Tu acuse, por si necesitas preguntar<b id="gracias-folio"></b></p>
+    <p class="otra">¿Te equivocaste en algo? <button type="button" id="otra">Llenar de nuevo</button></p>
+  </section>
+
+</main>
+
+<p class="firma"><b>Diseño y Medios</b> · Comunicación e Imagen Institucional ·
+  Universidad Iberoamericana Tijuana</p>
+
+<script>
+'use strict';
+
+/* ══════════════ a dónde se mandan las respuestas ══════════════
+   La llave publicable está hecha para vivir en el navegador de
+   cualquiera: lo que protege los datos son las reglas de permiso de
+   la base, que dejan ESCRIBIR a cualquiera y LEER sólo al equipo.
+   Es la misma de LA PIZARRA. La secreta nunca va aquí.          */
+const BASE  = 'https://wrezcukptrtmnhnlxmao.supabase.co';
+const LLAVE = 'sb_publishable_XTkkarWw-P3Ls31g5ZDTOA_ZghkWshN';
+const TABLA = 'grabaciones_intersuj';
+
+const DIAS = JSON.parse(document.getElementById('dias-datos').textContent);
+
+const SEMANA = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+const MESES  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+/* Se arma a mediodía a propósito: con 'AAAA-MM-DD' el navegador
+   entiende UTC y en Tijuana la fecha se recorre un día para atrás. */
+const comoFecha = f => { const [a,m,d] = f.split('-').map(Number); return new Date(a, m-1, d, 12); };
+
+const enPalabras = d => {
+  const f = comoFecha(d.fecha);
+  return SEMANA[f.getDay()] + ' ' + f.getDate() + ' de ' +
+         ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+          'septiembre','octubre','noviembre','diciembre'][f.getMonth()] +
+         ', de ' + d.desde + ' a ' + d.hasta;
+};
+
+/* ───────── pintar los días ───────── */
+(function(){
+  const caja = document.getElementById('dias');
+  DIAS.forEach((d, n) => {
+    const f = comoFecha(d.fecha);
+    const et = document.createElement('label');
+    et.className = 'dia';
+    et.innerHTML =
+      '<input type="radio" name="dia" value="' + d.id + '">' +
+      '<span class="caja">' +
+        '<span class="num"><span class="d"></span><span class="m"></span></span>' +
+        '<span class="txt"><span class="sem"></span><span class="hora"></span>' +
+          '<span class="lugar"></span></span>' +
+        '<span class="marca"></span>' +
+      '</span>';
+    et.querySelector('.d').textContent   = f.getDate();
+    et.querySelector('.m').textContent   = MESES[f.getMonth()];
+    et.querySelector('.sem').textContent = SEMANA[f.getDay()];
+    et.querySelector('.hora').textContent = d.desde + ' a ' + d.hasta + ' h';
+    et.querySelector('.lugar').textContent = d.lugar + (d.nota ? ' · ' + d.nota : '');
+    caja.appendChild(et);
+  });
+})();
+
+/* ───────── el banner ─────────
+   Va MUDO a propósito: ningún navegador deja que un video arranque
+   solo con sonido, y el clip se publica sin pista de audio.
+
+   Si la página abre en una pestaña de fondo, Chrome no deja arrancar
+   el video y al volver se queda congelado en el primer cuadro. Por eso
+   se reintenta cuando la pestaña se ve. Y se pausa cuando el banner
+   sale de pantalla, que en el celular es casi todo el rato: así no
+   gasta batería ni datos de quien está llenando el formulario. */
+(function(){
+  const v = document.getElementById('clip');
+  const correr = () => { if (v.paused) v.play().catch(() => {}); };
+
+  correr();
+  v.addEventListener('loadeddata', correr);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') correr();
+  });
+
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) correr();
+      else if (!v.paused) v.pause();
+    }, { threshold: 0.12 }).observe(v);
+  }
+})();
+
+/* ───────── validar y mandar ───────── */
+(function(){
+  const forma  = document.getElementById('forma');
+  const gracias= document.getElementById('gracias');
+  const boton  = document.getElementById('enviar');
+  const aviso  = document.getElementById('aviso');
+
+  const campo = id => document.getElementById('campo-' + id);
+  const val   = id => document.getElementById(id).value.trim();
+
+  function marcar(id, mal){
+    campo(id).classList.toggle('mal', mal);
+    return !mal;
+  }
+  function avisar(t){
+    aviso.textContent = t || '';
+    aviso.classList.toggle('visible', !!t);
+  }
+
+  /* se quita el aviso en cuanto corrigen, para no dejarlo en rojo */
+  ['nombre','equipo','tel','correo'].forEach(id =>
+    document.getElementById(id).addEventListener('input', () => campo(id).classList.remove('mal')));
+  forma.addEventListener('change', e => {
+    if (e.target.name === 'dia') campo('dia').classList.remove('mal');
+  });
+
+  /* Alfabeto sin I, O, 0 ni 1: el acuse se dicta por teléfono y esas
+     cuatro se confunden siempre. Igual que los folios de LA PIZARRA. */
+  function folio(){
+    const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const n = new Uint32Array(8);
+    crypto.getRandomValues(n);
+    return [...n].map(x => abc[x % abc.length]).join('');
+  }
+
+  forma.addEventListener('submit', async e => {
+    e.preventDefault();
+    avisar('');
+
+    const elegido = forma.querySelector('input[name="dia"]:checked');
+    const correo  = val('correo');
+    const tel     = val('tel');
+
+    const bien = [
+      marcar('dia',    !elegido),
+      marcar('nombre', val('nombre').length < 3),
+      marcar('equipo', val('equipo').length < 2),
+      // 10 dígitos de un celular mexicano; se cuentan los dígitos, no el
+      // formato, para que valgan los espacios, guiones y el +52
+      marcar('tel',    (tel.match(/\d/g) || []).length < 10),
+      marcar('correo', !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(correo)),
+    ].every(Boolean);
+
+    if (!bien){
+      const primero = document.querySelector('.campo.mal');
+      if (primero) primero.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return;
+    }
+
+    const dia = DIAS.find(d => d.id === elegido.value);
+    const acuse = folio();
+
+    boton.disabled = true;
+    boton.textContent = 'Apartando…';
+
+    try {
+      const r = await fetch(BASE + '/rest/v1/' + TABLA, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': LLAVE,
+          'Authorization': 'Bearer ' + LLAVE,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          folio:    acuse,
+          nombre:   val('nombre'),
+          equipo:   val('equipo'),
+          telefono: tel,
+          correo:   correo,
+          dia_id:   dia.id,
+          dia_fecha: dia.fecha,
+          dia_desde: dia.desde,
+          dia_hasta: dia.hasta,
+          flexible: document.getElementById('flexible').checked,
+        }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' · ' + (await r.text()).slice(0, 200));
+
+      document.getElementById('gracias-cuando').textContent = enPalabras(dia);
+      document.getElementById('gracias-folio').textContent  = acuse;
+      forma.style.display = 'none';
+      gracias.classList.add('visible');
+      gracias.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+    } catch (err) {
+      // El dato no se pierde por un mal momento de la red: se dice qué
+      // pasó y por dónde avisar, en vez de dejarlo en "algo salió mal".
+      avisar('No se pudo guardar tu registro. Revisa tu conexión y dale otra vez. ' +
+             'Si sigue sin pasar, escríbenos a diseno@tijuana.ibero.mx y te apuntamos a mano.');
+      console.error(err);
+    } finally {
+      boton.disabled = false;
+      boton.textContent = 'Apartar mi lugar';
+    }
+  });
+
+  document.getElementById('otra').addEventListener('click', () => {
+    forma.reset();
+    forma.style.display = '';
+    gracias.classList.remove('visible');
+    document.querySelectorAll('.campo.mal').forEach(c => c.classList.remove('mal'));
+    forma.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+})();
+</script>
+</body>
+</html>
