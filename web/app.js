@@ -8991,14 +8991,18 @@ const NOVEDADES = [
       { t: 'Las tarjetas que apartan asientos',
         d: 'Las pidió Eventos Institucionales. Se pega la lista —un lugar por ' +
            'renglón— y salen listas. Un renglón vacío hace una que sólo dice ' +
-           'RESERVADO, y hay un deslizador para pedir doce de golpe.' },
-      { t: 'Dos acomodos',
-        d: 'Plana, dos por hoja carta para recortar —la misma tarjeta que ya ' +
-           'usaban, 7.83 × 3.98 pulgadas, pero sin gastar una hoja por cada una— ' +
-           'o de tienda, que se dobla y se para sola sobre el asiento.' },
+           'RESERVADO, y hay un deslizador para pedir ochenta de golpe.' },
+      { t: 'Ocho por hoja, y casi sin tinta',
+        d: 'Miden 10 × 6.5 cm y van pegadas entre sí, así que la hoja entera se ' +
+           'corta con 1 tajo vertical y 3 horizontales. El formato anterior era ' +
+           'un rectángulo de rojo macizo y salían dos por hoja: cuarenta tarjetas ' +
+           'ocupaban 20 hojas y ahora caben en 5, con el 0.5 % de la tinta roja.' },
+      { t: 'Sólo una raya es de color',
+        d: 'El resto va en negro y gris. La raya se puede poner arriba, debajo del ' +
+           'rótulo o como pleca al filo izquierdo, y se le cambia largo y grosor.' },
       { t: 'Se puede pegar directo del Excel',
-        d: 'Si traes nombre y programa en columnas, al pegarlo los separa solo: ' +
-           'el programa sale abajo y más chico.' },
+        d: 'Si traes nombre y programa en columnas, al pegarlo los separa solo: el ' +
+           'programa sale abajo y más chico.' },
     ],
   },
   {
