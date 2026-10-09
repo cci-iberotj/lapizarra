@@ -8984,6 +8984,24 @@ async function pasarAdentro(usuario) {
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
   {
+    clave: '2026-10-08-z',
+    version: '2026-10-08',
+    titulo: 'Herramienta nueva: lugares reservados',
+    puntos: [
+      { t: 'Las tarjetas que apartan asientos',
+        d: 'Las pidió Eventos Institucionales. Se pega la lista —un lugar por ' +
+           'renglón— y salen listas. Un renglón vacío hace una que sólo dice ' +
+           'RESERVADO, y hay un deslizador para pedir doce de golpe.' },
+      { t: 'Dos acomodos',
+        d: 'Plana, dos por hoja carta para recortar —la misma tarjeta que ya ' +
+           'usaban, 7.83 × 3.98 pulgadas, pero sin gastar una hoja por cada una— ' +
+           'o de tienda, que se dobla y se para sola sobre el asiento.' },
+      { t: 'Se puede pegar directo del Excel',
+        d: 'Si traes nombre y programa en columnas, al pegarlo los separa solo: ' +
+           'el programa sale abajo y más chico.' },
+    ],
+  },
+  {
     clave: '2026-10-07-d',
     version: '2026-10-07',
     titulo: 'Firmas: ya se puede elegir el diseño nuevo',
