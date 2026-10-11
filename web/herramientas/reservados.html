@@ -101,9 +101,16 @@ textarea { min-height: 220px; resize: vertical; line-height: 1.5; }
 .cuenta b { color: var(--tinta); }
 
 .hoja { width: 21.59cm; height: 27.94cm; background: #fff; margin: 0 auto 18px;
-        box-shadow: 0 1px 10px rgba(0,0,0,.10); position: relative; overflow: hidden;
-        display: flex; align-items: center; justify-content: center; }
-.rejilla { display: grid; grid-template-columns: repeat(var(--cols), var(--ancho));
+        box-shadow: 0 1px 10px rgba(0,0,0,.10); position: relative; overflow: hidden; }
+
+/* LA REJILLA ARRANCA SIEMPRE EN EL MISMO PUNTO, no centrada.
+   Estaba centrada en la hoja y con menos de ocho tarjetas la fila
+   se despegaba de las guias de corte, que si estan en sitio fijo.
+   Ahora llena de arriba hacia abajo desde el origen de la rejilla
+   --0.795 y 0.97 cm, que es (hoja - 2x10) / 2 y (hoja - 4x6.5) / 2--
+   asi que la primera tarjeta cae siempre en la misma casilla. */
+.rejilla { position: absolute; left: .795cm; top: .97cm;
+           display: grid; grid-template-columns: repeat(var(--cols), var(--ancho));
            grid-auto-rows: var(--alto); gap: 0; }
 
 /* Las tarjetas van PEGADAS: dos contiguas comparten linea de corte,
@@ -254,19 +261,26 @@ function tarjeta(t, palabra) {
 
 /* Las marcas caen en las lineas de la rejilla, prolongadas al
    margen. Se calculan de la medida, no se dibujan a mano. */
-function marcas() {
+function marcas(cuantas) {
+  const cols = Math.min(cuantas, COLS);
+  const filas = Math.ceil(cuantas / COLS);
   const mx = (CARTA.w - COLS * TARJETA.w) / 2;
   const my = (CARTA.h - FILAS * TARJETA.h) / 2;
+  const usadoX = cols * TARJETA.w, usadoY = filas * TARJETA.h;
+  const RAYITA = 0.4;
   const t = [];
-  for (let c = 0; c <= COLS; c++) {
+  /* Solo las lineas de lo que REALMENTE se imprimio en esta hoja: una
+     guia donde no hay tarjeta invita a un corte de mas. Y van pegadas
+     al area usada, no al borde del papel. */
+  for (let c = 0; c <= cols; c++) {
     const x = mx + c * TARJETA.w;
-    t.push(`<i class="v" style="left:${x}cm;top:0"></i>`);
-    t.push(`<i class="v" style="left:${x}cm;bottom:0"></i>`);
+    t.push(`<i class="v" style="left:${x}cm;top:${my - RAYITA}cm"></i>`);
+    t.push(`<i class="v" style="left:${x}cm;top:${my + usadoY}cm"></i>`);
   }
-  for (let f = 0; f <= FILAS; f++) {
+  for (let f = 0; f <= filas; f++) {
     const y = my + f * TARJETA.h;
-    t.push(`<i class="h" style="top:${y}cm;left:0"></i>`);
-    t.push(`<i class="h" style="top:${y}cm;right:0"></i>`);
+    t.push(`<i class="h" style="top:${y}cm;left:${mx - RAYITA}cm"></i>`);
+    t.push(`<i class="h" style="top:${y}cm;left:${mx + usadoX}cm"></i>`);
   }
   return `<div class="marcas">${t.join("")}</div>`;
 }
@@ -316,8 +330,9 @@ function pintar() {
 
   const hojas = [];
   for (let i = 0; i < lista.length; i += POR_HOJA) {
-    hojas.push(`<div class="hoja">${marcas()}<div class="rejilla">${
-      lista.slice(i, i + POR_HOJA).map(t => tarjeta(t, palabra)).join("")
+    const tanda = lista.slice(i, i + POR_HOJA);
+    hojas.push(`<div class="hoja">${marcas(tanda.length)}<div class="rejilla">${
+      tanda.map(t => tarjeta(t, palabra)).join("")
     }</div></div>`);
   }
   $("hojas").innerHTML = hojas.join("") ||
