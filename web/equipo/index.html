@@ -148,23 +148,40 @@ details.inventario[open] > summary::before { content: '▾ '; }
 .chip-filtro[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 
 /* ── Grupos por prioridad ────────────────────────────────── */
-details.grupo { margin-top: 14px; border-top: 2px solid var(--color-grupo); }
+/* Cada grupo es una barra sólida con el color de su prioridad: es el índice
+   del presupuesto y tiene que leerse como tal, no como un texto más. */
+details.grupo { margin-top: 12px; }
 details.grupo > summary {
-  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px;
-  flex-wrap: wrap; padding: 9px 2px; min-height: 44px;
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; padding: 12px 15px 12px 13px; min-height: 52px;
+  background: var(--velo-grupo); border: 1px solid var(--color-grupo);
+  border-left: 5px solid var(--color-grupo); border-radius: var(--radio);
+  transition: filter .15s;
 }
+details.grupo > summary:hover { filter: brightness(.975); }
+details.grupo[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 details.grupo > summary::-webkit-details-marker { display: none; }
-details.grupo > summary::before {
-  content: ''; width: 0; height: 0; flex: none;
-  border-left: 5px solid var(--color-grupo); border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+details.grupo > summary::after {
+  content: ''; order: 9; width: 0; height: 0; flex: none;
+  border-left: 6px solid var(--color-grupo); border-top: 5px solid transparent; border-bottom: 5px solid transparent;
   transition: transform .15s;
 }
-details.grupo[open] > summary::before { transform: rotate(90deg); }
-.grupo h3 { font: 700 14px/1.2 var(--sans); margin: 0; color: var(--color-grupo);
-  text-transform: uppercase; letter-spacing: .07em; }
-.grupo .que { margin: 0; color: var(--tinta-tenue); font-size: 13.5px; flex: 1; min-width: 160px; }
-.grupo .subtotal { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
-.grupo .cuantas { font-size: 13px; color: var(--tinta-tenue); font-variant-numeric: tabular-nums; }
+details.grupo[open] > summary::after { transform: rotate(90deg); }
+.g-nombre { display: flex; flex-direction: column; gap: 2px; flex: none; }
+.grupo h3 { font: 700 15px/1.1 var(--sans); margin: 0; color: var(--color-grupo);
+  text-transform: uppercase; letter-spacing: .08em; }
+.g-cuantas { font-size: 12px; color: var(--tinta-media); font-variant-numeric: tabular-nums; }
+.g-que { color: var(--tinta-media); font-size: 13.5px; flex: 1; min-width: 150px; }
+.grupo .subtotal { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 18px;
+  color: var(--color-grupo); margin-left: auto; }
+/* el contenido cuelga de la barra, con una guía del mismo color */
+.g-lista { border: 1px solid var(--linea); border-top: 0; border-left: 5px solid var(--color-grupo);
+  border-radius: 0 0 var(--radio) var(--radio); padding: 9px 9px 5px; background: var(--capa-1); }
+@media (max-width: 560px) {
+  details.grupo > summary { gap: 6px 10px; padding: 10px 12px 10px 11px; }
+  .g-que { display: none; }
+  .grupo .subtotal { font-size: 16px; }
+}
 
 /* ── Tarjeta de necesidad ────────────────────────────────── */
 /* De tarjeta a renglón: en una pantalla caben las 18, y cada una se abre
@@ -384,7 +401,8 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
   .barra { position: static; background: #fff; border: 0; }
   .paquetes, .acciones-barra, .filtros, .n-pie .pie-der, .agregar, .nuevo-com, .hilo:empty, .solo-pantalla { display: none !important; }
   /* las flechas de desplegar no significan nada en papel */
-  .n-abrir::after, details.grupo > summary::before, details.plegable > summary::before { display: none !important; }
+  .n-abrir::after, details.grupo > summary::after, details.plegable > summary::before { display: none !important; }
+  .g-lista { border: 0; padding: 6px 0 0; background: none; }
   .n-abrir { padding: 8px 0; cursor: default; }
   details.plegable > summary .cuantos, .grupo .cuantas { display: none; }
   .necesidad { box-shadow: none; border: 1px solid var(--linea); break-inside: avoid; }
@@ -441,10 +459,14 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
 /* En este orden se leen: primero lo que de verdad urge. Los arreglos van
    después de lo importante porque cuestan poco y se aprueban de corrido. */
 const PRIORIDADES = [
-  { id: 'urgente',    nombre: 'Urgente',          que: 'Sin esto hay riesgo de no poder cubrir.',          color: 'var(--peligro)' },
-  { id: 'importante', nombre: 'Importante',       que: 'Para la calidad que pide lo que está planeado.',   color: 'var(--alerta)' },
-  { id: 'arreglo',    nombre: 'Arreglos rápidos', que: 'Cuestan poco y destraban equipo que ya tenemos.', color: 'var(--tinta-media)' },
-  { id: 'deseable',   nombre: 'Deseable',         que: 'Crecimiento: abre formatos nuevos.',               color: 'var(--info)' },
+  { id: 'urgente',    nombre: 'Urgente',          que: 'Sin esto hay riesgo de no poder cubrir.',
+    color: 'var(--peligro)',     velo: 'var(--peligro-velo)' },
+  { id: 'importante', nombre: 'Importante',       que: 'Para la calidad que pide lo que está planeado.',
+    color: 'var(--alerta)',      velo: 'var(--alerta-velo)' },
+  { id: 'arreglo',    nombre: 'Arreglos rápidos', que: 'Cuestan poco y destraban equipo que ya tenemos.',
+    color: 'var(--tinta-media)', velo: 'var(--capa-1)' },
+  { id: 'deseable',   nombre: 'Deseable',         que: 'Crecimiento: abre formatos nuevos.',
+    color: 'var(--info)',        velo: 'var(--info-velo)' },
 ];
 const PAQUETES = [
   { id: 'minimo',      nombre: 'Mínimo',      prioridades: ['arreglo', 'urgente'] },
@@ -520,9 +542,12 @@ const hilosAbiertos = new Set();
 /* Qué está desplegado. Como pintar() rehace todo el HTML, hay que
    acordarse aparte o se cerraría solo con cada guardado. */
 const necesidadesAbiertas = new Set();
-const gruposCerrados = new Set(leerLocal('equipo.cerrados') ? leerLocal('equipo.cerrados').split(',').filter(Boolean) : []);
-/* Deseable y arreglos empiezan plegados: son los que menos se discuten. */
-if (!leerLocal('equipo.cerrados')) { gruposCerrados.add('deseable'); gruposCerrados.add('arreglo'); }
+/* Al entrar por primera vez están los CUATRO cerrados: lo primero que se ve
+   es el panorama —cuánto cuesta cada grupo y cuántas cosas trae— y de ahí se
+   abre lo que se quiera mirar. Después se respeta lo que cada quien deje. */
+const gruposCerrados = new Set(leerLocal('equipo.cerrados') !== null
+  ? leerLocal('equipo.cerrados').split(',').filter(Boolean)
+  : PRIORIDADES.map(p => p.id));
 
 function necesidades() { return (T && T.necesidades) || []; }
 function opcionElegida(n) {
@@ -728,10 +753,17 @@ function pintarGrupo(p, lista) {
   const sub = lista.filter(n => cuenta(n) && n.incluida).reduce((s, n) => s + costo(n), 0);
   lista.sort((a, b) => (a.orden || 0) - (b.orden || 0));
   const abierto = !gruposCerrados.has(p.id);
-  return `<details class="grupo" data-grupo="${esc(p.id)}" style="--color-grupo:${p.color}"${abierto ? ' open' : ''}>
-    <summary><h3>${esc(p.nombre)}</h3><span class="cuantas">${lista.length}</span>
-      <p class="que">${esc(p.que)}</p><span class="subtotal">${pesos(sub)}</span></summary>
-    ${lista.map(pintarNecesidad).join('')}
+  const dentro = lista.filter(n => cuenta(n) && n.incluida).length;
+  return `<details class="grupo" data-grupo="${esc(p.id)}"
+      style="--color-grupo:${p.color};--velo-grupo:${p.velo}"${abierto ? ' open' : ''}>
+    <summary>
+      <span class="g-nombre"><h3>${esc(p.nombre)}</h3>
+        <span class="g-cuantas">${dentro === lista.length ? lista.length
+          : dentro + ' de ' + lista.length} ${lista.length === 1 ? 'cosa' : 'cosas'}</span></span>
+      <span class="g-que">${esc(p.que)}</span>
+      <span class="subtotal">${pesos(sub)}</span>
+    </summary>
+    <div class="g-lista">${lista.map(pintarNecesidad).join('')}</div>
   </details>`;
 }
 
