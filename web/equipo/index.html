@@ -259,11 +259,8 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
 }
 .agregar:hover { border-color: var(--marca); color: var(--marca); }
 
-/* ── Comentarios generales y movimientos ─────────────────── */
+/* ── Comentarios generales ───────────────────────────────── */
 .panel { background: var(--capa-2); border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 15px; }
-.movimiento { font-size: 14.5px; padding: 5px 0; color: var(--tinta-media); border-bottom: 1px solid var(--capa-0); }
-.movimiento b { color: var(--tinta); }
-.movimiento time { color: var(--tinta-tenue); font-size: 13px; margin-left: 6px; }
 
 footer { padding-top: 30px; padding-bottom: 60px; color: var(--tinta-tenue); font-size: 14px; }
 
@@ -335,7 +332,7 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
   * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   body { background: #fff; font-size: 12px; }
   .barra { position: static; background: #fff; border: 0; }
-  .paquetes, .acciones-barra, .filtros, .n-pie .pie-der, .agregar, .nuevo-com, #seccionMovs, .hilo:empty, .solo-pantalla { display: none !important; }
+  .paquetes, .acciones-barra, .filtros, .n-pie .pie-der, .agregar, .nuevo-com, .hilo:empty, .solo-pantalla { display: none !important; }
   /* las flechas de desplegar no significan nada en papel */
   .n-abrir::after, details.grupo > summary::before, details.plegable > summary::before { display: none !important; }
   .n-abrir { padding: 8px 0; cursor: default; }
@@ -522,8 +519,10 @@ async function ajustar(n, cambios, que) {
   try {
     const hora = await rpc('compras_ajustar', { p_codigo: codigo, p_id: n.id, p_cambios: cambios, p_autor: autor, p_que: que || '' });
     version = hora;
+    // Se sigue apuntando en memoria aunque ya no haya lista en pantalla:
+    // de aquí sale el aviso de 'fulano cambió algo' cuando mueven el
+    // tablero desde otra computadora.
     if (que) T.movimientos.unshift({ necesidad: n.id, autor, que, creado: hora });
-    pintarMovimientos();
     return true;
   } catch (e) {
     Object.assign(n, antes); pintar();
@@ -626,10 +625,6 @@ function pintar() {
           <summary>Comentarios generales<span class="cuantos">${T.comentarios.filter(c => !c.necesidad).length || ''}</span></summary>
           <div class="adentro">${pintarHilo('')}</div>
         </details>
-        <details class="plegable">
-          <summary>Movimientos recientes<span class="cuantos">${(T.movimientos || []).length}</span></summary>
-          <div class="adentro" id="movimientos"></div>
-        </details>
       </section>
     </main>
 
@@ -637,7 +632,6 @@ function pintar() {
       Diseño y Medios · IBERO Tijuana · Precios de referencia en tiendas de México${aj.fecha_precios ? ', consultados el ' + esc(aj.fecha_precios) : ''}. Sirven para dimensionar; la compra se cotiza formalmente.
     </footer>`;
 
-  pintarMovimientos();
   vigilarGrupos();
   Object.entries(borradores).forEach(([k, v]) => { const t = $(`.nuevo-com textarea[data-nec="${k}"]`); if (t) t.value = v; });
   if (enfocado != null) { const t = $(`.nuevo-com textarea[data-nec="${enfocado}"]`); if (t) t.focus(); }
@@ -754,15 +748,6 @@ function vigilarGrupos() {
     d.open ? gruposCerrados.delete(d.dataset.grupo) : gruposCerrados.add(d.dataset.grupo);
     guardarLocal('equipo.cerrados', [...gruposCerrados].join(','));
   }));
-}
-
-function pintarMovimientos() {
-  const cont = $('#movimientos'); if (!cont) return;
-  const movs = (T.movimientos || []).slice(0, 25);
-  const titulo = id => (necesidades().find(n => n.id === id) || {}).titulo || '';
-  cont.innerHTML = movs.length ? movs.map(m => `<div class="movimiento"><b>${esc(m.autor || 'Alguien')}</b> ${esc(m.que)}${
-      m.necesidad && titulo(m.necesidad) && !/«/.test(m.que) ? ' en «' + esc(titulo(m.necesidad)) + '»' : ''}<time>${hace(m.creado)}</time></div>`).join('')
-    : '<p style="margin:0;color:var(--tinta-tenue)">Todavía nadie ha movido nada.</p>';
 }
 
 /* ── Editor ──────────────────────────────────────────────── */
