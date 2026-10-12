@@ -227,6 +227,13 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
 .opcion input { position: absolute; left: 11px; top: 12px; width: 16px; height: 16px; accent-color: var(--marca); margin: 0; }
 .opcion.elegida { border-color: var(--marca); background: #FCF7F8; }
 .opciones.sola .opcion { padding-left: 12px; cursor: default; }
+/* La foto de una opción de un solo producto va arriba, a lo ancho: es LA
+   foto de esa opción, no una miniatura de lista. */
+.opcion.con-foto .o-foto {
+  display: block; width: 100%; height: 108px; object-fit: contain;
+  background: #fff; border-radius: 5px; margin: 0 0 8px;
+}
+.opciones.sola .opcion.con-foto .o-foto { height: 150px; object-position: left center; }
 .o-nombre { font-weight: 600; display: block; line-height: 1.3; font-size: 14.5px; }
 .o-detalle { display: block; font-size: 13.5px; color: var(--tinta-media); margin-top: 3px; }
 .o-precio { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-top: 8px; font-variant-numeric: tabular-nums; }
@@ -241,6 +248,15 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
   display: grid; grid-template-columns: 1fr auto; gap: 0 10px;
   padding: 7px 0 6px; border-bottom: 1px solid var(--capa-0); font-size: 13.5px;
 }
+/* Con foto, la miniatura va a la izquierda y el texto se recorre. El fondo
+   blanco es porque casi todas las fotos de tienda vienen recortadas sobre
+   blanco y así no se nota el borde. */
+.parte.con-foto { grid-template-columns: 54px 1fr auto; }
+.p-foto {
+  grid-row: 1 / 3; width: 54px; height: 54px; object-fit: contain;
+  background: #fff; border: 1px solid var(--linea); border-radius: 6px; padding: 3px;
+}
+.parte.con-foto .p-donde { grid-column: 2 / -1; }
 .parte:last-child { border-bottom: 0; padding-bottom: 0; }
 .p-que { color: var(--tinta); line-height: 1.35; }
 .p-que b { font-weight: 700; }
@@ -304,6 +320,8 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
 .ed-partes-tit { font-size: 12.5px; font-weight: 700; color: var(--tinta-tenue); margin-bottom: 6px; }
 .ed-parte { border: 1px solid var(--linea); border-radius: 8px; padding: 10px 10px 2px; margin-bottom: 8px; background: var(--capa-2); }
 .ed-parte-pie { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ed-foto { display: block; width: 70px; height: 70px; object-fit: contain; background: #fff;
+  border: 1px solid var(--linea); border-radius: 6px; padding: 3px; margin: 0 0 10px; }
 .boton.chico { padding: 7px 12px; font-size: 13.5px; min-height: 38px; }
 .ed-opcion-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; font-size: 14px; color: var(--tinta-tenue); }
 .check-linea { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 14.5px; }
@@ -363,6 +381,8 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
   details.plegable > summary .cuantos, .grupo .cuantas { display: none; }
   .necesidad { box-shadow: none; border: 1px solid var(--linea); break-inside: avoid; }
   .n-detalle { padding-left: 12px; }
+  .p-foto { width: 40px; height: 40px; }
+  .parte.con-foto { grid-template-columns: 40px 1fr auto; }
   .necesidad.fuera { display: none; }
   .opcion:not(.elegida) { display: none; }
   .dato, .panel, details.inventario { box-shadow: none; border: 1px solid var(--linea); }
@@ -726,8 +746,10 @@ function pintarNecesidad(n) {
           ${n.riesgo ? `<p class="riesgo"><b>Si no se compra</b>${esc(n.riesgo)}</p>` : ''}
         </div>
         <div class="opciones${ops.length === 1 ? ' sola' : ''}" role="radiogroup" aria-label="Opciones para ${esc(n.titulo)}">
-          ${ops.map(o => `<label class="opcion${elegida && o.id === elegida.id ? ' elegida' : ''}">
+          ${ops.map(o => `<label class="opcion${elegida && o.id === elegida.id ? ' elegida' : ''}${o.foto && !partesDe(o) ? ' con-foto' : ''}">
             <input type="radio" name="op-${esc(n.id)}" value="${esc(o.id)}" data-opcion ${elegida && o.id === elegida.id ? 'checked' : ''}${ops.length === 1 ? ' hidden' : ''}>
+            ${o.foto && !partesDe(o) ? `<img class="o-foto" src="${esc(o.foto)}" alt="" loading="lazy"
+               onerror="this.closest('.opcion').classList.remove('con-foto');this.remove()">` : ''}
             <span class="o-nombre">${esc(o.nombre)}</span>
             ${o.detalle ? `<span class="o-detalle">${esc(o.detalle)}</span>` : ''}
             <span class="o-precio">
@@ -763,7 +785,9 @@ function pintarPartes(o) {
   return `<span class="partes">${partes.map(p => {
     const cant = Number(p.cantidad) || 1;
     const sub = (Number(p.precio) || 0) * cant;
-    return `<span class="parte">
+    return `<span class="parte${p.foto ? ' con-foto' : ''}">
+      ${p.foto ? `<img class="p-foto" src="${esc(p.foto)}" alt="" loading="lazy"
+         onerror="this.closest('.parte').classList.remove('con-foto');this.remove()">` : ''}
       <span class="p-que">${cant > 1 ? `<b>${cant}×</b> ` : ''}${esc(p.nombre)}</span>
       <span class="p-precio">${p.precio == null || p.precio === '' ? 'Por cotizar' : pesos(sub)}${
         cant > 1 && p.precio ? `<small>${pesos(p.precio)} c/u</small>` : ''}</span>
@@ -841,6 +865,7 @@ function pintarEditor() {
         <div class="ed-opcion-cabeza">Opción ${i + 1}${e.opciones.length > 1 ? `<button type="button" class="boton-texto" data-quitar-op="${i}">Quitar opción</button>` : ''}</div>
         <label class="campo"><span>Nombre</span><input data-k="nombre" value="${esc(o.nombre)}" maxlength="90" placeholder="Ej. Rode VideoMic NTG"></label>
         <label class="campo"><span>Por qué esta opción</span><input data-k="detalle" value="${esc(o.detalle)}" maxlength="220"></label>
+        <label class="campo"><span>Foto de la opción · se usa cuando es un solo producto</span><input data-k="foto" value="${esc(o.foto)}" placeholder="https://…jpg"></label>
         <div class="ed-partes">
           <div class="ed-partes-tit">Productos · uno por renglón, cada uno con su precio y su liga</div>
           ${(o.partes && o.partes.length ? o.partes : [{ nombre: o.nombre || '', precio: o.precio,
@@ -854,6 +879,10 @@ function pintarEditor() {
                 <label class="campo"><span>Tienda</span><input data-p="tienda" value="${esc(p.tienda)}" maxlength="60"></label>
               </div>
               <label class="campo"><span>Liga</span><input data-p="url" value="${esc(p.url)}" placeholder="https://…"></label>
+              <label class="campo"><span>Foto · pega la dirección de la imagen del producto</span>
+                <input data-p="foto" value="${esc(p.foto)}" placeholder="https://…jpg">
+              </label>
+              ${p.foto ? `<img class="ed-foto" src="${esc(p.foto)}" alt="" onerror="this.remove()">` : ''}
               <div class="ed-parte-pie">
                 <label class="check-linea" style="margin:0"><input type="checkbox" data-p="estimado" ${p.estimado ? 'checked' : ''}> Precio estimado</label>
                 <button type="button" class="boton-texto" data-quitar-parte="${i}:${j}">Quitar producto</button>
@@ -889,6 +918,8 @@ function leerEditor() {
       return p;
     }).filter(p => p.nombre);
     o.partes = partes;
+    /* la foto de la opción NO se borra: es la que se usa cuando el producto
+       es uno solo y no hay fichas que la lleven */
     delete o.precio; delete o.cantidad; delete o.estimado; delete o.ligas; delete o.url; delete o.tienda;
     $$('[data-k]', div).forEach(inp => {
       const k = inp.dataset.k;
