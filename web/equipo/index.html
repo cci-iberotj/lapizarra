@@ -208,6 +208,14 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
 .sello.comprada   { background: var(--info-velo); color: var(--info); }
 .sello.descartada { background: var(--capa-0); color: var(--tinta-tenue); }
 
+/* La foto de la necesidad: cuando las opciones son el MISMO producto (el
+   teleobjetivo rentado o comprado), la foto pertenece arriba y no dentro de
+   una de las opciones. */
+.n-foto {
+  float: right; width: 150px; height: 112px; object-fit: contain; background: #fff;
+  border: 1px solid var(--linea); border-radius: 7px; padding: 5px; margin: 8px 0 8px 16px;
+}
+@media (max-width: 560px) { .n-foto { float: none; display: block; width: 100%; height: 150px; margin: 8px 0; } }
 .n-textos { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 20px; margin: 10px 0 12px; }
 .n-textos p { margin: 0; font-size: 14.5px; color: var(--tinta-media); }
 .n-textos p b { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); margin-bottom: 2px; }
@@ -535,6 +543,15 @@ function hayEstimado(o) {
   const p = partesDe(o);
   return p ? p.some(x => x.estimado) : !!(o && o.estimado);
 }
+/* Sin precio no se dice cero: cero es una afirmación y "por cotizar" es la
+   verdad. Si sólo falta el precio de ALGUNA ficha, se dice desde cuánto. */
+const sinPrecio = x => x == null || x === '' || x.precio === null || x.precio === '';
+function cotizacion(o) {
+  const p = partesDe(o);
+  if (!p) return (o.precio == null || o.precio === '') ? 'falta' : 'completa';
+  if (p.every(x => x.precio == null || x.precio === '')) return 'falta';
+  return p.some(x => x.precio == null || x.precio === '') ? 'parcial' : 'completa';
+}
 function costo(n) { return costoOpcion(opcionElegida(n)); }
 function cuenta(n) { return n.estado !== 'descartada'; }
 function totalDe(filtro) { return necesidades().filter(n => cuenta(n) && filtro(n)).reduce((s, n) => s + costo(n), 0); }
@@ -737,10 +754,13 @@ function pintarNecesidad(n) {
         <span class="chip area-${esc(n.area)}">${esc(nombreDe(AREAS, n.area))}</span>
         ${est !== 'propuesta' ? `<span class="sello ${esc(est)}">${esc(nombreDe(ESTADOS, est))}</span>` : ''}
         ${coms.length ? `<span class="chip area-general" title="${coms.length} comentario(s)">💬 ${coms.length}</span>` : ''}
-        <span class="n-precio">${pesos(costo(n))}${elegida && (Number(elegida.cantidad) || 1) > 1 ? `<small>${elegida.cantidad} × ${pesos(elegida.precio)}</small>` : ''}</span>
+        <span class="n-precio">${elegida && cotizacion(elegida) === 'falta' ? 'Por cotizar'
+          : (elegida && cotizacion(elegida) === 'parcial' ? 'desde ' : '') + pesos(costo(n))}</span>
       </button>
     </div>
     ${!desplegada ? '' : `<div class="n-detalle">
+        ${n.foto ? `<img class="n-foto" src="${esc(n.foto)}" alt="" loading="lazy"
+           onerror="this.remove()">` : ''}
         <div class="n-textos">
           ${n.porque ? `<p><b>Para qué</b>${esc(n.porque)}</p>` : ''}
           ${n.riesgo ? `<p class="riesgo"><b>Si no se compra</b>${esc(n.riesgo)}</p>` : ''}
@@ -753,7 +773,8 @@ function pintarNecesidad(n) {
             <span class="o-nombre">${esc(o.nombre)}</span>
             ${o.detalle ? `<span class="o-detalle">${esc(o.detalle)}</span>` : ''}
             <span class="o-precio">
-              ${!partesDe(o) && (o.precio == null || o.precio === '') ? '<b>Por cotizar</b>' : `<b>${pesos(costoOpcion(o))}</b>`}
+              ${cotizacion(o) === 'falta' ? '<b>Por cotizar</b>'
+                : `<b>${cotizacion(o) === 'parcial' ? 'desde ' : ''}${pesos(costoOpcion(o))}</b>`}
               ${!partesDe(o) && (Number(o.cantidad) || 1) > 1 && o.precio ? `<span class="tenue">${o.cantidad} × ${pesos(o.precio)}</span>` : ''}
               ${hayEstimado(o) ? '<span class="estimado" title="Precio aproximado, sin tienda consultada">estimado</span>' : ''}
               ${partesDe(o) ? '' : pintarLigas(o)}
@@ -859,6 +880,8 @@ function pintarEditor() {
     </div>
     <label class="campo"><span>Para qué</span><textarea id="ed_porque" maxlength="600">${esc(e.porque)}</textarea></label>
     <label class="campo"><span>Si no se compra</span><textarea id="ed_riesgo" maxlength="600">${esc(e.riesgo)}</textarea></label>
+    <label class="campo"><span>Foto de la necesidad · úsala cuando todas las opciones sean el mismo producto</span>
+      <input id="ed_foto" value="${esc(e.foto)}" placeholder="https://…jpg"></label>
     <h3 style="font:700 18px var(--serif);margin:16px 0 10px">Opciones</h3>
     <div id="edOpciones">${e.opciones.map((o, i) => `
       <div class="ed-opcion" data-i="${i}">
@@ -902,6 +925,7 @@ function leerEditor() {
   e.prioridad = $('#ed_prioridad').value;
   e.porque = $('#ed_porque').value.trim();
   e.riesgo = $('#ed_riesgo').value.trim();
+  e.foto = $('#ed_foto').value.trim();
   $$('#edOpciones .ed-opcion').forEach(div => {
     const o = e.opciones[Number(div.dataset.i)];
     /* Las fichas de producto mandan: el precio de la opción sale de sumarlas,
@@ -982,7 +1006,7 @@ $('#dlgEditar').addEventListener('close', async () => {
   e.opciones = e.opciones.filter(o => o.nombre && (o.partes || []).length);
   if (!e.opciones.length) { avisar('Cada opción necesita nombre y al menos un producto.'); return; }
   if (!e.opciones.some(o => o.id === e.elegida)) e.elegida = e.opciones[0].id;
-  const campos = ['titulo', 'area', 'prioridad', 'porque', 'riesgo', 'opciones', 'elegida'];
+  const campos = ['titulo', 'area', 'prioridad', 'porque', 'riesgo', 'foto', 'opciones', 'elegida'];
   const cambios = {}; campos.forEach(k => { cambios[k] = e[k]; });
   if (e._nueva) {
     Object.assign(cambios, { incluida: true, estado: 'propuesta', orden: Date.now() / 1e10 + 900 });
