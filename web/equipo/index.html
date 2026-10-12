@@ -213,7 +213,11 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
 .n-textos p b { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); margin-bottom: 2px; }
 .n-textos p.riesgo b { color: var(--peligro); }
 
+/* Con una sola opción no hay nada que comparar: que use el ancho completo
+   en vez de dejar media lámina vacía. */
 .opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+.opciones.sola { grid-template-columns: 1fr; }
+.opciones.sola .o-detalle { max-width: 62ch; }
 .opcion {
   position: relative; display: block; cursor: pointer; border: 1.5px solid var(--linea);
   border-radius: 7px; padding: 10px 12px 10px 34px; background: var(--capa-2);
@@ -222,6 +226,7 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
 .opcion:hover { border-color: var(--linea-fuerte); }
 .opcion input { position: absolute; left: 11px; top: 12px; width: 16px; height: 16px; accent-color: var(--marca); margin: 0; }
 .opcion.elegida { border-color: var(--marca); background: #FCF7F8; }
+.opciones.sola .opcion { padding-left: 12px; cursor: default; }
 .o-nombre { font-weight: 600; display: block; line-height: 1.3; font-size: 14.5px; }
 .o-detalle { display: block; font-size: 13.5px; color: var(--tinta-media); margin-top: 3px; }
 .o-precio { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-top: 8px; font-variant-numeric: tabular-nums; }
@@ -229,6 +234,20 @@ details.grupo[open] > summary::before { transform: rotate(90deg); }
 .o-precio .tenue { font-size: 13px; color: var(--tinta-tenue); }
 .estimado { font-size: 11.5px; font-weight: 700; color: var(--alerta); background: var(--alerta-velo); padding: 1px 6px; border-radius: 4px; }
 .o-liga { font-size: 13px; }
+
+/* Las fichas de cada producto dentro de una opción */
+.partes { display: block; margin-top: 9px; border-top: 1px solid var(--linea); }
+.parte {
+  display: grid; grid-template-columns: 1fr auto; gap: 0 10px;
+  padding: 7px 0 6px; border-bottom: 1px solid var(--capa-0); font-size: 13.5px;
+}
+.parte:last-child { border-bottom: 0; padding-bottom: 0; }
+.p-que { color: var(--tinta); line-height: 1.35; }
+.p-que b { font-weight: 700; }
+.p-precio { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p-precio small { display: block; font-weight: 400; font-size: 11.5px; color: var(--tinta-tenue); }
+.p-donde { grid-column: 1 / -1; font-size: 12.5px; color: var(--tinta-tenue); margin-top: 1px; }
+.p-donde a { color: var(--info); }
 .o-ligas { flex-basis: 100%; font-size: 13px; line-height: 1.6; }
 
 .n-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--capa-0); }
@@ -280,7 +299,12 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
 .campo textarea { min-height: 64px; resize: vertical; }
 .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ed-opcion { border: 1px solid var(--linea); border-radius: 10px; padding: 12px 12px 2px; margin-bottom: 10px; background: var(--capa-1); }
-.ed-opcion .fila3 { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 10px; }
+.ed-opcion .fila3 { display: grid; grid-template-columns: 1fr 80px 1fr; gap: 10px; }
+.ed-partes { margin-top: 4px; }
+.ed-partes-tit { font-size: 12.5px; font-weight: 700; color: var(--tinta-tenue); margin-bottom: 6px; }
+.ed-parte { border: 1px solid var(--linea); border-radius: 8px; padding: 10px 10px 2px; margin-bottom: 8px; background: var(--capa-2); }
+.ed-parte-pie { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.boton.chico { padding: 7px 12px; font-size: 13.5px; min-height: 38px; }
 .ed-opcion-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; font-size: 14px; color: var(--tinta-tenue); }
 .check-linea { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 14.5px; }
 .boton { border: 0; border-radius: 9px; padding: 10px 18px; cursor: pointer; font-weight: 700; min-height: 44px; }
@@ -477,10 +501,21 @@ function opcionElegida(n) {
   const ops = n.opciones || [];
   return ops.find(o => o.id === n.elegida) || ops[0] || null;
 }
-function costo(n) {
-  const o = opcionElegida(n);
-  return o ? (Number(o.precio) || 0) * (Number(o.cantidad) || 1) : 0;
+/* Una opción puede ser UN producto o VARIOS. Cuando trae partes, el precio
+   se suma de ellas y nunca se guarda aparte: así no hay forma de que el
+   total diga una cosa y el desglose otra. */
+function partesDe(o) { return (o && Array.isArray(o.partes) && o.partes.length) ? o.partes : null; }
+function costoOpcion(o) {
+  if (!o) return 0;
+  const p = partesDe(o);
+  if (p) return p.reduce((s, x) => s + (Number(x.precio) || 0) * (Number(x.cantidad) || 1), 0);
+  return (Number(o.precio) || 0) * (Number(o.cantidad) || 1);
 }
+function hayEstimado(o) {
+  const p = partesDe(o);
+  return p ? p.some(x => x.estimado) : !!(o && o.estimado);
+}
+function costo(n) { return costoOpcion(opcionElegida(n)); }
 function cuenta(n) { return n.estado !== 'descartada'; }
 function totalDe(filtro) { return necesidades().filter(n => cuenta(n) && filtro(n)).reduce((s, n) => s + costo(n), 0); }
 function paqueteActivo() {
@@ -690,17 +725,18 @@ function pintarNecesidad(n) {
           ${n.porque ? `<p><b>Para qué</b>${esc(n.porque)}</p>` : ''}
           ${n.riesgo ? `<p class="riesgo"><b>Si no se compra</b>${esc(n.riesgo)}</p>` : ''}
         </div>
-        <div class="opciones" role="radiogroup" aria-label="Opciones para ${esc(n.titulo)}">
+        <div class="opciones${ops.length === 1 ? ' sola' : ''}" role="radiogroup" aria-label="Opciones para ${esc(n.titulo)}">
           ${ops.map(o => `<label class="opcion${elegida && o.id === elegida.id ? ' elegida' : ''}">
-            <input type="radio" name="op-${esc(n.id)}" value="${esc(o.id)}" data-opcion ${elegida && o.id === elegida.id ? 'checked' : ''}>
+            <input type="radio" name="op-${esc(n.id)}" value="${esc(o.id)}" data-opcion ${elegida && o.id === elegida.id ? 'checked' : ''}${ops.length === 1 ? ' hidden' : ''}>
             <span class="o-nombre">${esc(o.nombre)}</span>
             ${o.detalle ? `<span class="o-detalle">${esc(o.detalle)}</span>` : ''}
             <span class="o-precio">
-              ${o.precio == null || o.precio === '' ? '<b>Por cotizar</b>' : `<b>${pesos((Number(o.precio) || 0) * (Number(o.cantidad) || 1))}</b>`}
-              ${(Number(o.cantidad) || 1) > 1 && o.precio ? `<span class="tenue">${o.cantidad} × ${pesos(o.precio)}</span>` : ''}
-              ${o.estimado ? '<span class="estimado" title="Precio aproximado, sin tienda consultada">estimado</span>' : ''}
-              ${pintarLigas(o)}
+              ${!partesDe(o) && (o.precio == null || o.precio === '') ? '<b>Por cotizar</b>' : `<b>${pesos(costoOpcion(o))}</b>`}
+              ${!partesDe(o) && (Number(o.cantidad) || 1) > 1 && o.precio ? `<span class="tenue">${o.cantidad} × ${pesos(o.precio)}</span>` : ''}
+              ${hayEstimado(o) ? '<span class="estimado" title="Precio aproximado, sin tienda consultada">estimado</span>' : ''}
+              ${partesDe(o) ? '' : pintarLigas(o)}
             </span>
+            ${pintarPartes(o)}
           </label>`).join('')}
         </div>
         <div class="n-pie">
@@ -716,6 +752,26 @@ function pintarNecesidad(n) {
         ${abierto ? `<div class="hilo">${pintarHilo(n.id)}</div>` : ''}
       </div>`}
   </article>`;
+}
+
+/* Cada producto de la opción, con su propio precio y su propia liga. Es lo
+   que se lleva a la tienda: se compran por separado, así que se leen por
+   separado. */
+function pintarPartes(o) {
+  const partes = partesDe(o);
+  if (!partes) return '';
+  return `<span class="partes">${partes.map(p => {
+    const cant = Number(p.cantidad) || 1;
+    const sub = (Number(p.precio) || 0) * cant;
+    return `<span class="parte">
+      <span class="p-que">${cant > 1 ? `<b>${cant}×</b> ` : ''}${esc(p.nombre)}</span>
+      <span class="p-precio">${p.precio == null || p.precio === '' ? 'Por cotizar' : pesos(sub)}${
+        cant > 1 && p.precio ? `<small>${pesos(p.precio)} c/u</small>` : ''}</span>
+      <span class="p-donde">${p.estimado ? '<span class="estimado">estimado</span> ' : ''}${
+        p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.tienda || 'Ver')} ↗</a>`
+              : esc(p.tienda || '')}</span>
+    </span>`;
+  }).join('')}</span>`;
 }
 
 // Una opción puede juntar varios productos (pedestales + caja de luz):
@@ -785,13 +841,26 @@ function pintarEditor() {
         <div class="ed-opcion-cabeza">Opción ${i + 1}${e.opciones.length > 1 ? `<button type="button" class="boton-texto" data-quitar-op="${i}">Quitar opción</button>` : ''}</div>
         <label class="campo"><span>Nombre</span><input data-k="nombre" value="${esc(o.nombre)}" maxlength="90" placeholder="Ej. Rode VideoMic NTG"></label>
         <label class="campo"><span>Por qué esta opción</span><input data-k="detalle" value="${esc(o.detalle)}" maxlength="220"></label>
-        <div class="fila3">
-          <label class="campo"><span>Precio unitario (MXN)</span><input data-k="precio" type="number" min="0" step="1" value="${esc(o.precio)}" placeholder="Por cotizar"></label>
-          <label class="campo"><span>Cantidad</span><input data-k="cantidad" type="number" min="1" step="1" value="${esc(o.cantidad || 1)}"></label>
-          <label class="campo"><span>Tienda</span><input data-k="tienda" value="${esc(o.tienda)}" maxlength="60"></label>
+        <div class="ed-partes">
+          <div class="ed-partes-tit">Productos · uno por renglón, cada uno con su precio y su liga</div>
+          ${(o.partes && o.partes.length ? o.partes : [{ nombre: o.nombre || '', precio: o.precio,
+              cantidad: o.cantidad || 1, tienda: o.tienda || '', url: (ligasDe(o)[0] || {}).url || '',
+              estimado: !!o.estimado }]).map((p, j) => `
+            <div class="ed-parte" data-j="${j}">
+              <label class="campo"><span>Qué es</span><input data-p="nombre" value="${esc(p.nombre)}" maxlength="90" placeholder="Ej. Batería Sony NP-FZ100"></label>
+              <div class="fila3">
+                <label class="campo"><span>Precio c/u</span><input data-p="precio" type="number" min="0" step="1" value="${esc(p.precio)}" placeholder="Por cotizar"></label>
+                <label class="campo"><span>Cant.</span><input data-p="cantidad" type="number" min="1" step="1" value="${esc(p.cantidad || 1)}"></label>
+                <label class="campo"><span>Tienda</span><input data-p="tienda" value="${esc(p.tienda)}" maxlength="60"></label>
+              </div>
+              <label class="campo"><span>Liga</span><input data-p="url" value="${esc(p.url)}" placeholder="https://…"></label>
+              <div class="ed-parte-pie">
+                <label class="check-linea" style="margin:0"><input type="checkbox" data-p="estimado" ${p.estimado ? 'checked' : ''}> Precio estimado</label>
+                <button type="button" class="boton-texto" data-quitar-parte="${i}:${j}">Quitar producto</button>
+              </div>
+            </div>`).join('')}
+          <button type="button" class="boton secundario chico" data-mas-parte="${i}">+ Agregar otro producto</button>
         </div>
-        <label class="campo"><span>Ligas a la tienda · una por renglón: qué es | https://…</span><textarea data-k="ligas" rows="2" placeholder="Pedestales | https://…">${esc(ligasDe(o).map(l => (l.texto ? l.texto + ' | ' : '') + l.url).join('\n'))}</textarea></label>
-        <label class="check-linea"><input type="checkbox" data-k="estimado" ${o.estimado ? 'checked' : ''}> Es un precio estimado, sin tienda consultada</label>
       </div>`).join('')}
     </div>
     <button type="button" class="boton secundario" id="edMasOpcion">+ Agregar otra opción</button>`;
@@ -806,6 +875,21 @@ function leerEditor() {
   e.riesgo = $('#ed_riesgo').value.trim();
   $$('#edOpciones .ed-opcion').forEach(div => {
     const o = e.opciones[Number(div.dataset.i)];
+    /* Las fichas de producto mandan: el precio de la opción sale de sumarlas,
+       así que aquí no se guarda ningún total que pueda quedar desfasado. */
+    const partes = $$('.ed-parte', div).map(caja => {
+      const p = {};
+      $$('[data-p]', caja).forEach(inp => {
+        const k = inp.dataset.p;
+        if (k === 'estimado') p[k] = inp.checked;
+        else if (k === 'precio') p[k] = inp.value === '' ? null : Math.max(0, Math.round(Number(inp.value)));
+        else if (k === 'cantidad') p[k] = Math.max(1, Math.round(Number(inp.value) || 1));
+        else p[k] = inp.value.trim();
+      });
+      return p;
+    }).filter(p => p.nombre);
+    o.partes = partes;
+    delete o.precio; delete o.cantidad; delete o.estimado; delete o.ligas; delete o.url; delete o.tienda;
     $$('[data-k]', div).forEach(inp => {
       const k = inp.dataset.k;
       if (k === 'estimado') o[k] = inp.checked;
@@ -826,11 +910,34 @@ function leerEditor() {
 $('#dlgEditar').addEventListener('click', ev => {
   const q = ev.target.closest('[data-quitar-op]');
   if (q) { leerEditor(); edicion.opciones.splice(Number(q.dataset.quitarOp), 1); pintarEditor(); return; }
+
+  /* Los productos de una opción: agregar y quitar fichas. */
+  const qp = ev.target.closest('[data-quitar-parte]');
+  if (qp) {
+    leerEditor();
+    const [i, j] = qp.dataset.quitarParte.split(':').map(Number);
+    const o = edicion.opciones[i];
+    if ((o.partes || []).length <= 1) { avisar('Una opción necesita al menos un producto.'); return; }
+    o.partes.splice(j, 1);
+    pintarEditor();
+    return;
+  }
+  const mp = ev.target.closest('[data-mas-parte]');
+  if (mp) {
+    leerEditor();
+    const o = edicion.opciones[Number(mp.dataset.masParte)];
+    (o.partes = o.partes || []).push({ nombre: '', precio: null, cantidad: 1, tienda: '', url: '', estimado: true });
+    pintarEditor();
+    const cajas = $$(`.ed-opcion[data-i="${mp.dataset.masParte}"] .ed-parte`);
+    $('[data-p="nombre"]', cajas[cajas.length - 1]).focus();
+    return;
+  }
   if (ev.target.id === 'edMasOpcion') {
     leerEditor();
     const n = edicion.opciones.length + 1;
     let id = 'o' + n; while (edicion.opciones.some(o => o.id === id)) id += 'x';
-    edicion.opciones.push({ id, nombre: '', detalle: '', precio: null, cantidad: 1, tienda: '', url: '', ligas: [], estimado: true });
+    edicion.opciones.push({ id, nombre: '', detalle: '',
+      partes: [{ nombre: '', precio: null, cantidad: 1, tienda: '', url: '', estimado: true }] });
     pintarEditor();
     const todas = $$('#edOpciones .ed-opcion'); $('[data-k="nombre"]', todas[todas.length - 1]).focus();
   }
@@ -841,8 +948,8 @@ $('#dlgEditar').addEventListener('close', async () => {
   leerEditor();
   const e = edicion; edicion = null;
   if (!e.titulo) { avisar('Le faltó el nombre a la necesidad.'); return; }
-  e.opciones = e.opciones.filter(o => o.nombre);
-  if (!e.opciones.length) { avisar('Hace falta al menos una opción con nombre.'); return; }
+  e.opciones = e.opciones.filter(o => o.nombre && (o.partes || []).length);
+  if (!e.opciones.length) { avisar('Cada opción necesita nombre y al menos un producto.'); return; }
   if (!e.opciones.some(o => o.id === e.elegida)) e.elegida = e.opciones[0].id;
   const campos = ['titulo', 'area', 'prioridad', 'porque', 'riesgo', 'opciones', 'elegida'];
   const cambios = {}; campos.forEach(k => { cambios[k] = e[k]; });
