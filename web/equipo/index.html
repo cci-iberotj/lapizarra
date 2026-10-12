@@ -38,33 +38,34 @@
   --serif: 'Alverata', Georgia, serif;
   --sans:  'MyriadIbero', 'Segoe UI', system-ui, sans-serif;
 
-  --radio: 10px;
-  --sombra: 0 1px 2px rgba(25,23,19,.06), 0 4px 14px rgba(25,23,19,.05);
+  --radio: 8px;
+  --sombra: 0 1px 2px rgba(25,23,19,.05);
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--capa-0); color: var(--tinta);
-  font: 400 16px/1.5 var(--sans);
+  font: 400 15px/1.5 var(--sans);
 }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--info); }
 :focus-visible { outline: 3px solid var(--info); outline-offset: 2px; }
 
-.envoltura { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+.envoltura { max-width: 980px; margin: 0 auto; padding: 0 20px; }
 
 /* ── Portada ─────────────────────────────────────────────── */
-.portada { padding-top: 40px; padding-bottom: 22px; }
+/* La portada ocupaba casi una pantalla ella sola. Ahora cabe en un tercio. */
+.portada { padding-top: 24px; padding-bottom: 16px; }
 .rotulo {
   display: inline-block; background: var(--warm-gray-9); color: #fff;
-  font: 700 19px/1 var(--sans); padding: 8px 12px 7px; letter-spacing: .01em;
+  font: 700 13px/1 var(--sans); padding: 6px 9px 5px; letter-spacing: .01em;
 }
 .portada h1 {
-  font: 700 clamp(34px, 5vw, 52px)/1.05 var(--serif);
-  margin: 18px 0 10px; letter-spacing: -.01em;
+  font: 700 clamp(24px, 3.4vw, 31px)/1.1 var(--serif);
+  margin: 12px 0 6px; letter-spacing: -.01em;
 }
-.portada .bajada { font-size: 18px; color: var(--tinta-media); max-width: 720px; margin: 0; }
+.portada .bajada { font-size: 15.5px; color: var(--tinta-media); max-width: 680px; margin: 0; }
 
 /* ── Barra del presupuesto (se queda arriba) ─────────────── */
 .barra {
@@ -72,10 +73,10 @@ a { color: var(--info); }
   background: rgba(241,237,233,.94); backdrop-filter: blur(6px);
   border-bottom: 1px solid var(--linea);
 }
-.barra .envoltura { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; padding-top: 12px; padding-bottom: 12px; }
+.barra .envoltura { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding-top: 9px; padding-bottom: 9px; }
 .cifra { display: flex; flex-direction: column; min-width: 120px; }
-.cifra small { font-size: 13px; color: var(--tinta-tenue); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
-.cifra strong { font: 700 26px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.cifra small { font-size: 11.5px; color: var(--tinta-tenue); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.cifra strong { font: 700 20px/1.1 var(--sans); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .cifra.aprobado strong { color: var(--ok); }
 .paquetes { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
 .paquete {
@@ -96,19 +97,37 @@ a { color: var(--info); }
 .boton-suave:hover { border-color: var(--tinta-media); }
 
 /* ── Secciones ───────────────────────────────────────────── */
-section { margin: 34px 0; }
-h2 { font: 700 26px/1.2 var(--serif); margin: 0 0 6px; }
-.nota-seccion { color: var(--tinta-media); margin: 0 0 16px; }
+section { margin: 22px 0; }
+h2 { font: 700 17px/1.25 var(--sans); margin: 0 0 4px; letter-spacing: .01em; }
+.nota-seccion { color: var(--tinta-media); margin: 0 0 12px; font-size: 14.5px; }
 
-.diagnostico { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-.dato {
-  background: var(--capa-2); border-radius: var(--radio); padding: 16px 16px 14px;
-  border-left: 4px solid var(--marca); box-shadow: var(--sombra);
+/* Las secciones que no son la lista se pliegan: estorban más de lo que
+   aportan cuando lo que vienes a hacer es decidir compras. */
+details.plegable { background: var(--capa-2); border: 1px solid var(--linea); border-radius: var(--radio); margin-bottom: 10px; }
+details.plegable > summary {
+  cursor: pointer; padding: 11px 14px; list-style: none; min-height: 44px;
+  display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px;
 }
-.dato b { display: block; font: 700 17px/1.3 var(--serif); margin-bottom: 4px; }
-.dato p { margin: 0; color: var(--tinta-media); font-size: 15px; }
+details.plegable > summary::-webkit-details-marker { display: none; }
+details.plegable > summary::before {
+  content: ''; width: 0; height: 0; flex: none;
+  border-left: 5px solid var(--tinta-tenue); border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  transition: transform .15s;
+}
+details.plegable[open] > summary::before { transform: rotate(90deg); }
+details.plegable > summary .cuantos { margin-left: auto; font-size: 13px; color: var(--tinta-tenue); font-variant-numeric: tabular-nums; font-weight: 400; }
+details.plegable .adentro { padding: 0 14px 14px; }
 
-details.inventario { margin-top: 14px; background: var(--capa-2); border-radius: var(--radio); box-shadow: var(--sombra); }
+.diagnostico { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 9px; }
+.dato {
+  background: var(--capa-2); border-radius: var(--radio); padding: 11px 13px 10px;
+  border-left: 3px solid var(--marca); border-top: 1px solid var(--linea);
+  border-right: 1px solid var(--linea); border-bottom: 1px solid var(--linea);
+}
+.dato b { display: block; font: 700 14.5px/1.3 var(--sans); margin-bottom: 3px; }
+.dato p { margin: 0; color: var(--tinta-media); font-size: 14px; }
+
+details.inventario { margin-top: 10px; background: var(--capa-2); border: 1px solid var(--linea); border-radius: var(--radio); }
 details.inventario > summary { cursor: pointer; padding: 14px 16px; font-weight: 600; list-style: none; min-height: 44px; }
 details.inventario > summary::before { content: '▸ '; color: var(--tinta-tenue); }
 details.inventario[open] > summary::before { content: '▾ '; }
@@ -129,61 +148,90 @@ details.inventario[open] > summary::before { content: '▾ '; }
 .chip-filtro[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
 
 /* ── Grupos por prioridad ────────────────────────────────── */
-.grupo { margin-top: 30px; }
-.grupo-cabeza { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border-top: 3px solid var(--color-grupo); padding-top: 12px; margin-bottom: 14px; }
-.grupo-cabeza h3 { font: 700 22px/1.2 var(--serif); margin: 0; color: var(--color-grupo); }
-.grupo-cabeza p { margin: 0; color: var(--tinta-media); flex: 1; min-width: 200px; }
-.grupo-cabeza .subtotal { font-weight: 700; font-variant-numeric: tabular-nums; }
+details.grupo { margin-top: 14px; border-top: 2px solid var(--color-grupo); }
+details.grupo > summary {
+  cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap; padding: 9px 2px; min-height: 44px;
+}
+details.grupo > summary::-webkit-details-marker { display: none; }
+details.grupo > summary::before {
+  content: ''; width: 0; height: 0; flex: none;
+  border-left: 5px solid var(--color-grupo); border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  transition: transform .15s;
+}
+details.grupo[open] > summary::before { transform: rotate(90deg); }
+.grupo h3 { font: 700 14px/1.2 var(--sans); margin: 0; color: var(--color-grupo);
+  text-transform: uppercase; letter-spacing: .07em; }
+.grupo .que { margin: 0; color: var(--tinta-tenue); font-size: 13.5px; flex: 1; min-width: 160px; }
+.grupo .subtotal { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
+.grupo .cuantas { font-size: 13px; color: var(--tinta-tenue); font-variant-numeric: tabular-nums; }
 
 /* ── Tarjeta de necesidad ────────────────────────────────── */
+/* De tarjeta a renglón: en una pantalla caben las 18, y cada una se abre
+   sólo cuando hace falta verla. */
 .necesidad {
-  background: var(--capa-2); border-radius: var(--radio); box-shadow: var(--sombra);
-  margin-bottom: 14px; padding: 18px 20px 14px; border: 2px solid transparent;
-  transition: border-color .15s, opacity .15s;
+  background: var(--capa-2); border: 1px solid var(--linea); border-radius: var(--radio);
+  margin-bottom: 5px; transition: border-color .12s, opacity .12s;
 }
-.necesidad.fuera { opacity: .86; }  /* a .86 el texto tenue sigue arriba de 4.5:1 */
+.necesidad.abierta { border-color: var(--linea-fuerte); }
+.necesidad.fuera { opacity: .86; background: var(--capa-1); }
 .necesidad.fuera .opcion.elegida { border-color: var(--linea-fuerte); background: var(--capa-1); }
 .necesidad.descartada { opacity: .6; }
 .necesidad.descartada .n-titulo { text-decoration: line-through; }
 
-.n-cabeza { display: flex; gap: 14px; align-items: flex-start; }
-.incluir { display: flex; align-items: center; gap: 8px; cursor: pointer; flex-shrink: 0; min-height: 44px; }
-.incluir input { width: 24px; height: 24px; accent-color: var(--marca); cursor: pointer; margin: 0; }
-.n-cuerpo { flex: 1; min-width: 0; }
-.n-titulo-fila { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
-.n-titulo { font: 700 20px/1.25 var(--serif); margin: 0; }
-.chip { font-size: 12.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; letter-spacing: .02em; }
+.n-fila { display: flex; align-items: center; gap: 10px; padding: 0 12px 0 11px; }
+.incluir { display: flex; align-items: center; cursor: pointer; flex-shrink: 0; min-height: 44px; }
+.incluir input { width: 19px; height: 19px; accent-color: var(--marca); cursor: pointer; margin: 0; }
+/* el que despliega: ocupa todo lo que queda, para que sea fácil de atinar */
+.n-abrir {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap;
+  background: none; border: 0; padding: 11px 0; cursor: pointer; text-align: left; min-height: 44px;
+}
+.n-abrir::after {
+  content: ''; flex: none; width: 0; height: 0; margin-left: 2px;
+  border-left: 5px solid var(--tinta-tenue); border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  transition: transform .15s;
+}
+.necesidad.abierta .n-abrir::after { transform: rotate(90deg); }
+.n-titulo { font: 600 15.5px/1.3 var(--sans); margin: 0; }
+.n-detalle { padding: 2px 13px 12px 41px; border-top: 1px solid var(--capa-0); }
+.chip { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: .02em; }
 .chip.area-diseno    { background: var(--marca-velo); color: var(--marca); }
 .chip.area-foto      { background: var(--info-velo); color: var(--info); }
 .chip.area-contenido { background: var(--alerta-velo); color: var(--alerta); }
 .chip.area-general   { background: var(--capa-0); color: var(--tinta-media); }
-.n-precio { margin-left: auto; font: 700 20px/1.2 var(--serif); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.n-precio small { display: block; font: 400 12.5px/1.2 var(--sans); color: var(--tinta-tenue); text-align: right; }
+.n-precio { margin-left: auto; font: 700 15px/1.2 var(--sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.n-precio small { display: block; font: 400 11.5px/1.2 var(--sans); color: var(--tinta-tenue); text-align: right; }
+/* el estado se ve de un vistazo en el renglón; se cambia al abrirlo */
+.sello { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+.sello.aprobada   { background: var(--ok-velo); color: var(--ok); }
+.sello.comprada   { background: var(--info-velo); color: var(--info); }
+.sello.descartada { background: var(--capa-0); color: var(--tinta-tenue); }
 
-.n-textos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; margin: 10px 0 14px; }
-.n-textos p { margin: 0; font-size: 15.5px; color: var(--tinta-media); }
-.n-textos p b { display: block; font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); margin-bottom: 2px; }
+.n-textos { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 20px; margin: 10px 0 12px; }
+.n-textos p { margin: 0; font-size: 14.5px; color: var(--tinta-media); }
+.n-textos p b { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--tinta-tenue); margin-bottom: 2px; }
 .n-textos p.riesgo b { color: var(--peligro); }
 
-.opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
 .opcion {
-  position: relative; display: block; cursor: pointer; border: 2px solid var(--linea);
-  border-radius: 9px; padding: 12px 14px 12px 40px; background: var(--capa-2);
+  position: relative; display: block; cursor: pointer; border: 1.5px solid var(--linea);
+  border-radius: 7px; padding: 10px 12px 10px 34px; background: var(--capa-2);
   transition: border-color .12s, background .12s;
 }
 .opcion:hover { border-color: var(--linea-fuerte); }
-.opcion input { position: absolute; left: 13px; top: 15px; width: 18px; height: 18px; accent-color: var(--marca); margin: 0; }
+.opcion input { position: absolute; left: 11px; top: 12px; width: 16px; height: 16px; accent-color: var(--marca); margin: 0; }
 .opcion.elegida { border-color: var(--marca); background: #FCF7F8; }
-.o-nombre { font-weight: 700; display: block; line-height: 1.3; }
-.o-detalle { display: block; font-size: 14px; color: var(--tinta-media); margin-top: 3px; }
+.o-nombre { font-weight: 600; display: block; line-height: 1.3; font-size: 14.5px; }
+.o-detalle { display: block; font-size: 13.5px; color: var(--tinta-media); margin-top: 3px; }
 .o-precio { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-top: 8px; font-variant-numeric: tabular-nums; }
-.o-precio b { font-size: 16.5px; }
+.o-precio b { font-size: 15px; }
 .o-precio .tenue { font-size: 13px; color: var(--tinta-tenue); }
 .estimado { font-size: 11.5px; font-weight: 700; color: var(--alerta); background: var(--alerta-velo); padding: 1px 6px; border-radius: 4px; }
 .o-liga { font-size: 13px; }
 .o-ligas { flex-basis: 100%; font-size: 13px; line-height: 1.6; }
 
-.n-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--capa-0); }
+.n-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--capa-0); }
 .estado-sel {
   border: 1px solid var(--linea-fuerte); border-radius: 8px; padding: 7px 10px; min-height: 40px;
   background: var(--capa-2); font-weight: 700; font-size: 14px; cursor: pointer;
@@ -206,13 +254,13 @@ details.inventario[open] > summary::before { content: '▾ '; }
 .nuevo-com textarea { flex: 1; min-height: 44px; resize: vertical; border: 1px solid var(--linea-fuerte); border-radius: 8px; padding: 9px 10px; background: var(--capa-2); }
 
 .agregar {
-  width: 100%; margin-top: 8px; padding: 16px; border: 2px dashed var(--linea-fuerte); border-radius: var(--radio);
-  background: transparent; cursor: pointer; font-weight: 700; color: var(--tinta-media); min-height: 56px;
+  width: 100%; margin-top: 10px; padding: 11px; border: 1.5px dashed var(--linea-fuerte); border-radius: var(--radio);
+  background: transparent; cursor: pointer; font-weight: 600; color: var(--tinta-media); min-height: 44px; font-size: 14.5px;
 }
 .agregar:hover { border-color: var(--marca); color: var(--marca); }
 
 /* ── Comentarios generales y movimientos ─────────────────── */
-.panel { background: var(--capa-2); border-radius: var(--radio); box-shadow: var(--sombra); padding: 16px 20px; }
+.panel { background: var(--capa-2); border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 15px; }
 .movimiento { font-size: 14.5px; padding: 5px 0; color: var(--tinta-media); border-bottom: 1px solid var(--capa-0); }
 .movimiento b { color: var(--tinta); }
 .movimiento time { color: var(--tinta-tenue); font-size: 13px; margin-left: 6px; }
@@ -263,11 +311,18 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
   .paquetes { flex-wrap: nowrap; }
   .paquete { padding: 5px 8px; min-height: 44px; }
   .n-textos { grid-template-columns: 1fr; }
-  .necesidad { padding: 14px 14px 10px; }
-  .n-cabeza { display: block; }
-  .incluir { float: left; margin: 0 10px 0 0; min-height: 30px; }
-  .n-precio { margin-left: 0; width: 100%; }
-  .n-precio small { text-align: left; }
+  /* El título manda y se lleva su renglón completo; debajo van el área y el
+     precio. La flecha se ancla arriba a la derecha para que no se mueva de
+     lugar según lo largo que sea el nombre. */
+  .necesidad { position: relative; }
+  .n-fila { align-items: flex-start; padding: 0 10px 0 9px; }
+  .incluir { min-height: 42px; }
+  .n-abrir { padding: 9px 16px 10px 0; row-gap: 3px; }
+  .n-abrir .n-titulo { flex: 1 0 100%; }
+  .n-precio { margin-left: 0; }
+  .n-precio small { display: inline; margin-left: 6px; }
+  .n-abrir::after { position: absolute; right: 12px; top: 19px; }
+  .n-detalle { padding: 2px 12px 12px 12px; }
   .paquetes { margin-left: 0; width: 100%; }
   .paquete { flex: 1; }
   .fila, .ed-opcion .fila3 { grid-template-columns: 1fr; }
@@ -281,7 +336,12 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
   body { background: #fff; font-size: 12px; }
   .barra { position: static; background: #fff; border: 0; }
   .paquetes, .acciones-barra, .filtros, .n-pie .pie-der, .agregar, .nuevo-com, #seccionMovs, .hilo:empty, .solo-pantalla { display: none !important; }
-  .necesidad { box-shadow: none; border: 1px solid var(--linea); break-inside: avoid; padding: 10px 12px; }
+  /* las flechas de desplegar no significan nada en papel */
+  .n-abrir::after, details.grupo > summary::before, details.plegable > summary::before { display: none !important; }
+  .n-abrir { padding: 8px 0; cursor: default; }
+  details.plegable > summary .cuantos, .grupo .cuantas { display: none; }
+  .necesidad { box-shadow: none; border: 1px solid var(--linea); break-inside: avoid; }
+  .n-detalle { padding-left: 12px; }
   .necesidad.fuera { display: none; }
   .opcion:not(.elegida) { display: none; }
   .dato, .panel, details.inventario { box-shadow: none; border: 1px solid var(--linea); }
@@ -329,10 +389,12 @@ dialog::backdrop { background: rgba(25,23,19,.45); }
 
 /* ── Catálogos ───────────────────────────────────────────── */
 
+/* En este orden se leen: primero lo que de verdad urge. Los arreglos van
+   después de lo importante porque cuestan poco y se aprueban de corrido. */
 const PRIORIDADES = [
-  { id: 'arreglo',    nombre: 'Arreglos rápidos', que: 'Cuestan poco y destraban equipo que ya tenemos.', color: 'var(--tinta-media)' },
   { id: 'urgente',    nombre: 'Urgente',          que: 'Sin esto hay riesgo de no poder cubrir.',          color: 'var(--peligro)' },
   { id: 'importante', nombre: 'Importante',       que: 'Para la calidad que pide lo que está planeado.',   color: 'var(--alerta)' },
+  { id: 'arreglo',    nombre: 'Arreglos rápidos', que: 'Cuestan poco y destraban equipo que ya tenemos.', color: 'var(--tinta-media)' },
   { id: 'deseable',   nombre: 'Deseable',         que: 'Crecimiento: abre formatos nuevos.',               color: 'var(--info)' },
 ];
 const PAQUETES = [
@@ -406,6 +468,12 @@ let T = null;                 // el tablero tal como vino de la base
 let version = null;
 let filtroArea = leerLocal('equipo.filtro') || 'todas';
 const hilosAbiertos = new Set();
+/* Qué está desplegado. Como pintar() rehace todo el HTML, hay que
+   acordarse aparte o se cerraría solo con cada guardado. */
+const necesidadesAbiertas = new Set();
+const gruposCerrados = new Set(leerLocal('equipo.cerrados') ? leerLocal('equipo.cerrados').split(',').filter(Boolean) : []);
+/* Deseable y arreglos empiezan plegados: son los que menos se discuten. */
+if (!leerLocal('equipo.cerrados')) { gruposCerrados.add('deseable'); gruposCerrados.add('arreglo'); }
 
 function necesidades() { return (T && T.necesidades) || []; }
 function opcionElegida(n) {
@@ -529,12 +597,16 @@ function pintar() {
 
     <main class="envoltura">
       <section>
-        <h2>Cómo estamos hoy</h2>
-        <p class="nota-seccion">${esc(aj.nota_diagnostico || '')}</p>
-        <div class="diagnostico">
-          ${(aj.diagnostico || []).map(d => `<div class="dato"><b>${esc(d.titulo)}</b><p>${esc(d.texto)}</p></div>`).join('')}
-        </div>
-        ${pintarInventario()}
+        <details class="plegable" id="secDiag">
+          <summary>Cómo estamos hoy<span class="cuantos">${(aj.diagnostico || []).length} puntos</span></summary>
+          <div class="adentro">
+            <p class="nota-seccion">${esc(aj.nota_diagnostico || '')}</p>
+            <div class="diagnostico">
+              ${(aj.diagnostico || []).map(d => `<div class="dato"><b>${esc(d.titulo)}</b><p>${esc(d.texto)}</p></div>`).join('')}
+            </div>
+            ${pintarInventario()}
+          </div>
+        </details>
       </section>
 
       <section>
@@ -550,13 +622,14 @@ function pintar() {
       </section>
 
       <section>
-        <h2>Comentarios generales</h2>
-        <div class="panel">${pintarHilo('')}</div>
-      </section>
-
-      <section id="seccionMovs">
-        <h2>Movimientos recientes</h2>
-        <div class="panel" id="movimientos"></div>
+        <details class="plegable">
+          <summary>Comentarios generales<span class="cuantos">${T.comentarios.filter(c => !c.necesidad).length || ''}</span></summary>
+          <div class="adentro">${pintarHilo('')}</div>
+        </details>
+        <details class="plegable">
+          <summary>Movimientos recientes<span class="cuantos">${(T.movimientos || []).length}</span></summary>
+          <div class="adentro" id="movimientos"></div>
+        </details>
       </section>
     </main>
 
@@ -565,6 +638,7 @@ function pintar() {
     </footer>`;
 
   pintarMovimientos();
+  vigilarGrupos();
   Object.entries(borradores).forEach(([k, v]) => { const t = $(`.nuevo-com textarea[data-nec="${k}"]`); if (t) t.value = v; });
   if (enfocado != null) { const t = $(`.nuevo-com textarea[data-nec="${enfocado}"]`); if (t) t.focus(); }
 }
@@ -587,11 +661,12 @@ function pintarGrupo(p, lista) {
   if (!lista.length) return '';
   const sub = lista.filter(n => cuenta(n) && n.incluida).reduce((s, n) => s + costo(n), 0);
   lista.sort((a, b) => (a.orden || 0) - (b.orden || 0));
-  return `<div class="grupo" style="--color-grupo:${p.color}">
-    <div class="grupo-cabeza"><h3>${esc(p.nombre)}</h3><p>${esc(p.que)}</p>
-      <span class="subtotal">${pesos(sub)}</span></div>
+  const abierto = !gruposCerrados.has(p.id);
+  return `<details class="grupo" data-grupo="${esc(p.id)}" style="--color-grupo:${p.color}"${abierto ? ' open' : ''}>
+    <summary><h3>${esc(p.nombre)}</h3><span class="cuantas">${lista.length}</span>
+      <p class="que">${esc(p.que)}</p><span class="subtotal">${pesos(sub)}</span></summary>
     ${lista.map(pintarNecesidad).join('')}
-  </div>`;
+  </details>`;
 }
 
 function pintarNecesidad(n) {
@@ -599,18 +674,24 @@ function pintarNecesidad(n) {
   const elegida = opcionElegida(n);
   const coms = T.comentarios.filter(c => c.necesidad === n.id);
   const abierto = hilosAbiertos.has(n.id);
-  const clases = ['necesidad', n.incluida ? '' : 'fuera', n.estado === 'descartada' ? 'descartada' : ''].join(' ');
+  const desplegada = necesidadesAbiertas.has(n.id);
+  const est = n.estado || 'propuesta';
+  const clases = ['necesidad', desplegada ? 'abierta' : '', n.incluida ? '' : 'fuera',
+                  est === 'descartada' ? 'descartada' : ''].join(' ');
   return `<article class="${clases}" data-id="${esc(n.id)}">
-    <div class="n-cabeza">
+    <div class="n-fila">
       <label class="incluir" title="Incluir en el presupuesto">
         <input type="checkbox" data-incluir ${n.incluida ? 'checked' : ''} aria-label="Incluir ${esc(n.titulo)} en el presupuesto">
       </label>
-      <div class="n-cuerpo">
-        <div class="n-titulo-fila">
-          <h4 class="n-titulo">${esc(n.titulo)}</h4>
-          <span class="chip area-${esc(n.area)}">${esc(nombreDe(AREAS, n.area))}</span>
-          <div class="n-precio">${pesos(costo(n))}${elegida && (Number(elegida.cantidad) || 1) > 1 ? `<small>${elegida.cantidad} × ${pesos(elegida.precio)}</small>` : ''}</div>
-        </div>
+      <button class="n-abrir" data-abrir aria-expanded="${desplegada}">
+        <span class="n-titulo">${esc(n.titulo)}</span>
+        <span class="chip area-${esc(n.area)}">${esc(nombreDe(AREAS, n.area))}</span>
+        ${est !== 'propuesta' ? `<span class="sello ${esc(est)}">${esc(nombreDe(ESTADOS, est))}</span>` : ''}
+        ${coms.length ? `<span class="chip area-general" title="${coms.length} comentario(s)">💬 ${coms.length}</span>` : ''}
+        <span class="n-precio">${pesos(costo(n))}${elegida && (Number(elegida.cantidad) || 1) > 1 ? `<small>${elegida.cantidad} × ${pesos(elegida.precio)}</small>` : ''}</span>
+      </button>
+    </div>
+    ${!desplegada ? '' : `<div class="n-detalle">
         <div class="n-textos">
           ${n.porque ? `<p><b>Para qué</b>${esc(n.porque)}</p>` : ''}
           ${n.riesgo ? `<p class="riesgo"><b>Si no se compra</b>${esc(n.riesgo)}</p>` : ''}
@@ -639,8 +720,7 @@ function pintarNecesidad(n) {
           </div>
         </div>
         ${abierto ? `<div class="hilo">${pintarHilo(n.id)}</div>` : ''}
-      </div>
-    </div>
+      </div>`}
   </article>`;
 }
 
@@ -665,6 +745,15 @@ function pintarHilo(idNec) {
       <textarea data-nec="${esc(idNec)}" rows="1" maxlength="1500" placeholder="${idNec ? 'Escribe un comentario…' : 'Algo sobre la lista en general…'}" aria-label="Nuevo comentario"></textarea>
       <button class="boton primario">Enviar</button>
     </form>`;
+}
+
+/* Los grupos usan <details> nativo, así que el navegador los abre y cierra
+   solo; aquí nada más se apunta para que el repintado los respete. */
+function vigilarGrupos() {
+  $$('details.grupo').forEach(d => d.addEventListener('toggle', () => {
+    d.open ? gruposCerrados.delete(d.dataset.grupo) : gruposCerrados.add(d.dataset.grupo);
+    guardarLocal('equipo.cerrados', [...gruposCerrados].join(','));
+  }));
 }
 
 function pintarMovimientos() {
@@ -820,17 +909,45 @@ document.addEventListener('change', ev => {
   }
 });
 
+/* En papel no hay nada que desplegar: se abre todo, se imprime y se deja
+   la pantalla como estaba, sin que el de enfrente note el parpadeo ni
+   pierda los grupos que traía cerrados. */
+function imprimirTodo() {
+  const antesNec = [...necesidadesAbiertas];
+  const antesGru = [...gruposCerrados];
+  necesidades().forEach(n => necesidadesAbiertas.add(n.id));
+  gruposCerrados.clear();
+  pintar();
+  $$('details.plegable').forEach(d => { if (d.id !== 'secDiag') d.open = true; });
+
+  const volver = () => {
+    removeEventListener('afterprint', volver);
+    necesidadesAbiertas.clear(); antesNec.forEach(i => necesidadesAbiertas.add(i));
+    gruposCerrados.clear(); antesGru.forEach(i => gruposCerrados.add(i));
+    guardarLocal('equipo.cerrados', antesGru.join(','));
+    pintar();
+  };
+  addEventListener('afterprint', volver);
+  setTimeout(() => window.print(), 60);
+}
+
 document.addEventListener('click', ev => {
   const b = ev.target.closest('button'); if (!b) return;
   if (b.dataset.paquete) { aplicarPaquete(PAQUETES.find(p => p.id === b.dataset.paquete)); return; }
   if (b.dataset.area) { filtroArea = b.dataset.area; guardarLocal('equipo.filtro', filtroArea); pintar(); return; }
   if (b.id === 'btnAgregar') { quienSoy().then(q => { if (q) abrirEditor(null); }); return; }
-  if (b.id === 'btnImprimir') { window.print(); return; }
+  if (b.id === 'btnImprimir') { imprimirTodo(); return; }
   if (b.id === 'btnQuien') {
     try { localStorage.removeItem('equipo.nombre'); } catch (e) { /* nada que borrar */ }
     quienSoy(); return;
   }
   const art = b.closest('.necesidad');
+  if (art && b.hasAttribute('data-abrir')) {
+    const id = art.dataset.id;
+    necesidadesAbiertas.has(id) ? necesidadesAbiertas.delete(id) : necesidadesAbiertas.add(id);
+    pintar();
+    return;
+  }
   if (art && b.hasAttribute('data-hilo')) {
     const id = art.dataset.id;
     hilosAbiertos.has(id) ? hilosAbiertos.delete(id) : hilosAbiertos.add(id);
