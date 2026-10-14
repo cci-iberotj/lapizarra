@@ -4513,3 +4513,81 @@ body.solo-creacion #progreso { display: none; }
   .btn-herramienta .pin-nuevo { display: none; }
   .panel-herramientas { position: fixed; top: 70px; left: 10px; right: 10px; width: auto; }
 }
+
+/* ── EL VIAJE ───────────────────────────────────────────────
+   Va en el escritorio, encima de la rejilla. Es una agenda, no
+   una tarjeta más: por eso el día manda en la jerarquía y la
+   hora va en columna fija, para poder bajar la vista en línea
+   recta y ver a qué hora es cada cosa sin leer el renglón.
+   El único color fuerte es el del empalme. */
+.viaje {
+  background: var(--capa-1); border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-lg); padding: var(--e-5);
+  box-shadow: inset 0 1px 0 var(--bisel-luz), var(--elev-1);
+  margin-bottom: var(--e-6); display: grid; gap: var(--e-4);
+}
+.viaje-cabeza {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--e-4); flex-wrap: wrap;
+}
+.viaje-cabeza .rotulo {
+  display: block; font-size: var(--t-sello); color: var(--tinta-tenue);
+  text-transform: uppercase; letter-spacing: .09em;
+  font-weight: var(--peso-alto); margin-bottom: 3px;
+}
+.viaje-cabeza b {
+  font-size: var(--t-guia); color: var(--tinta); font-weight: var(--peso-medio);
+}
+.viaje-cuenta { font-size: var(--t-meta); color: var(--tinta-media); }
+
+.viaje-choques {
+  margin: 0; padding: var(--e-3) var(--e-4);
+  background: var(--alerta-velo); color: var(--alerta);
+  border: 1px solid color-mix(in oklab, var(--alerta) 35%, transparent);
+  border-radius: var(--r-sm); font-size: var(--t-meta); line-height: 1.45;
+}
+
+.viaje-dia { display: grid; gap: var(--e-2); }
+.viaje-fecha {
+  font-size: var(--t-sello); text-transform: uppercase; letter-spacing: .09em;
+  color: var(--tinta-media); font-weight: var(--peso-alto);
+}
+.viaje-dia.es-hoy .viaje-fecha { color: var(--marca-tinta); }
+.viaje-dia.ya-fue { opacity: .5; }
+.viaje-citas { display: grid; gap: 4px; }
+
+.viaje-cita {
+  display: grid; grid-template-columns: 4.5rem 1fr auto;
+  align-items: center; gap: var(--e-3); width: 100%;
+  padding: var(--e-3) var(--e-4); text-align: left; cursor: pointer;
+  background: var(--capa-2); border: 1px solid var(--linea-sutil);
+  border-radius: var(--r-sm); font: inherit; color: inherit;
+}
+.viaje-cita:hover { border-color: var(--linea-control); }
+.viaje-hora {
+  font-size: var(--t-meta); font-weight: var(--peso-alto);
+  font-variant-numeric: tabular-nums; color: var(--tinta);
+}
+.viaje-que { display: grid; gap: 1px; min-width: 0; }
+.viaje-que b {
+  font-size: var(--t-meta); font-weight: var(--peso-medio); color: var(--tinta);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.viaje-donde { font-size: var(--t-sello); color: var(--tinta-tenue); }
+.viaje-sello { font-size: var(--t-sello); white-space: nowrap; }
+
+/* El empalme se marca en la hora, que es donde está el problema. */
+.viaje-cita.choca { border-color: color-mix(in oklab, var(--alerta) 50%, var(--linea-sutil)); }
+.viaje-cita.choca .viaje-hora { color: var(--alerta); }
+.viaje-cita.choca .viaje-hora::after {
+  content: ' ⚠'; font-weight: var(--peso-alto);
+}
+
+/* En el celular no se recorta el título: lo que se corta es
+   justo el rival, que es lo que uno viene a leer. */
+@media (max-width: 560px) {
+  .viaje-cita { grid-template-columns: 3.6rem 1fr; align-items: start; }
+  .viaje-sello { grid-column: 2; }
+  .viaje-hora { padding-top: 1px; }
+  .viaje-que b { white-space: normal; overflow: visible; line-height: 1.3; }
+}

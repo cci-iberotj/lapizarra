@@ -1309,6 +1309,132 @@ function sinDueno() {
     !p.responsable && p.estado !== 'publicado' && p.fecha >= hoy);
 }
 
+/* ══════════════════════════════════════════════════════════
+   EL VIAJE
+   Una semana fuera no se parece a una semana normal. No son
+   piezas con fecha de salida: son partidos encimados, en canchas
+   distintas, y una sola persona con una sola cámara. Mirarlo en
+   la parrilla no sirve —ahí cada día es una columna igual a las
+   demás— así que el viaje se mira aquí, día por día, y lo único
+   que se grita es el choque: dos coberturas a la misma hora.
+
+   No hay alta de viajes ni pestaña aparte. Un viaje ES el
+   conjunto de eventos que comparten el campo 'viaje': se arma
+   anotándolos, se deshace borrándolos, y cada uno se corrige en
+   su propia ficha como cualquier otro evento del calendario. Así
+   no hay un segundo lugar donde editar lo mismo.
+   ══════════════════════════════════════════════════════════ */
+
+/* Dueño del viaje es quien se bloqueó los días. Si nadie se
+   bloqueó nada el viaje no es de nadie, y no le aparece a todo el
+   mundo en su escritorio. */
+function viajeMio() {
+  const yo = Almacen.usuario;
+  if (!yo) return null;
+  const hoy = aTexto(new Date());
+  const mio = (yo.nombre || '').trim().toLowerCase();
+
+  const grupos = new Map();
+  (datos.parrilla.eventos || []).forEach(e => {
+    if (!e.viaje) return;
+    if (!grupos.has(e.viaje)) grupos.set(e.viaje, []);
+    grupos.get(e.viaje).push(e);
+  });
+
+  let elegido = null;
+  grupos.forEach((lista, clave) => {
+    const esMio = lista.some(e => e.tipo === 'bloqueo'
+      && (e.solicita || '').trim().toLowerCase() === mio);
+    // Un viaje que ya pasó completo deja de ocupar la pantalla.
+    const vigente = lista.some(e => e.fecha >= hoy && e.estado !== 'cancelado');
+    if (!esMio || !vigente) return;
+    const inicio = lista.reduce((m, e) => (!m || e.fecha < m) ? e.fecha : m, '');
+    if (!elegido || inicio < elegido.inicio) elegido = { clave, lista, inicio };
+  });
+  return elegido;
+}
+
+function bloqueViaje() {
+  const v = viajeMio();
+  if (!v) return '';
+
+  const hoy = aTexto(new Date());
+  const citas = v.lista
+    .filter(e => e.tipo !== 'bloqueo' && e.estado !== 'cancelado')
+    .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
+  if (!citas.length) return '';
+
+  /* Choque = misma fecha y misma hora de arranque. Sin hora no hay
+     choque que valga: algo que dura todo el día no compite por un
+     lugar a una hora concreta. */
+  const cuantas = {};
+  citas.forEach(e => {
+    if (!e.hora) return;
+    const k = e.fecha + ' ' + e.hora;
+    cuantas[k] = (cuantas[k] || 0) + 1;
+  });
+  const choca = e => !!e.hora && cuantas[e.fecha + ' ' + e.hora] > 1;
+  const nChoques = Object.keys(cuantas).filter(k => cuantas[k] > 1).length;
+
+  const fechas = v.lista.map(e => e.fecha).filter(Boolean).sort();
+  const arranca = fechas[0];
+  const faltan = Math.round((aFecha(arranca) - aFecha(hoy)) / 86400000);
+  const cuenta = faltan > 1 ? 'faltan ' + faltan + ' días'
+               : faltan === 1 ? 'arranca mañana'
+               : faltan === 0 ? 'arranca hoy'
+               : 'en curso';
+
+  const porDia = {};
+  citas.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+
+  const dia = (fecha) => {
+    const lista = porDia[fecha];
+    const pasado = fecha < hoy;
+    return `
+      <div class="viaje-dia${fecha === hoy ? ' es-hoy' : ''}${pasado ? ' ya-fue' : ''}">
+        <div class="viaje-fecha">${esc(fechaLegible(fecha))}</div>
+        <div class="viaje-citas">
+          ${lista.map(e => {
+            const est = estadoDe(e);
+            return `
+            <button type="button" class="viaje-cita${choca(e) ? ' choca' : ''}"
+                    data-viaje-ev="${esc(e.id)}">
+              <span class="viaje-hora">${esc(e.hora ? horaLegible(e.hora) : '—')}</span>
+              <span class="viaje-que">
+                <b>${esc(e.titulo)}</b>
+                <span class="viaje-donde">${esc(e.lugar || '')}</span>
+              </span>
+              <span class="viaje-sello" style="color:${est.tono}">${esc(est.nombre)}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`;
+  };
+
+  /* El aviso de choques va arriba y en una sola frase. Si hay que
+     bajar para enterarse, no sirve de nada. */
+  const aviso = !nChoques ? '' : `
+    <p class="viaje-choques">
+      ${nChoques === 1 ? 'Hay un empalme' : 'Hay ' + nChoques + ' empalmes'}:
+      dos coberturas a la misma hora en canchas distintas. Vas solo, así que
+      hay que elegir una y marcar la otra como cancelada para que deje de
+      contar.
+    </p>`;
+
+  return `
+    <section class="viaje">
+      <header class="viaje-cabeza">
+        <div>
+          <span class="rotulo">Tu viaje</span>
+          <b>${esc(citas[0].viajeNombre || v.clave)}</b>
+        </div>
+        <span class="viaje-cuenta">${esc(citas.length)} por cubrir · ${esc(cuenta)}</span>
+      </header>
+      ${aviso}
+      ${Object.keys(porDia).sort().map(dia).join('')}
+    </section>`;
+}
+
 function pintarEscritorio() {
   const cont = $('#escritorio');
   if (!cont || !Almacen.usuario) return;
@@ -1389,6 +1515,8 @@ function pintarEscritorio() {
 
     ${bloqueAvisos(avisos)}
 
+    ${bloqueViaje()}
+
     <div class="escritorio-rejilla">
       ${bloque('Pasadas de fecha', m.vencidas, 'Nada atrasado.')}
       ${bloque('Hoy', m.hoy, 'Hoy no te toca nada.')}
@@ -1411,6 +1539,9 @@ function pintarEscritorio() {
     el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
   const px = $('.escritorio-proximo', cont);
   if (px) px.addEventListener('click', () => abrirFichaEvento(px.dataset.evento));
+
+  $$('[data-viaje-ev]', cont).forEach(b =>
+    b.addEventListener('click', () => abrirFichaEvento(b.dataset.viajeEv)));
 }
 
 
@@ -8984,6 +9115,30 @@ async function pasarAdentro(usuario) {
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
   {
+    clave: '2026-10-13-a',
+    version: '2026-10-13',
+    titulo: 'Los viajes se ven día por día, con los empalmes marcados',
+    puntos: [
+      { t: 'Un apartado nuevo en Mi escritorio',
+        d: 'Cuando te bloqueas unos días para salir a cubrir algo fuera, arriba ' +
+           'del escritorio te aparece ese viaje: la agenda completa día por día, ' +
+           'con la hora, la cancha y en qué va cada cobertura. Sólo lo ve quien ' +
+           'se bloqueó los días; a los demás no les estorba.' },
+      { t: 'Avisa cuando dos cosas son a la misma hora',
+        d: 'Si vas solo, dos coberturas al mismo tiempo en canchas distintas no ' +
+           'son un detalle: es una que se va a perder. Salen marcadas en ámbar ' +
+           'y el apartado dice cuántos empalmes hay antes de que bajes a verlos.' },
+      { t: 'No hay que dar de alta ningún viaje',
+        d: 'Un viaje es, nada más, los eventos que comparten destino. Se arma ' +
+           'anotándolos en el calendario y se corrige abriendo cada uno en su ' +
+           'ficha de siempre: no hay un segundo lugar donde editar lo mismo.' },
+      { t: 'Ya está cargado el INTERSUJ',
+        d: 'Leo está fuera del 9 al 13 de noviembre, en CDMX. Quedaron los 12 ' +
+           'partidos de IBERO Tijuana —flag femenil y voleibol de sala, de los ' +
+           'dos— con sus horas y canchas. Hay 3 empalmes por resolver.' },
+    ],
+  },
+  {
     clave: '2026-10-08-z',
     version: '2026-10-08',
     titulo: 'Herramienta nueva: lugares reservados',
@@ -8999,7 +9154,7 @@ const NOVEDADES = [
            'ocupaban 20 hojas y ahora caben en 5, con el 0.5 % de la tinta roja.' },
       { t: 'Sólo una raya es de color',
         d: 'El resto va en negro y gris. La raya se puede poner arriba, debajo del ' +
-           'rótulo o como pleca al filo izquierdo, y se le cambia largo y grosor.' },
+           'rótulo. Lo demás va fijo: una medida menos que decidir.' },
       { t: 'Se puede pegar directo del Excel',
         d: 'Si traes nombre y programa en columnas, al pegarlo los separa solo: el ' +
            'programa sale abajo y más chico.' },
