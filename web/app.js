@@ -636,6 +636,8 @@ function refrescarTodo() {
   refrescarExpertos();
   pintarRedaccion();
   pintarEscritorio();
+  refrescarPestanaViaje();
+  if (vistaActual === 'viaje') pintarViaje();
   pintarEntregas();
   /* La bandeja se pide una vez al cargar para que el globo diga cuantas
      hay sin que nadie tenga que entrar a mirar. Sólo la pide quien la
@@ -1315,25 +1317,24 @@ function sinDueno() {
    piezas con fecha de salida: son partidos encimados, en canchas
    distintas, y una sola persona con una sola cámara. Metido en
    la parrilla eso no se lee —cada día es una columna igual a las
-   demás, y doce coberturas de un viaje tapan las cinco del
-   campus— así que el viaje tiene su propio calendario, aquí, y
-   lo único que se grita es el choque de horario.
+   demás, y doce coberturas de un viaje tapan las del campus— así
+   que el viaje tiene PESTAÑA PROPIA, con el calendario del
+   evento completo y nada más.
 
    LO QUE SÍ SE QUEDA EN LA PARRILLA ES LA AUSENCIA. El bloqueo
    de los días sale en el calendario de todos, que para eso es:
    para que nadie agende encima. Lo que se saca de ahí son los
-   partidos, que sólo le importan a quien viaja y a quien se
-   coordina con él.
+   partidos.
 
-   No hay alta de viajes ni pestaña aparte. Un viaje ES el
-   conjunto de eventos que comparten el campo 'viaje': se arma
-   anotándolos, se deshace borrándolos, y cada uno se corrige en
-   su propia ficha como cualquier otro evento. Así no hay un
-   segundo lugar donde editar lo mismo.
+   No hay alta de viajes. Un viaje ES el conjunto de eventos que
+   comparten el campo 'viaje': se arma anotándolos, se deshace
+   borrándolos, y cada uno se corrige en su propia ficha como
+   cualquier otro evento. La pestaña aparece sola cuando hay un
+   viaje por delante y se va sola cuando termina, y toma su
+   nombre de los eventos ('viajeCorto'), no de este archivo.
 
-   Lo ve todo el equipo, no sólo quien viaja. Silvia o Marysol
-   pueden necesitar saber qué se está grabando y cuándo para
-   encargar piezas encima.
+   Lo ve todo el equipo. Silvia o Marysol pueden necesitar saber
+   qué se está grabando y cuándo para encargar piezas encima.
    ══════════════════════════════════════════════════════════ */
 
 /* Un partido del viaje no es del calendario general; la ausencia
@@ -1345,6 +1346,15 @@ function esDeViaje(e) {
 function eventosDeParrilla() {
   return (datos.parrilla.eventos || []).filter(e => !esDeViaje(e));
 }
+
+/* Cada deporte con su color, para poder barrer la semana de un
+   vistazo y ver de qué es cada bloque sin leerlo. Salen de los
+   tonos de pilar, que ya están medidos en claro y en oscuro. */
+const COLOR_DEPORTE = {
+  flag:   'vida',
+  volfem: 'orgullo',
+  volvar: 'cultura',
+};
 
 /* Dueño del viaje es quien se bloqueó los días. Si nadie se
    bloqueó nada, no hay viaje: hay eventos sueltos con etiqueta. */
@@ -1362,7 +1372,7 @@ function viajeDelEquipo() {
   grupos.forEach((lista, clave) => {
     const fuera = lista.filter(e => e.tipo === 'bloqueo' && e.fecha);
     if (!fuera.length) return;
-    // Un viaje que ya pasó completo deja de ocupar la pantalla.
+    // Un viaje que ya pasó completo deja de ocupar una pestaña.
     if (!lista.some(e => e.fecha >= hoy && e.estado !== 'cancelado')) return;
 
     const dias = fuera.map(e => e.fecha).sort();
@@ -1372,14 +1382,16 @@ function viajeDelEquipo() {
         clave, lista, inicio,
         dueno: (fuera[0].solicita || '').trim(),
         desde: dias[0], hasta: dias[dias.length - 1],
+        nombre: (lista.find(e => e.viajeNombre) || {}).viajeNombre || clave,
+        corto: (lista.find(e => e.viajeCorto) || {}).viajeCorto || 'Viaje',
       };
     }
   });
   return elegido;
 }
 
-/* 'del lunes 9 al viernes 13 de noviembre' y no 'del Lunes 9 de
-   noviembre al Viernes 13 de noviembre', que es lo que sale de
+/* 'del domingo 8 al viernes 13 de noviembre' y no 'del Domingo 8
+   de noviembre al Viernes 13 de noviembre', que es lo que sale de
    encadenar dos fechaLegible. El mes se dice una vez, y sólo se
    repite cuando el viaje cruza de mes. */
 function rangoLegible(desde, hasta) {
@@ -1392,22 +1404,39 @@ function rangoLegible(desde, hasta) {
   return 'del ' + ini + ' al ' + baja(fechaLegible(hasta));
 }
 
-function bloqueViaje() {
+/* La pestaña sale sola cuando hay viaje y se llama como el viaje.
+   Nadie la enciende a mano: así no queda encendida en diciembre
+   anunciando algo de noviembre. */
+function refrescarPestanaViaje() {
+  const t = $('#tabViaje');
+  if (!t) return;
   const v = viajeDelEquipo();
-  if (!v || !Almacen.usuario) return '';
+  const puedo = vistasQueVeo().includes('viaje');
+  t.hidden = !v || !puedo;
+  if (v) t.textContent = v.corto;
+  // Si estabas parado en ella y el viaje se acabó, te regresa.
+  if (t.hidden && vistaActual === 'viaje') $('.tab[data-vista="parrilla"]').click();
+}
+
+function pintarViaje() {
+  const cont = $('#viaje');
+  if (!cont) return;
+  const v = viajeDelEquipo();
+  if (!v) {
+    cont.innerHTML = '<div class="vacio">No hay ningún viaje por delante.</div>';
+    return;
+  }
 
   const hoy = aTexto(new Date());
-  const yo = (Almacen.usuario.nombre || '').trim().toLowerCase();
+  const yo = (Almacen.usuario && Almacen.usuario.nombre || '').trim().toLowerCase();
   const esMio = !!v.dueno && v.dueno.toLowerCase() === yo;
 
   const citas = v.lista
     .filter(e => esDeViaje(e) && e.estado !== 'cancelado')
-    .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
-  if (!citas.length) return '';
+    .sort((a, b) => (a.fecha + (a.hora || '99:99')).localeCompare(b.fecha + (b.hora || '99:99')));
 
-  /* Choque = misma fecha y misma hora de arranque. Sin hora no hay
-     choque que valga: algo que dura todo el día no compite por un
-     lugar a una hora concreta. */
+  /* Empalme = misma fecha y misma hora de arranque. Los que
+     todavía no tienen hora no empalman con nadie: no se sabe. */
   const cuantas = {};
   citas.forEach(e => {
     if (!e.hora) return;
@@ -1416,69 +1445,175 @@ function bloqueViaje() {
   });
   const choca = e => !!e.hora && cuantas[e.fecha + ' ' + e.hora] > 1;
   const nChoques = Object.keys(cuantas).filter(k => cuantas[k] > 1).length;
+  const porDefinir = citas.filter(e => Array.isArray(e.llave) && e.llave.length);
 
   const faltan = Math.round((aFecha(v.inicio) - aFecha(hoy)) / 86400000);
-  const cuenta = faltan > 1 ? 'faltan ' + faltan + ' días'
-               : faltan === 1 ? 'arranca mañana'
-               : faltan === 0 ? 'arranca hoy'
-               : 'en curso';
+  const cuenta = faltan > 1 ? 'Faltan ' + faltan + ' días'
+               : faltan === 1 ? 'Arranca mañana'
+               : faltan === 0 ? 'Arranca hoy'
+               : 'En curso';
 
   const porDia = {};
   citas.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+  const dias = Object.keys(porDia).sort();
 
-  const dia = (fecha) => {
-    const lista = porDia[fecha];
+  const deportes = [];
+  citas.forEach(e => {
+    if (e.deporteNombre && !deportes.some(d => d.id === e.deporte)) {
+      deportes.push({ id: e.deporte, nombre: e.deporteNombre });
+    }
+  });
+
+  /* El duelo se arma con los campos, no partiendo el título: el
+     nuestro va en negritas y el rival al lado, para que la columna
+     se lea en vertical buscando siempre lo mismo. */
+  const duelo = (e) => {
+    if (!e.rival) return '<span class="isj-rival">Rival por definirse</span>';
+    const nos = '<b class="isj-nos">IBERO TIJUANA</b>';
+    const otro = '<span class="isj-rival">' + esc(e.rival) + '</span>';
+    return e.local
+      ? nos + '<span class="isj-vs">vs</span>' + otro
+      : otro + '<span class="isj-vs">vs</span>' + nos;
+  };
+
+  /* En la columna del día sólo cabe el aviso; la tabla de
+     posibilidades va abajo, donde se puede leer. */
+  const tarjetaLlave = (e) => `
+    <article class="isj-partido isj-porDefinir" data-isj-ir="${esc(e.deporte)}"
+             style="--isj:var(--pilar-${COLOR_DEPORTE[e.deporte] || 'vida'}-solido)">
+      <div class="isj-alto">
+        <span class="isj-hora isj-hora-dudosa">${esc((e.llaveHoras || []).join(' o ') || '?')}</span>
+        <span class="isj-deporte">${esc(e.deporteNombre || '')}</span>
+      </div>
+      <div class="isj-duelo">
+        <b class="isj-nos">Fase final</b>
+        <span class="isj-rival">Falta saber el lugar de grupo</span>
+      </div>
+      <span class="isj-pordef">Ver las posibilidades ↓</span>
+    </article>`;
+
+  const tarjeta = (e) => Array.isArray(e.llave) && e.llave.length ? tarjetaLlave(e) : `
+    <article class="isj-partido${choca(e) ? ' choca' : ''}" data-isj-ev="${esc(e.id)}"
+             style="--isj:var(--pilar-${COLOR_DEPORTE[e.deporte] || 'vida'}-solido)">
+      <div class="isj-alto">
+        <span class="isj-hora">${esc(e.hora ? horaLegible(e.hora) : '—')}</span>
+        <span class="isj-deporte">${esc(e.deporteNombre || '')}</span>
+      </div>
+      <div class="isj-duelo">${duelo(e)}</div>
+      <div class="isj-pie">
+        <span class="isj-sede">${esc(e.sede || e.lugar || '')}</span>
+        ${e.jornada ? `<span class="isj-jornada">${esc(e.jornada)}</span>` : ''}
+      </div>
+      ${choca(e) ? '<span class="isj-empalme">Empalme</span>' : ''}
+    </article>`;
+
+  const columna = (f) => {
+    const d = aFecha(f);
     return `
-      <div class="viaje-dia${fecha === hoy ? ' es-hoy' : ''}${fecha < hoy ? ' ya-fue' : ''}">
-        <div class="viaje-fecha">${esc(fechaLegible(fecha))}</div>
-        <div class="viaje-citas">
-          ${lista.map(e => {
-            const est = estadoDe(e);
-            return `
-            <button type="button" class="viaje-cita${choca(e) ? ' choca' : ''}"
-                    data-viaje-ev="${esc(e.id)}">
-              <span class="viaje-hora">${esc(e.hora ? horaLegible(e.hora) : '—')}</span>
-              <span class="viaje-que">
-                <b>${esc(e.titulo)}</b>
-                <span class="viaje-donde">${esc(e.lugar || '')}</span>
-              </span>
-              <span class="viaje-sello" style="color:${est.tono}">${esc(est.nombre)}</span>
-            </button>`;
-          }).join('')}
-        </div>
+      <div class="isj-dia${f === hoy ? ' es-hoy' : ''}${f < hoy ? ' ya-fue' : ''}">
+        <header class="isj-dia-cabeza">
+          <span class="isj-dia-nombre">${esc(DIAS[d.getDay()])}</span>
+          <span class="isj-dia-num">${d.getDate()}</span>
+        </header>
+        ${porDia[f].map(tarjeta).join('')}
       </div>`;
   };
 
-  /* El aviso de choques va arriba y en una sola frase. Si hay que
-     bajar para enterarse, no sirve de nada. */
   const quien = esMio ? 'Vas solo' : (esc(v.dueno) + ' va solo');
   const aviso = !nChoques ? '' : `
-    <p class="viaje-choques">
-      ${nChoques === 1 ? 'Hay un empalme' : 'Hay ' + nChoques + ' empalmes'}:
-      dos coberturas a la misma hora en canchas distintas. ${quien}, así que
-      hay que elegir una y marcar la otra como cancelada para que deje de
-      contar.
+    <div class="isj-alarma">
+      <b>${nChoques === 1 ? 'Un empalme' : nChoques + ' empalmes'}</b>
+      <p>Dos coberturas a la misma hora, en canchas distintas. ${quien}, así que
+      uno de los dos se va a perder: hay que elegir cuál y marcar el otro como
+      cancelado para que deje de contar.</p>
+    </div>`;
+
+  /* La fase final no tiene hora todavía, pero sí tiene un número
+     corto de posibilidades. Enseñarlas es la diferencia entre
+     poder planear el viernes y no poder. */
+  const panelLlave = (e) => `
+    <article class="isj-llave-panel" id="llave-${esc(e.deporte)}"
+             style="--isj:var(--pilar-${COLOR_DEPORTE[e.deporte] || 'vida'}-solido)">
+      <header>
+        <span class="isj-deporte">${esc(e.deporteNombre || '')}</span>
+        <b>${esc(fechaLegible(e.fecha))}</b>
+        ${e.llaveGrupo ? `<span class="tenue">${esc(e.llaveGrupo)}</span>` : ''}
+      </header>
+      <table class="isj-llave">
+        <thead>
+          <tr><th>Si Tijuana queda</th><th>Juega por</th><th>Hora</th><th>Cancha</th></tr>
+        </thead>
+        <tbody>
+          ${e.llave.map(o => `
+            <tr class="${o.hora ? '' : 'isj-sinjuego'}">
+              <td>${esc(o.pos)}</td>
+              <td><b>${esc(o.juega)}</b></td>
+              <td class="isj-llave-hora">${o.hora ? esc(horaLegible(o.hora)) : '—'}</td>
+              <td class="tenue">${esc(o.sede || '')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      ${e.llaveNota ? `<p class="isj-llave-pie">${esc(e.llaveNota)}</p>` : ''}
+      <button type="button" class="btn-plano" data-isj-ev="${esc(e.id)}">Abrir la ficha</button>
+    </article>`;
+
+  const notaFinal = !porDefinir.length ? '' : `
+    <section class="isj-llaves">
+      <h3>El viernes todavía no está escrito</h3>
+      <p class="isj-nota">
+        Las dos fases finales de voleibol son el viernes y aún no tienen hora:
+        sale de en qué lugar termine Tijuana cada grupo, y eso no se sabe hasta
+        que acabe la última jornada. Lo que sí está fijo son las dos horas
+        posibles, <b>8:00 o 10:00</b>. Y a las 8:00 ya está el último partido de
+        flag en la Cancha de Beisbol, así que de ahí puede salir otro empalme
+        —o dos, si a los dos equipos de voleibol les toca la misma hora.
+      </p>
+      <div class="isj-llave-rejilla">${porDefinir.map(panelLlave).join('')}</div>
+    </section>`;
+
+  cont.innerHTML = `
+    <header class="isj-portada">
+      <div class="isj-portada-texto">
+        <span class="rotulo">${esMio ? 'Tu viaje' : 'Viaje de ' + esc(v.dueno)}</span>
+        <h2>${esc(v.nombre)}</h2>
+        <p>Competencia ${esc(rangoLegible(dias[0], dias[dias.length - 1]))}.
+           ${esc(v.dueno || 'Quien viaja')} está fuera de oficina
+           ${esc(rangoLegible(v.desde, v.hasta))} —eso sí sale en el calendario
+           de todos— y lo cubre solo.</p>
+      </div>
+      <div class="isj-marcador">
+        <div><b>${esc(citas.length - porDefinir.length)}</b><span>partidos</span></div>
+        <div class="${nChoques ? 'mal' : ''}"><b>${esc(nChoques)}</b><span>empalmes</span></div>
+        <div><b>${esc(porDefinir.length)}</b><span>por definirse</span></div>
+        <div class="isj-cuenta"><b>${esc(cuenta)}</b></div>
+      </div>
+    </header>
+
+    <div class="isj-leyenda">
+      ${deportes.map(d => `
+        <span class="isj-chip" style="--isj:var(--pilar-${COLOR_DEPORTE[d.id] || 'vida'}-solido)">
+          ${esc(d.nombre)}
+        </span>`).join('')}
+    </div>
+
+    ${aviso}
+
+    <div class="isj-semana">${dias.map(columna).join('')}</div>
+
+    ${notaFinal}
+
+    <p class="isj-fuente">
+      Del rol de juegos <b>PRELIMINAR</b> INTERSUJ XLI 2026. Dice preliminar:
+      conviene confirmar cada hora la víspera. Toca cualquier partido para
+      abrir su ficha y ver las notas.
     </p>`;
 
-  const ausencia = rangoLegible(v.desde, v.hasta);
-
-  return `
-    <section class="viaje">
-      <header class="viaje-cabeza">
-        <div>
-          <span class="rotulo">${esMio ? 'Tu viaje' : 'Viaje de ' + esc(v.dueno)}</span>
-          <b>${esc(citas[0].viajeNombre || v.clave)}</b>
-        </div>
-        <span class="viaje-cuenta">${esc(citas.length)} por cubrir · ${esc(cuenta)}</span>
-      </header>
-      <p class="viaje-ausencia">
-        ${esc(v.dueno || 'Quien viaja')} está fuera de oficina ${esc(ausencia)}.
-        Eso sí sale en el calendario de todos; los partidos de aquí abajo no,
-        para no taparlo.
-      </p>
-      ${aviso}
-      ${Object.keys(porDia).sort().map(dia).join('')}
-    </section>`;
+  $$('[data-isj-ev]', cont).forEach(b =>
+    b.addEventListener('click', () => abrirFichaEvento(b.dataset.isjEv)));
+  $$('[data-isj-ir]', cont).forEach(b => b.addEventListener('click', () => {
+    const d = $('#llave-' + b.dataset.isjIr, cont);
+    if (d) d.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }));
 }
 
 function pintarEscritorio() {
@@ -1561,8 +1696,6 @@ function pintarEscritorio() {
 
     ${bloqueAvisos(avisos)}
 
-    ${bloqueViaje()}
-
     <div class="escritorio-rejilla">
       ${bloque('Pasadas de fecha', m.vencidas, 'Nada atrasado.')}
       ${bloque('Hoy', m.hoy, 'Hoy no te toca nada.')}
@@ -1585,9 +1718,6 @@ function pintarEscritorio() {
     el.addEventListener('click', () => abrirPrevia(el.dataset.id)));
   const px = $('.escritorio-proximo', cont);
   if (px) px.addEventListener('click', () => abrirFichaEvento(px.dataset.evento));
-
-  $$('[data-viaje-ev]', cont).forEach(b =>
-    b.addEventListener('click', () => abrirFichaEvento(b.dataset.viajeEv)));
 }
 
 
@@ -8035,6 +8165,7 @@ function conectarEventos() {
     if (vistaActual === 'expertos') pintarExpertos();
     if (vistaActual === 'redaccion') pintarRedaccion();
     if (vistaActual === 'escritorio') pintarEscritorio();
+    if (vistaActual === 'viaje') pintarViaje();
     if (vistaActual === 'ajustes') pintarAjustes();
     if (vistaActual === 'verificar') pintarVerificar();
   }));
@@ -8865,18 +8996,18 @@ function marcarPendientes() {
 
 const VISTAS_POR_ROL = {
   admin: {
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Administra y opera todo',
   },
   direccion: {
     // La jefa: el plan, la mesa de redacción que es su trabajo, los
     // expertos que entrevista, y el diagnóstico. El inventario no:
     // no administra cámaras.
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'redaccion', 'expertos', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'redaccion', 'expertos', 'ajustes'],
     porque: 'Escribe las notas académicas',
   },
   publicacion: {
@@ -8884,13 +9015,13 @@ const VISTAS_POR_ROL = {
     // la mesa de redacción, que es de donde le llegan. No necesita
     // el directorio de expertos — él no entrevista a nadie — ni el
     // inventario, ni el diagnóstico del área.
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'redaccion', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'redaccion', 'ajustes'],
     porque: 'Publica las notas en el sitio',
   },
   produccion: {
     // Quien produce las piezas: el calendario y lo suyo. Sin
     // inventario, sin la mesa de redacción, sin el diagnóstico.
-    ve: ['parrilla', 'escritorio', 'solicitudes', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'ajustes'],
     porque: 'Produce las piezas del calendario',
   },
   creacion: {
@@ -9163,30 +9294,35 @@ const NOVEDADES = [
   {
     clave: '2026-10-13-a',
     version: '2026-10-13',
-    titulo: 'Los viajes se ven día por día, con los empalmes marcados',
+    titulo: 'Pestaña nueva: INTERSUJ 2026',
     puntos: [
-      { t: 'Un apartado nuevo en Mi escritorio',
+      { t: 'El calendario del torneo, aparte del de la oficina',
         d: 'Cuando alguien se bloquea unos días para salir a cubrir algo fuera, ' +
-           'arriba del escritorio aparece ese viaje: la agenda completa día por ' +
-           'día, con la hora, la sede y en qué va cada cobertura. Lo ve todo el ' +
-           'equipo, para poder encargar piezas encima de lo que se está grabando.' },
+           'aparece una pestaña con ese viaje y su calendario completo: una ' +
+           'columna por día, la hora en grande, contra quién y en qué cancha, y ' +
+           'cada deporte con su color. Se llama como el evento, sale sola cuando ' +
+           'hay viaje por delante y se va sola cuando termina.' },
       { t: 'En la parrilla queda la ausencia, no los partidos',
-        d: 'Los días bloqueados siguen saliendo en el calendario de todos, que ' +
-           'para eso son. Lo que ya no sale ahí son las coberturas del viaje: ' +
-           'doce de ellas tapaban las del campus, y sólo le sirven a quien viaja ' +
-           'y a quien se coordina con él.' },
+        d: 'Los días bloqueados siguen en el calendario de todos, que para eso ' +
+           'son. Las coberturas del viaje ya no: doce de ellas tapaban las del ' +
+           'campus y no le sirven a nadie que se quede aquí.' },
       { t: 'Avisa cuando dos cosas son a la misma hora',
-        d: 'Si vas solo, dos coberturas al mismo tiempo en canchas distintas no ' +
-           'son un detalle: es una que se va a perder. Salen marcadas en ámbar ' +
-           'y el apartado dice cuántos empalmes hay antes de que bajes a verlos.' },
-      { t: 'No hay que dar de alta ningún viaje',
-        d: 'Un viaje es, nada más, los eventos que comparten destino. Se arma ' +
-           'anotándolos en el calendario y se corrige abriendo cada uno en su ' +
-           'ficha de siempre: no hay un segundo lugar donde editar lo mismo.' },
+        d: 'Yendo solo, dos coberturas al mismo tiempo en canchas distintas no ' +
+           'son un detalle: es una que se va a perder. Salen en ámbar y el ' +
+           'marcador de arriba dice cuántos empalmes hay.' },
+      { t: 'Y lo que todavía no tiene hora, se enseña como posibilidades',
+        d: 'Las fases finales dependen de en qué lugar se termine el grupo. En ' +
+           'vez de inventarles una hora, abajo está la tabla: si quedas 1º juegas ' +
+           'a tal hora en tal cancha, si quedas 2º a tal otra. Así se puede ' +
+           'planear el último día sin saber todavía el resultado.' },
+      { t: 'Lo ve todo el equipo',
+        d: 'No sólo quien viaja. Silvia o Marysol pueden necesitar saber qué se ' +
+           'está grabando y cuándo para encargar piezas encima.' },
       { t: 'Ya está cargado el INTERSUJ',
         d: 'Leo está fuera del 9 al 13 de noviembre, en CDMX. Quedaron los 12 ' +
-           'partidos de IBERO Tijuana —flag femenil y voleibol de sala, de los ' +
-           'dos— con sus horas y canchas. Hay 3 empalmes por resolver.' },
+           'partidos de IBERO Tijuana —flag femenil y voleibol de sala de los ' +
+           'dos— con sus horas y canchas, las 2 fases finales por definirse, y ' +
+           '3 empalmes por resolver.' },
     ],
   },
   {
