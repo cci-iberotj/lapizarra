@@ -328,6 +328,14 @@ h1 em,h2 em{font-style:normal;color:var(--rojo)}
 .beca .prom{font-family:var(--titulos);font-weight:700;font-size:92px;line-height:.9;color:var(--rojo)}
 .beca .nom{font-family:var(--titulos);font-weight:700;font-size:42px;color:var(--tinta);line-height:1.1}
 .beca .det{font-size:26px;color:var(--tinta-media);line-height:1.35}
+/* con cuatro becas en la misma lámina hay que apretar: son 1920 px y
+   cuatro tarjetas de 34 px de padding no caben con los tamaños de dos */
+.becas3.cuatro{gap:20px;margin-top:40px}
+.becas3.cuatro .beca{padding:30px 24px;gap:9px;border-radius:22px}
+.becas3.cuatro .prom{font-size:64px}
+.becas3.cuatro .prom .pc{font-size:.52em}
+.becas3.cuatro .nom{font-size:31px}
+.becas3.cuatro .det{font-size:21px;line-height:1.3}
 
 .panel{display:flex;gap:60px;margin-top:44px;flex:1;min-height:0;align-items:center}
 .panel .texto{flex:1}
@@ -772,7 +780,7 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
         <div class="paso" data-sube style="--i:4"><div class="n">03</div><div class="tit">Pago de examen</div>
           <ul><li class="fuerte">$1,800 MXN</li><li>Con tarjeta en la universidad o en línea</li><li>Incluye guía de estudio y simulador práctico</li></ul></div>
         <div class="paso" data-sube style="--i:5"><div class="n">04</div><div class="tit">Examen de admisión</div>
-          <ul><li class="fuerte">26 de febrero 2027</li><li>Puntaje deseable de 900 pts. (1,000 para Medicina)</li></ul></div>
+          <ul><li class="fuerte">26 de febrero 2027</li><li>Puntaje deseable de 900 pts. (1,000 para Medicina, Arquitectura e Ingenierías)</li></ul></div>
       </div>
     </div>
     <div class="pie"><span>Etapa 1 de 2</span></div>
@@ -790,7 +798,7 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
         <div class="paso" data-sube style="--i:3"><div class="n">06</div><div class="tit">Carta de admisión</div>
           <ul><li>La recibes por correo electrónico</li></ul></div>
         <div class="paso" data-sube style="--i:4"><div class="n">07</div><div class="tit">Solicitud de beca</div>
-          <ul><li>Se revisa cada caso según carrera y promedio</li><li class="fuerte">8.0 · 8.5 · 9.0</li></ul></div>
+          <ul><li>Se revisa cada caso según carrera y promedio</li><li class="fuerte">30% · 35% · 40%</li></ul></div>
         <!-- OJO: la fecha de la mensualidad venía como "agosto 2026" en la de Canva.
              Aquí se puso 2027 por coherencia con el examen de febrero 2027. CONFIRMAR. -->
         <div class="paso" data-sube style="--i:5"><div class="n">08</div><div class="tit">Inscripción</div>
@@ -814,41 +822,90 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="barra-sup"></div>
     <div class="marco centro">
       <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO</span></div>
-      <h2 data-sube style="--i:1">Dos caminos para entrar <em>con beca</em>.</h2>
-      <div class="becas3">
-        <div class="beca" data-sube style="--i:3"><div class="prom">8.0</div><div class="nom">Beca impulso MAGIS</div>
-          <div class="det">Del 25% al 35% según tu promedio. 8.5 para Medicina.</div></div>
-        <div class="beca" data-sube style="--i:4"><div class="prom">8.0</div><div class="nom">Estudio socioeconómico</div>
+      <h2 data-sube style="--i:1">Cuatro caminos para entrar <em>con beca</em>.</h2>
+      <div class="becas3 cuatro">
+        <div class="beca" data-sube style="--i:2"><div class="prom">8.0</div><div class="nom">Impulso-Magis</div>
+          <div class="det">Del 30% al 40% según tu promedio.</div></div>
+        <div class="beca" data-sube style="--i:3"><div class="prom">63<span class="pc">%</span></div><div class="nom">Enfermería</div>
+          <div class="det">Para la Licenciatura en Enfermería.</div></div>
+        <div class="beca" data-sube style="--i:4"><div class="prom">&lt;8.0</div><div class="nom">Camino al Magis</div>
+          <div class="det">Si tu promedio no llega a 8.0, lo construyes aquí.</div></div>
+        <div class="beca" data-sube style="--i:5"><div class="prom">8.0</div><div class="nom">Estudio socioeconómico</div>
           <div class="det">Del 20% al 80% según tu situación económica.</div></div>
       </div>
     </div>
-    <div class="pie"><span>Las dos se conservan durante toda la carrera</span></div>
+    <div class="pie"><span>Se conservan durante toda la carrera</span></div>
   </section>
 
-  <!-- 13 · BECA MAGIS -->
+  <!-- 12 · BECA IMPULSO-MAGIS -->
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco centro">
-      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio 8.0 · 8.5 para Medicina</span></div>
-      <h2 data-sube style="--i:1">Beca impulso <em>MAGIS</em></h2>
-      <div class="bajada" data-sube style="--i:2;margin-top:18px">Tu promedio la sostiene semestre a semestre.</div>
+      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio 8.0</span></div>
+      <h2 data-sube style="--i:1">Beca <em>Impulso-Magis</em></h2>
+      <div class="bajada" data-sube style="--i:2;margin-top:18px">Entre mejor sea tu promedio, mayor es tu beca.</div>
       <div class="tabla" data-sube style="--i:2">
         <div class="cab">Semestre</div><div class="cab cen">% de beca</div><div class="cab">Promedio requerido</div>
 
-        <div>1er semestre</div><div class="pct">35%</div><div>8.0 en preparatoria</div>
+        <div>1er semestre</div><div class="pct">30%</div><div>8.0 en preparatoria</div>
 
-        <div class="raya">2do semestre</div><div class="pct raya">25%</div><div class="raya">8.5 en licenciatura</div>
-
-        <div class="grupo">3er semestre<br>en adelante</div>
-        <div class="pct eng">25%</div><div class="eng">8.5 a 8.9</div>
-        <div class="pct eng">30%</div><div class="eng">9.0 a 9.4</div>
-        <div class="pct eng">35%</div><div class="eng">9.5 a 10</div>
+        <div class="grupo">Desde el<br>2º semestre</div>
+        <div class="pct eng">30%</div><div class="eng">8.5 a 8.9</div>
+        <div class="pct eng">35%</div><div class="eng">9.0 a 9.4</div>
+        <div class="pct eng">40%</div><div class="eng">9.5 a 10</div>
       </div>
+      <div class="bajada" data-sube style="--i:3;margin-top:26px;max-width:none;font-size:26px">
+        Desde segundo semestre cuenta tu promedio en la IBERO, y necesitas
+        <b>8.5 como mínimo</b> para sostenerla. Para <b>Medicina, Arquitectura
+        e Ingenierías</b> se piden además <b>1000 puntos</b> en el examen de admisión.</div>
     </div>
-    <div class="pie"><span>Beca impulso MAGIS</span></div>
+    <div class="pie"><span>Beca Impulso-Magis</span></div>
   </section>
 
-  <!-- 14 · BECA SOCIOECONÓMICA -->
+  <!-- 13 · BECA ENFERMERÍA -->
+  <section class="lamina">
+    <div class="barra-sup"></div>
+    <div class="marco">
+      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio 8.0</span></div>
+      <h2 data-sube style="--i:1">Beca <em>Enfermería</em></h2>
+      <div class="bajada" data-sube style="--i:2;margin-top:18px">Para la Licenciatura en Enfermería.</div>
+      <div class="panel">
+        <div class="texto" data-sube style="--i:2">
+          <ul class="lista-req">
+            <li>Promedio mínimo de <b>8.0</b> en tu preparatoria</li>
+            <li>Realizar tu examen de admisión</li>
+            <li><b>8.5</b> de promedio para conservarla desde segundo semestre</li>
+          </ul>
+        </div>
+        <div class="destacado" data-sube style="--i:3">
+          <div class="gran">63<span style="font-size:.46em">%</span></div>
+          <div class="sub">de tu colegiatura, desde el primer semestre.</div>
+        </div>
+      </div>
+    </div>
+    <div class="pie"><span>Beca Enfermería</span></div>
+  </section>
+
+  <!-- 14 · BECA CAMINO AL MAGIS -->
+  <section class="lamina">
+    <div class="barra-sup"></div>
+    <div class="marco">
+      <div class="rotulo" data-sube style="--i:0"><span class="bar"></span><span>Becas IBERO · Promedio menor a 8.0</span></div>
+      <h2 data-sube style="--i:1">Beca <em>Camino al Magis</em></h2>
+      <div class="bajada" data-sube style="--i:2;margin-top:18px">Si tu promedio no llega a 8.0, lo construyes aquí.</div>
+      <div class="pasos">
+        <div class="paso" data-sube style="--i:2"><div class="n">01</div><div class="tit">Entras</div>
+          <ul><li class="fuerte">Promedio menor a 8.0</li><li>Aunque tu promedio no alcance para otra beca, tu lugar sí</li></ul></div>
+        <div class="paso" data-sube style="--i:3"><div class="n">02</div><div class="tit">1er semestre</div>
+          <ul><li>Construyes tu promedio aquí, en la Universidad</li><li>Sin porcentaje de beca todavía</li></ul></div>
+        <div class="paso" data-sube style="--i:4"><div class="n">03</div><div class="tit">Desde 2º semestre</div>
+          <ul><li>Te incorporas a la beca Impulso-Magis</li><li class="fuerte">30% · 35% · 40%</li></ul></div>
+      </div>
+    </div>
+    <div class="pie"><span>Beca Camino al Magis</span></div>
+  </section>
+
+  <!-- 15 · BECA SOCIOECONÓMICA -->
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco">
@@ -868,7 +925,7 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="pie"><span>Beca por estudio socioeconómico</span></div>
   </section>
 
-  <!-- 15 · BENEFICIOS -->
+  <!-- 16 · BENEFICIOS -->
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco centro">
@@ -885,7 +942,7 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="pie"><span>Becas IBERO Tijuana</span></div>
   </section>
 
-  <!-- 16 · DUDAS -->
+  <!-- 17 · DUDAS -->
   <section class="lamina">
     <div class="barra-sup"></div>
     <div class="marco centro">
@@ -896,7 +953,7 @@ html.quieto .ctrl{opacity:1!important;transform:none!important}
     <div class="pie"><span>Encuentro IBERO 2027</span></div>
   </section>
 
-  <!-- 17 · GRACIAS -->
+  <!-- 18 · GRACIAS -->
   <section class="lamina cierre">
     <div class="marco centro">
       <h1 data-sube style="--i:0">Gracias.</h1>
