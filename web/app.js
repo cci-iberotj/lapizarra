@@ -815,7 +815,7 @@ function pintarVistas() {
   const enRango = x => x.fecha && x.fecha >= desde && x.fecha <= hasta;
 
   const piezas  = (datos.parrilla.piezas  || []).filter(enRango);
-  const eventos = (datos.parrilla.eventos || []).filter(enRango);
+  const eventos = eventosDeParrilla().filter(enRango);
 
   /* 'tinta' sale solo cuando el relleno NO cambia entre temas.
      --info-solido y --marca-solida son azul y vino oscuros en los
@@ -1313,26 +1313,43 @@ function sinDueno() {
    EL VIAJE
    Una semana fuera no se parece a una semana normal. No son
    piezas con fecha de salida: son partidos encimados, en canchas
-   distintas, y una sola persona con una sola cámara. Mirarlo en
-   la parrilla no sirve —ahí cada día es una columna igual a las
-   demás— así que el viaje se mira aquí, día por día, y lo único
-   que se grita es el choque: dos coberturas a la misma hora.
+   distintas, y una sola persona con una sola cámara. Metido en
+   la parrilla eso no se lee —cada día es una columna igual a las
+   demás, y doce coberturas de un viaje tapan las cinco del
+   campus— así que el viaje tiene su propio calendario, aquí, y
+   lo único que se grita es el choque de horario.
+
+   LO QUE SÍ SE QUEDA EN LA PARRILLA ES LA AUSENCIA. El bloqueo
+   de los días sale en el calendario de todos, que para eso es:
+   para que nadie agende encima. Lo que se saca de ahí son los
+   partidos, que sólo le importan a quien viaja y a quien se
+   coordina con él.
 
    No hay alta de viajes ni pestaña aparte. Un viaje ES el
    conjunto de eventos que comparten el campo 'viaje': se arma
    anotándolos, se deshace borrándolos, y cada uno se corrige en
-   su propia ficha como cualquier otro evento del calendario. Así
-   no hay un segundo lugar donde editar lo mismo.
+   su propia ficha como cualquier otro evento. Así no hay un
+   segundo lugar donde editar lo mismo.
+
+   Lo ve todo el equipo, no sólo quien viaja. Silvia o Marysol
+   pueden necesitar saber qué se está grabando y cuándo para
+   encargar piezas encima.
    ══════════════════════════════════════════════════════════ */
 
+/* Un partido del viaje no es del calendario general; la ausencia
+   sí. Ésta es la única regla, y de aquí salen las dos cosas. */
+function esDeViaje(e) {
+  return !!e.viaje && e.tipo !== 'bloqueo';
+}
+
+function eventosDeParrilla() {
+  return (datos.parrilla.eventos || []).filter(e => !esDeViaje(e));
+}
+
 /* Dueño del viaje es quien se bloqueó los días. Si nadie se
-   bloqueó nada el viaje no es de nadie, y no le aparece a todo el
-   mundo en su escritorio. */
-function viajeMio() {
-  const yo = Almacen.usuario;
-  if (!yo) return null;
+   bloqueó nada, no hay viaje: hay eventos sueltos con etiqueta. */
+function viajeDelEquipo() {
   const hoy = aTexto(new Date());
-  const mio = (yo.nombre || '').trim().toLowerCase();
 
   const grupos = new Map();
   (datos.parrilla.eventos || []).forEach(e => {
@@ -1343,24 +1360,48 @@ function viajeMio() {
 
   let elegido = null;
   grupos.forEach((lista, clave) => {
-    const esMio = lista.some(e => e.tipo === 'bloqueo'
-      && (e.solicita || '').trim().toLowerCase() === mio);
+    const fuera = lista.filter(e => e.tipo === 'bloqueo' && e.fecha);
+    if (!fuera.length) return;
     // Un viaje que ya pasó completo deja de ocupar la pantalla.
-    const vigente = lista.some(e => e.fecha >= hoy && e.estado !== 'cancelado');
-    if (!esMio || !vigente) return;
+    if (!lista.some(e => e.fecha >= hoy && e.estado !== 'cancelado')) return;
+
+    const dias = fuera.map(e => e.fecha).sort();
     const inicio = lista.reduce((m, e) => (!m || e.fecha < m) ? e.fecha : m, '');
-    if (!elegido || inicio < elegido.inicio) elegido = { clave, lista, inicio };
+    if (!elegido || inicio < elegido.inicio) {
+      elegido = {
+        clave, lista, inicio,
+        dueno: (fuera[0].solicita || '').trim(),
+        desde: dias[0], hasta: dias[dias.length - 1],
+      };
+    }
   });
   return elegido;
 }
 
+/* 'del lunes 9 al viernes 13 de noviembre' y no 'del Lunes 9 de
+   noviembre al Viernes 13 de noviembre', que es lo que sale de
+   encadenar dos fechaLegible. El mes se dice una vez, y sólo se
+   repite cuando el viaje cruza de mes. */
+function rangoLegible(desde, hasta) {
+  const baja = t => t.charAt(0).toLowerCase() + t.slice(1);
+  if (!hasta || desde === hasta) return 'el ' + baja(fechaLegible(desde));
+  const a = aFecha(desde), b = aFecha(hasta);
+  const ini = a.getMonth() === b.getMonth()
+    ? baja(DIAS[a.getDay()]) + ' ' + a.getDate()
+    : baja(fechaLegible(desde));
+  return 'del ' + ini + ' al ' + baja(fechaLegible(hasta));
+}
+
 function bloqueViaje() {
-  const v = viajeMio();
-  if (!v) return '';
+  const v = viajeDelEquipo();
+  if (!v || !Almacen.usuario) return '';
 
   const hoy = aTexto(new Date());
+  const yo = (Almacen.usuario.nombre || '').trim().toLowerCase();
+  const esMio = !!v.dueno && v.dueno.toLowerCase() === yo;
+
   const citas = v.lista
-    .filter(e => e.tipo !== 'bloqueo' && e.estado !== 'cancelado')
+    .filter(e => esDeViaje(e) && e.estado !== 'cancelado')
     .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
   if (!citas.length) return '';
 
@@ -1376,9 +1417,7 @@ function bloqueViaje() {
   const choca = e => !!e.hora && cuantas[e.fecha + ' ' + e.hora] > 1;
   const nChoques = Object.keys(cuantas).filter(k => cuantas[k] > 1).length;
 
-  const fechas = v.lista.map(e => e.fecha).filter(Boolean).sort();
-  const arranca = fechas[0];
-  const faltan = Math.round((aFecha(arranca) - aFecha(hoy)) / 86400000);
+  const faltan = Math.round((aFecha(v.inicio) - aFecha(hoy)) / 86400000);
   const cuenta = faltan > 1 ? 'faltan ' + faltan + ' días'
                : faltan === 1 ? 'arranca mañana'
                : faltan === 0 ? 'arranca hoy'
@@ -1389,9 +1428,8 @@ function bloqueViaje() {
 
   const dia = (fecha) => {
     const lista = porDia[fecha];
-    const pasado = fecha < hoy;
     return `
-      <div class="viaje-dia${fecha === hoy ? ' es-hoy' : ''}${pasado ? ' ya-fue' : ''}">
+      <div class="viaje-dia${fecha === hoy ? ' es-hoy' : ''}${fecha < hoy ? ' ya-fue' : ''}">
         <div class="viaje-fecha">${esc(fechaLegible(fecha))}</div>
         <div class="viaje-citas">
           ${lista.map(e => {
@@ -1413,23 +1451,31 @@ function bloqueViaje() {
 
   /* El aviso de choques va arriba y en una sola frase. Si hay que
      bajar para enterarse, no sirve de nada. */
+  const quien = esMio ? 'Vas solo' : (esc(v.dueno) + ' va solo');
   const aviso = !nChoques ? '' : `
     <p class="viaje-choques">
       ${nChoques === 1 ? 'Hay un empalme' : 'Hay ' + nChoques + ' empalmes'}:
-      dos coberturas a la misma hora en canchas distintas. Vas solo, así que
+      dos coberturas a la misma hora en canchas distintas. ${quien}, así que
       hay que elegir una y marcar la otra como cancelada para que deje de
       contar.
     </p>`;
+
+  const ausencia = rangoLegible(v.desde, v.hasta);
 
   return `
     <section class="viaje">
       <header class="viaje-cabeza">
         <div>
-          <span class="rotulo">Tu viaje</span>
+          <span class="rotulo">${esMio ? 'Tu viaje' : 'Viaje de ' + esc(v.dueno)}</span>
           <b>${esc(citas[0].viajeNombre || v.clave)}</b>
         </div>
         <span class="viaje-cuenta">${esc(citas.length)} por cubrir · ${esc(cuenta)}</span>
       </header>
+      <p class="viaje-ausencia">
+        ${esc(v.dueno || 'Quien viaja')} está fuera de oficina ${esc(ausencia)}.
+        Eso sí sale en el calendario de todos; los partidos de aquí abajo no,
+        para no taparlo.
+      </p>
       ${aviso}
       ${Object.keys(porDia).sort().map(dia).join('')}
     </section>`;
@@ -1442,7 +1488,7 @@ function pintarEscritorio() {
   const yo = Almacen.usuario;
   const m = loMio();
   const huerfanas = sinDueno();
-  const eventos = (datos.parrilla.eventos || [])
+  const eventos = eventosDeParrilla()
     .filter(e => e.fecha >= aTexto(new Date()) && e.estado !== 'cancelado')
     .sort((a, b) => a.fecha.localeCompare(b.fecha));
   const proximo = eventos[0];
@@ -2300,7 +2346,7 @@ function yaPaso(e, ahora) {
 }
 
 function eventosDe(fecha) {
-  return (datos.parrilla.eventos || [])
+  return eventosDeParrilla()
     .filter(e => e.fecha === fecha && e.estado !== 'cancelado')
     .sort((a, b) => (a.hora || '99:99').localeCompare(b.hora || '99:99'));
 }
@@ -2927,7 +2973,7 @@ function pintarCuenta() {
 
   const ahora = new Date();
   const hoy = aTexto(ahora);
-  const proximos = (datos.parrilla.eventos || [])
+  const proximos = eventosDeParrilla()
     .filter(e => e.estado !== 'cancelado' && e.fecha && !yaPaso(e, ahora))
     .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')))
     .slice(0, 4);
@@ -2963,7 +3009,7 @@ function pintarEventos() {
   if (!cont) return;
 
   const ahora = new Date();
-  const vivos = (datos.parrilla.eventos || []).filter(e => e.estado !== 'cancelado');
+  const vivos = eventosDeParrilla().filter(e => e.estado !== 'cancelado');
   const orden = (a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || ''));
 
   // Lo que ya ocurrio no se lista aqui. No se pierde: sigue en el
@@ -7034,7 +7080,7 @@ function avisosPara(yo) {
   const dentroDe = n => aTexto(sumarDias(new Date(), n));
 
   if (cubro) {
-    (datos.parrilla.eventos || []).forEach(ev => {
+    eventosDeParrilla().forEach(ev => {
       if (ev.estado === 'cubierto' || ev.estado === 'cancelado') return;
       if (!ev.fecha || ev.fecha < hoy) return;
       if (ev.fecha > dentroDe(7)) return;      // mas alla de una semana, todavia no urge
@@ -9120,10 +9166,15 @@ const NOVEDADES = [
     titulo: 'Los viajes se ven día por día, con los empalmes marcados',
     puntos: [
       { t: 'Un apartado nuevo en Mi escritorio',
-        d: 'Cuando te bloqueas unos días para salir a cubrir algo fuera, arriba ' +
-           'del escritorio te aparece ese viaje: la agenda completa día por día, ' +
-           'con la hora, la cancha y en qué va cada cobertura. Sólo lo ve quien ' +
-           'se bloqueó los días; a los demás no les estorba.' },
+        d: 'Cuando alguien se bloquea unos días para salir a cubrir algo fuera, ' +
+           'arriba del escritorio aparece ese viaje: la agenda completa día por ' +
+           'día, con la hora, la sede y en qué va cada cobertura. Lo ve todo el ' +
+           'equipo, para poder encargar piezas encima de lo que se está grabando.' },
+      { t: 'En la parrilla queda la ausencia, no los partidos',
+        d: 'Los días bloqueados siguen saliendo en el calendario de todos, que ' +
+           'para eso son. Lo que ya no sale ahí son las coberturas del viaje: ' +
+           'doce de ellas tapaban las del campus, y sólo le sirven a quien viaja ' +
+           'y a quien se coordina con él.' },
       { t: 'Avisa cuando dos cosas son a la misma hora',
         d: 'Si vas solo, dos coberturas al mismo tiempo en canchas distintas no ' +
            'son un detalle: es una que se va a perder. Salen marcadas en ámbar ' +

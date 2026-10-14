@@ -4540,6 +4540,11 @@ body.solo-creacion #progreso { display: none; }
 }
 .viaje-cuenta { font-size: var(--t-meta); color: var(--tinta-media); }
 
+.viaje-ausencia {
+  margin: 0; font-size: var(--t-meta); color: var(--tinta-media);
+  line-height: 1.45; padding-bottom: var(--e-1);
+  border-bottom: 1px solid var(--linea-sutil);
+}
 .viaje-choques {
   margin: 0; padding: var(--e-3) var(--e-4);
   background: var(--alerta-velo); color: var(--alerta);
