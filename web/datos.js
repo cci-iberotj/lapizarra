@@ -353,6 +353,14 @@ const MotorSupabase = {
     return this._rest('/solicitudes?select=*&order=creado.desc&limit=300');
   },
 
+  /* Los registros de la convocatoria de imagen (tabla `casting`, la
+     llena el formulario cci-iberotj.github.io/convocatoria-imagen).
+     Sólo lo necesario para contar y decir quién fue el último: la foto
+     y la disponibilidad se ven en la vista del equipo de esa página. */
+  listarCasting() {
+    return this._rest('/casting?select=folio,nombre,carrera,semestre,estado,creado&order=creado.desc&limit=500');
+  },
+
   atenderSolicitud(folio, campos) {
     return this._rest('/solicitudes?folio=eq.' + encodeURIComponent(folio), {
       method: 'PATCH',
@@ -545,6 +553,11 @@ const Almacen = {
   async solicitudes() {
     if (!this.enLaNube) return [];
     return (await this.motor.listarSolicitudes()) || [];
+  },
+
+  async casting() {
+    if (!this.enLaNube) return [];
+    return (await this.motor.listarCasting()) || [];
   },
 
   atenderSolicitud(folio, campos) {

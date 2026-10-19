@@ -1141,6 +1141,11 @@ textarea.campo.alto { min-height: 132px; }
 }
 .aviso-panel b { color: var(--info); }
 
+/* El resumen de la convocatoria de imagen, arriba de la bandeja. */
+.casting-resumen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 14px; }
+.casting-resumen .nuevos { background: var(--info-solido); color: #FFFFFF; font-weight: 700; padding: 2px 9px; border-radius: 20px; font-size: var(--t-meta); }
+.casting-resumen a { color: var(--info); font-weight: 600; margin-left: auto; white-space: nowrap; }
+
 /* ── Aviso flotante ─────────────────────────────────────── */
 
 /* Va por identificador y no por clase: .aviso tambien la usa la

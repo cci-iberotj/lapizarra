@@ -651,6 +651,9 @@ function refrescarTodo() {
   if (Almacen.enLaNube && !solicitudes.length && vistasQueVeo().includes('solicitudes')) {
     pintarSolicitudes().catch(() => {});
   } else marcarSolicitudes();
+  if (Almacen.enLaNube && !casting.length && vistasQueVeo().includes('solicitudes')) {
+    cargarCasting().catch(() => {});
+  }
   pintarCuenta();
   aplicarPermisos();
   recortarParaCreacion();
@@ -8308,7 +8311,7 @@ function conectarEventos() {
 
   $('#verNovedades').addEventListener('click', verNovedadesTodas);
   const recargarSol = $('#solicitudesRecargar');
-  if (recargarSol) recargarSol.addEventListener('click', () => pintarSolicitudes(true));
+  if (recargarSol) recargarSol.addEventListener('click', () => { pintarSolicitudes(true); cargarCasting().catch(() => {}); });
 
   const bNuevaIdea = $('#nuevaIdea');   // retirado de la pagina; ver pintarIdeas()
   if (bNuevaIdea) bNuevaIdea.addEventListener('click', () => {
@@ -8700,15 +8703,71 @@ function pendientesSolicitudes() {
   return solicitudes.filter(x => x.estado === 'pendiente').length;
 }
 
+/* ── Convocatoria de imagen ─────────────────────────────────
+   Los alumnos se registran en cci-iberotj.github.io/convocatoria-imagen
+   y caen en la tabla `casting`. Aquí sólo se avisa: cuántos van,
+   cuántos son nuevos desde la última vez que se abrió la vista del
+   equipo, y quién fue el último. El globo de la pestaña Solicitudes
+   suma esos nuevos a las solicitudes sin atender. */
+let casting = [];
+const CASTING_EQUIPO = 'https://cci-iberotj.github.io/convocatoria-imagen/equipo.html';
+
+function castingVisto(nuevo) {
+  const llave = 'pizarra:casting-visto:' + ((Almacen.usuario && Almacen.usuario.id) || 'x');
+  if (nuevo !== undefined) { try { localStorage.setItem(llave, nuevo); } catch (e) {} return nuevo; }
+  try { return localStorage.getItem(llave) || ''; } catch (e) { return ''; }
+}
+
+function nuevosCasting() {
+  const visto = castingVisto();
+  return casting.filter(c => c.creado > visto).length;
+}
+
+async function cargarCasting() {
+  if (!Almacen.enLaNube) return;
+  casting = await Almacen.casting();
+  marcarSolicitudes();
+  pintarCastingResumen();
+}
+
+function pintarCastingResumen() {
+  const caja = $('#castingResumen');
+  if (!caja) return;
+  if (!casting.length) { caja.hidden = true; return; }
+  const nuevos = nuevosCasting();
+  const ultimo = casting[0];
+  const cuando = new Date(ultimo.creado);
+  const hace = Math.round((Date.now() - cuando.getTime()) / 60000);
+  const texto = hace < 2 ? 'hace un momento' : hace < 60 ? 'hace ' + hace + ' min'
+    : hace < 48 * 60 ? 'hace ' + Math.round(hace / 60) + ' h'
+    : cuando.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+  caja.hidden = false;
+  caja.innerHTML = `<span><b>Convocatoria de imagen</b> · ${casting.length} registro${casting.length === 1 ? '' : 's'}</span>
+    ${nuevos ? `<span class="nuevos">${nuevos} nuevo${nuevos === 1 ? '' : 's'}</span>` : ''}
+    <span>Último: ${esc(ultimo.nombre)} (${esc(ultimo.carrera)}, ${ultimo.semestre}°), ${texto}</span>
+    <a href="${CASTING_EQUIPO}" target="_blank" rel="noopener" id="castingAbrir">Ver registros y fotos ↗</a>`;
+  /* Al abrir la vista del equipo, lo que había deja de ser nuevo. */
+  $('#castingAbrir').addEventListener('click', () => {
+    castingVisto(ultimo.creado);
+    marcarSolicitudes();
+    pintarCastingResumen();
+  });
+}
+
 function marcarSolicitudes() {
   const t = $('#tabSolicitudes');
   if (!t) return;
-  const n = pendientesSolicitudes();
+  const p = pendientesSolicitudes();
+  const c = nuevosCasting();
+  const n = p + c;
   let g = $('.tab-globo', t);
   if (!n) { if (g) g.remove(); return; }
   if (!g) { g = document.createElement('span'); g.className = 'tab-globo'; t.appendChild(g); }
   g.textContent = n > 9 ? '9+' : n;
-  g.title = n === 1 ? 'una solicitud sin atender' : n + ' solicitudes sin atender';
+  const partes = [];
+  if (p) partes.push(p === 1 ? 'una solicitud sin atender' : p + ' solicitudes sin atender');
+  if (c) partes.push(c === 1 ? 'un registro nuevo en la convocatoria' : c + ' registros nuevos en la convocatoria');
+  g.title = partes.join(' · ');
 }
 
 /* Los campos del formulario que vale la pena enseñar en la ficha.
@@ -9831,6 +9890,7 @@ function arrancarSincronizacion() {
        de las laminas. */
     if (!$('#previa').hidden) return;
     if (hayGuardadoEnVuelo()) return;
+    if (vistasQueVeo().includes('solicitudes')) cargarCasting().catch(() => {});
     try {
       const { entraron } = await Almacen.sincronizar(datos);
       if (entraron) {
