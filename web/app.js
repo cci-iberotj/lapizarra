@@ -651,7 +651,7 @@ function refrescarTodo() {
   if (Almacen.enLaNube && !solicitudes.length && vistasQueVeo().includes('solicitudes')) {
     pintarSolicitudes().catch(() => {});
   } else marcarSolicitudes();
-  if (Almacen.enLaNube && !casting.length && vistasQueVeo().includes('solicitudes')) {
+  if (Almacen.enLaNube && !casting.length && vistasQueVeo().includes('convocatoria')) {
     cargarCasting().catch(() => {});
   }
   pintarCuenta();
@@ -8170,6 +8170,7 @@ function conectarEventos() {
     if (vistaActual === 'escritorio') pintarEscritorio();
     if (vistaActual === 'viaje') pintarViaje();
     if (vistaActual === 'ajustes') pintarAjustes();
+    if (vistaActual === 'convocatoria') abrirConvocatoria();
     if (vistaActual === 'verificar') pintarVerificar();
   }));
 
@@ -8311,7 +8312,7 @@ function conectarEventos() {
 
   $('#verNovedades').addEventListener('click', verNovedadesTodas);
   const recargarSol = $('#solicitudesRecargar');
-  if (recargarSol) recargarSol.addEventListener('click', () => { pintarSolicitudes(true); cargarCasting().catch(() => {}); });
+  if (recargarSol) recargarSol.addEventListener('click', () => pintarSolicitudes(true));
 
   const bNuevaIdea = $('#nuevaIdea');   // retirado de la pagina; ver pintarIdeas()
   if (bNuevaIdea) bNuevaIdea.addEventListener('click', () => {
@@ -8712,6 +8713,29 @@ function pendientesSolicitudes() {
 let casting = [];
 const CASTING_EQUIPO = 'https://cci-iberotj.github.io/convocatoria-imagen/equipo.html';
 
+/* La pestaña: la vista del equipo de la convocatoria, incrustada. Se
+   carga la primera vez que se abre (no antes) y al abrirla lo que había
+   deja de contar como nuevo. Comparte la sesión de LA PIZARRA porque
+   vive en el mismo origen (cci-iberotj.github.io). */
+function abrirConvocatoria() {
+  const marco = $('#castingMarco');
+  if (marco && !marco.src) marco.src = CASTING_EQUIPO + '?incrustado=1';
+  if (casting.length) castingVisto(casting[0].creado);
+  marcarConvocatoria();
+  pintarCastingResumen();
+}
+
+function marcarConvocatoria() {
+  const t = $('#tabConvocatoria');
+  if (!t) return;
+  const n = nuevosCasting();
+  let g = $('.tab-globo', t);
+  if (!n) { if (g) g.remove(); return; }
+  if (!g) { g = document.createElement('span'); g.className = 'tab-globo'; t.appendChild(g); }
+  g.textContent = n > 9 ? '9+' : n;
+  g.title = n === 1 ? 'un registro nuevo' : n + ' registros nuevos';
+}
+
 function castingVisto(nuevo) {
   const llave = 'pizarra:casting-visto:' + ((Almacen.usuario && Almacen.usuario.id) || 'x');
   if (nuevo !== undefined) { try { localStorage.setItem(llave, nuevo); } catch (e) {} return nuevo; }
@@ -8726,7 +8750,7 @@ function nuevosCasting() {
 async function cargarCasting() {
   if (!Almacen.enLaNube) return;
   casting = await Almacen.casting();
-  marcarSolicitudes();
+  marcarConvocatoria();
   pintarCastingResumen();
 }
 
@@ -8742,32 +8766,22 @@ function pintarCastingResumen() {
     : hace < 48 * 60 ? 'hace ' + Math.round(hace / 60) + ' h'
     : cuando.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
   caja.hidden = false;
-  caja.innerHTML = `<span><b>Convocatoria de imagen</b> · ${casting.length} registro${casting.length === 1 ? '' : 's'}</span>
+  const enJuego = casting.filter(c => c.estado !== 'descartada').length;
+  const convocados = casting.filter(c => c.estado === 'convocada').length;
+  caja.innerHTML = `<span><b>${casting.length} registro${casting.length === 1 ? '' : 's'}</b> · ${enJuego} en juego · ${convocados} convocado${convocados === 1 ? '' : 's'}</span>
     ${nuevos ? `<span class="nuevos">${nuevos} nuevo${nuevos === 1 ? '' : 's'}</span>` : ''}
-    <span>Último: ${esc(ultimo.nombre)} (${esc(ultimo.carrera)}, ${ultimo.semestre}°), ${texto}</span>
-    <a href="${CASTING_EQUIPO}" target="_blank" rel="noopener" id="castingAbrir">Ver registros y fotos ↗</a>`;
-  /* Al abrir la vista del equipo, lo que había deja de ser nuevo. */
-  $('#castingAbrir').addEventListener('click', () => {
-    castingVisto(ultimo.creado);
-    marcarSolicitudes();
-    pintarCastingResumen();
-  });
+    <span>Último: ${esc(ultimo.nombre)} (${esc(ultimo.carrera)}, ${ultimo.semestre}°), ${texto}</span>`;
 }
 
 function marcarSolicitudes() {
   const t = $('#tabSolicitudes');
   if (!t) return;
-  const p = pendientesSolicitudes();
-  const c = nuevosCasting();
-  const n = p + c;
+  const n = pendientesSolicitudes();
   let g = $('.tab-globo', t);
   if (!n) { if (g) g.remove(); return; }
   if (!g) { g = document.createElement('span'); g.className = 'tab-globo'; t.appendChild(g); }
   g.textContent = n > 9 ? '9+' : n;
-  const partes = [];
-  if (p) partes.push(p === 1 ? 'una solicitud sin atender' : p + ' solicitudes sin atender');
-  if (c) partes.push(c === 1 ? 'un registro nuevo en la convocatoria' : c + ' registros nuevos en la convocatoria');
-  g.title = partes.join(' · ');
+  g.title = n === 1 ? 'una solicitud sin atender' : n + ' solicitudes sin atender';
 }
 
 /* Los campos del formulario que vale la pena enseñar en la ficha.
@@ -9055,18 +9069,18 @@ function marcarPendientes() {
 
 const VISTAS_POR_ROL = {
   admin: {
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Administra y opera todo',
   },
   direccion: {
     // La jefa: el plan, la mesa de redacción que es su trabajo, los
     // expertos que entrevista, y el diagnóstico. El inventario no:
     // no administra cámaras.
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'verificar', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'redaccion', 'expertos', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'redaccion', 'expertos', 'ajustes'],
     porque: 'Escribe las notas académicas',
   },
   publicacion: {
@@ -9074,13 +9088,13 @@ const VISTAS_POR_ROL = {
     // la mesa de redacción, que es de donde le llegan. No necesita
     // el directorio de expertos — él no entrevista a nadie — ni el
     // inventario, ni el diagnóstico del área.
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'redaccion', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'redaccion', 'ajustes'],
     porque: 'Publica las notas en el sitio',
   },
   produccion: {
     // Quien produce las piezas: el calendario y lo suyo. Sin
     // inventario, sin la mesa de redacción, sin el diagnóstico.
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'ajustes'],
     porque: 'Produce las piezas del calendario',
   },
   creacion: {
@@ -9890,7 +9904,7 @@ function arrancarSincronizacion() {
        de las laminas. */
     if (!$('#previa').hidden) return;
     if (hayGuardadoEnVuelo()) return;
-    if (vistasQueVeo().includes('solicitudes')) cargarCasting().catch(() => {});
+    if (vistasQueVeo().includes('convocatoria')) cargarCasting().catch(() => {});
     try {
       const { entraron } = await Almacen.sincronizar(datos);
       if (entraron) {

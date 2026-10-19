@@ -1144,7 +1144,10 @@ textarea.campo.alto { min-height: 132px; }
 /* El resumen de la convocatoria de imagen, arriba de la bandeja. */
 .casting-resumen { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 14px; }
 .casting-resumen .nuevos { background: var(--info-solido); color: #FFFFFF; font-weight: 700; padding: 2px 9px; border-radius: 20px; font-size: var(--t-meta); }
-.casting-resumen a { color: var(--info); font-weight: 600; margin-left: auto; white-space: nowrap; }
+.casting-marco {
+  display: block; width: 100%; height: calc(100vh - 230px); min-height: 640px; border: 1px solid var(--linea-sutil);
+  border-radius: var(--r); background: var(--capa-2); margin-top: 14px;
+}
 
 /* ── Aviso flotante ─────────────────────────────────────── */
 

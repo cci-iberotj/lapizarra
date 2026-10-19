@@ -77,6 +77,7 @@
     <button class="tab" data-vista="escritorio">Mi escritorio</button>
     <button class="tab" id="tabViaje" data-vista="viaje" hidden>Viaje</button>
     <button class="tab" id="tabSolicitudes" data-vista="solicitudes">Solicitudes</button>
+    <button class="tab" id="tabConvocatoria" data-vista="convocatoria">Convocatoria</button>
     <button class="tab" id="tabVerificar" data-vista="verificar">Por verificar</button>
     <button class="tab" data-vista="inventario">Inventario</button>
     <button class="tab" data-vista="redaccion">Redacción</button>
@@ -344,9 +345,24 @@
       <button type="button" class="btn-plano" id="solicitudesRecargar">Actualizar</button>
     </div>
   </section>
-  <section class="aviso-panel casting-resumen" id="castingResumen" hidden></section>
   <section class="verificar-filtros" id="solicitudesFiltros"></section>
   <section class="verificar-lista" id="solicitudesLista"></section>
+</main>
+
+<main id="vista-convocatoria" class="vista">
+  <section class="entregas-cabecera">
+    <div>
+      <h2>Convocatoria de imagen</h2>
+      <p class="tenue nota">Los alumnos que se registran en «La IBERO se ve como tú» para ser la
+        imagen de la universidad en fotos y video. Fichas con foto y contacto, mapa de calor
+        de disponibilidad y exportación a CSV.</p>
+    </div>
+    <div class="entregas-acciones">
+      <a class="btn-plano" href="https://cci-iberotj.github.io/convocatoria-imagen/equipo.html" target="_blank" rel="noopener">Abrir aparte ↗</a>
+    </div>
+  </section>
+  <section class="aviso-panel casting-resumen" id="castingResumen" hidden></section>
+  <iframe id="castingMarco" class="casting-marco" title="Registros de la convocatoria" loading="lazy"></iframe>
 </main>
 
 <main id="vista-verificar" class="vista">
