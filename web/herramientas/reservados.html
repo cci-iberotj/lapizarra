@@ -153,7 +153,14 @@ textarea { min-height: 220px; resize: vertical; line-height: 1.5; }
    canto quedan puntos sueltos y no una raya continua. Y caen justo
    en el borde entre dos tarjetas, donde solo hay relleno: no cruzan
    ningun texto. */
-.marcas { position: absolute; inset: 0; pointer-events: none; }
+.marcas { position: absolute; inset: 0; pointer-events: none;
+          -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+/* SIN ESA LINEA DE ARRIBA NO SE IMPRIMEN, y es dificil de ver:
+   el dialogo de Chrome trae «Graficos de fondo» APAGADO por
+   omision, y estos guiones son background. La raya roja si salia
+   porque vive dentro de .tarjeta, que ya lo declaraba, y herada.
+   .marcas cuelga fuera de la tarjeta, asi que no heredaba nada:
+   se veian en pantalla y desaparecian al imprimir. */
 .marcas i { position: absolute; background: #A09B95; }
 .marcas i.v { width: .5pt; height: 2mm; }
 .marcas i.h { height: .5pt; width: 2mm; }
