@@ -80,7 +80,7 @@ async function quienLlama(peticion: Request) {
    'creacion' se me paso esta y dar de alta la cuenta rebotaba con
    "Ese rol no existe". */
 const ROLES = ['admin', 'direccion', 'redaccion', 'publicacion',
-               'produccion', 'creacion'];
+               'produccion', 'eventos', 'creacion'];
 
 Deno.serve(async (peticion) => {
   if (peticion.method === 'OPTIONS') return new Response('ok', { headers: CORS });
