@@ -4724,3 +4724,29 @@ body.solo-creacion #progreso { display: none; }
   .isj-portada { padding: var(--e-5); }
   .isj-marcador { gap: var(--e-4); flex-wrap: wrap; }
 }
+
+/* ── El alta de una pieza, en una pantalla ─────────────────
+   Al dar de alta sólo se sabe qué es y cuándo sale; el arte y el
+   copy llegan después. Lo de abajo se pliega en las piezas NUEVAS
+   y se queda abierto al editar una que ya existe, que es cuando se
+   entra justamente a llenarlo. */
+.mas-de-la-pieza{
+  border:1px solid var(--linea-sutil); border-radius:var(--r-lg);
+  background:var(--capa-1); margin-top:var(--e-5);
+}
+.mas-de-la-pieza > summary{
+  cursor:pointer; padding:var(--e-4) var(--e-5); list-style:none;
+  display:flex; flex-direction:column; gap:2px;
+}
+.mas-de-la-pieza > summary::-webkit-details-marker{display:none}
+.mas-de-la-pieza > summary::after{
+  content:'▾'; position:absolute; right:var(--e-5); color:var(--tinta-tenue);
+}
+.mas-de-la-pieza[open] > summary::after{content:'▴'}
+.mas-de-la-pieza > summary{position:relative}
+.mas-de-la-pieza > summary b{font-size:var(--t-guia); font-weight:var(--peso-medio); color:var(--tinta)}
+.mas-de-la-pieza > summary span{font-size:var(--t-meta); color:var(--tinta-tenue)}
+.mas-de-la-pieza > summary:hover b{color:var(--marca-tinta)}
+.mas-de-la-pieza[open] > summary{border-bottom:1px solid var(--linea-sutil)}
+/* Los paneles de adentro ya no necesitan su propio marco. */
+.mas-de-la-pieza .bloque{border:0; background:none; margin-top:0}

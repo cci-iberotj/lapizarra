@@ -3922,6 +3922,12 @@ function abrirPieza(idPieza, prellenado) {
 
     </section>
 
+    ${existente ? '' : `<details class="mas-de-la-pieza">
+      <summary>
+        <b>El arte, el copy y quién la hace</b>
+        <span>Se llenan después, cuando la pieza avanza. Ábrelo si ya lo traes.</span>
+      </summary>`}
+
     ${info.quiere === 'ninguno' ? '' : `<section class="bloque">
       <h4><span class="bloque-num">3</span> Con qué</h4>`}
 
@@ -4055,6 +4061,8 @@ function abrirPieza(idPieza, prellenado) {
       <span class="ayuda">Se llena solo cuando la pieza nace de una idea, de un evento por cubrir o de algo que entregó Creación.</span>
     </div>
     </section>
+
+    ${existente ? '' : '</details>'}
 
     </div>
   `;
@@ -9408,6 +9416,17 @@ const NOVEDADES = [
         d: 'Esconder botones no es seguridad. Las reglas de Postgres dicen qué ' +
            'puede tocar cada rol, así que aunque alguien se saltara la ' +
            'interfaz, la base le diría que no.' },
+      { t: 'Y dar de alta una pieza ya cabe en una pantalla',
+        d: 'Abría con 17 campos en cinco paneles y casi dos pantallas de ' +
+           'scroll. Pero el bulto no era basura: casi todos esos campos se ' +
+           'usan, lo que pasa es que no al mismo tiempo. El arte, el copy y ' +
+           'el responsable se llenan después, cuando la pieza avanza. Ahora ' +
+           'al dar de alta sólo salen «Qué es» y «Cuándo sale», y lo demás ' +
+           'queda plegado a un clic por si ya lo traes a la mano.' },
+      { t: 'Al editar sigue todo abierto',
+        d: 'Si entras a una pieza que ya existe es justamente para llenar el ' +
+           'copy o subir el arte, así que ahí no se pliega nada. Y lo que ' +
+           'escribas dentro del pliegue se guarda aunque no lo abras.' },
     ],
   },
   {
