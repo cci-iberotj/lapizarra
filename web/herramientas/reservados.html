@@ -153,8 +153,13 @@ textarea { min-height: 220px; resize: vertical; line-height: 1.5; }
    canto quedan puntos sueltos y no una raya continua. Y caen justo
    en el borde entre dos tarjetas, donde solo hay relleno: no cruzan
    ningun texto. */
-.marcas { position: absolute; inset: 0; pointer-events: none;
+.marcas { position: absolute; inset: 0; pointer-events: none; z-index: 2;
           -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+/* EL z-index NO ES ADORNO. Las marcas se dibujan antes que la
+   rejilla y cada tarjeta tiene fondo blanco: sin esto, las tapan y
+   los guiones solo se ven en los margenes. Mientras las marcas
+   fueron rayitas de 4 mm en la orilla no se notaba; en cuanto
+   cruzan la hoja, si. */
 /* SIN ESA LINEA DE ARRIBA NO SE IMPRIMEN, y es dificil de ver:
    el dialogo de Chrome trae «Graficos de fondo» APAGADO por
    omision, y estos guiones son background. La raya roja si salia
