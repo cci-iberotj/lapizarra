@@ -508,16 +508,47 @@ privacidad de IBERO) y la **categoría**.
 Al pasar a modo activo, lo ya publicado durante el modo de desarrollo se
 vuelve visible solo: no hay que republicar nada.
 
-### El token de Facebook cuelga de una persona
+### Los dos tokens se rompen por razones distintas
 
-El de Instagram lo autoriza la cuenta, así que sobrevive a cambios de
-contraseña. El de Facebook sale del rol de Leo sobre la página: si deja de
-ser publicador, Facebook deja de funcionar e Instagram sigue.
+Son independientes: cuando uno muere, el otro sigue publicando. Por eso
+una pieza puede salir en Facebook y no en Instagram, que es justo lo que
+pasó el 20 de octubre de 2026.
 
-Se arregla el día que CDMX conceda *acceso de socio* al portafolio de
-Tijuana: con eso se puede crear un usuario del sistema y el token deja de
-depender de nadie. `TOKEN FACEBOOK.bat` convierte un token corto en uno
-permanente y comprueba con Meta que de verdad no caduque.
+**El de Instagram muere si cambian la contraseña de la cuenta**, y además
+**caduca a los ~60 días**. Meta lo dice sin rodeos cuando falla:
+
+> Error validating access token: The session has been invalidated because
+> the user changed their password or Facebook has changed the session for
+> security reasons.
+
+*(Hasta el 20-oct-2026 este apartado afirmaba lo contrario —que el de
+Instagram «sobrevive a cambios de contraseña»— y mandó a buscar la falla
+del lado equivocado. Se corrigió con el error de Meta a la vista.)*
+
+**El de Facebook no caduca, pero cuelga de una persona:** sale del rol de
+Leo sobre la página. Si deja de ser publicador, Facebook deja de funcionar
+e Instagram sigue. Se arregla el día que CDMX conceda *acceso de socio* al
+portafolio de Tijuana: con eso se puede crear un usuario del sistema y el
+token deja de depender de nadie.
+
+#### Cómo se renueva cada uno
+
+| | de dónde sale | con qué se sube |
+|---|---|---|
+| **Instagram** | App **La Pizarra · IBERO Tijuana** (id 1743948279979653) → caso de uso *Administrar mensajes y contenido en Instagram* → **Generar token de acceso**. Pide iniciar sesión con la cuenta de Instagram de la IBERO: conviene hacerlo en ventana privada para que no agarre otra sesión abierta. | `PEGAR TOKEN.bat`, renglón `META_TOKEN_IG` |
+| **Facebook** | `TOKEN FACEBOOK.bat`, que convierte un token corto en uno permanente y comprueba con Meta que de verdad no caduque. | lo sube él solo |
+
+`TOKEN FACEBOOK.bat` **sólo toca Facebook**. Para Instagram no sirve.
+
+Después de subir un token conviene volver a desplegar la función
+(`python supabase/desplegar.py publicar`) y comprobar la conexión desde
+LA PIZARRA antes de dar por bueno nada.
+
+#### Pendiente: que el de Instagram se refresque solo
+
+Caduca a los 60 días y hoy hay que acordarse. Meta deja refrescarlo antes
+de que venza, y en la base ya corre un reloj cada cinco minutos que podría
+hacerlo. Mientras no se automatice, **esto se va a volver a caer solo**.
 
 ### Publicar solo, a la hora
 

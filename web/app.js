@@ -1747,6 +1747,10 @@ const ROLES_SISTEMA = [
      demas: "agencia" las etiquetaria como de fuera cada vez que
      entran. El limite de verdad lo pone puede_leer() en Postgres,
      no esta lista. */
+  /* Eventos: alguien del área de Eventos que sólo anota lo que hay
+     que cubrir. Ninguno de los otros le quedaba: el más cercano,
+     producción, también crea y edita piezas de contenido. */
+  { id: 'eventos',     nombre: 'Eventos',     que: 'Anota lo que hay que cubrir' },
   { id: 'creacion',    nombre: 'Creación',    que: 'Entrega material y ve el calendario' },
 ];
 
@@ -2860,6 +2864,16 @@ function abrirEvento(idEvento, prellenado) {
     lugar: '', solicita: '', necesita: [], estado: 'avisado', notas: '',
   }, prellenado || {});
 
+  /* QUIEN SOLO ANOTA COBERTURAS NO ELIGE TIPO.
+     El selector de cinco --evento, reunión, entrega, cumple,
+     bloqueo-- era lo PRIMERO que se veía al anotar, y para el área
+     de Eventos es la pregunta equivocada: 46 de los 59 eventos que
+     hay son coberturas. Para ese rol el tipo queda fijo y la
+     primera pregunta pasa a ser el nombre del evento, que es lo
+     que de verdad va a escribir. */
+  const soloCobertura = rolUI() === 'eventos';
+  if (soloCobertura && !existente) e.tipo = 'cobertura';
+
   const t = tipoDe(e);
   const L = t.etiquetas;
   // Al cambiar de tipo el estado anterior puede no existir en el
@@ -2871,6 +2885,7 @@ function abrirEvento(idEvento, prellenado) {
   $('#modalEliminar').hidden = !existente;
 
   $('#modalCuerpo').innerHTML = `
+    ${soloCobertura ? '' : `
     <div class="grupo-campo">
       <label>Qué estás anotando</label>
       <div class="tipos-evento" id="e_tipo" role="radiogroup">
@@ -2882,7 +2897,7 @@ function abrirEvento(idEvento, prellenado) {
           </button>`).join('')}
       </div>
       <span class="ayuda">${esc(t.pista)}</span>
-    </div>
+    </div>`}
 
     <div class="grupo-campo">
       <label for="e_titulo">${esc(L.titulo)}</label>
@@ -9097,6 +9112,14 @@ const VISTAS_POR_ROL = {
     ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'ajustes'],
     porque: 'Produce las piezas del calendario',
   },
+  /* Sólo la parrilla. No tiene escritorio porque no se le asignan
+     piezas, ni Solicitudes porque esa bandeja la siguen viendo los
+     de siempre. Si algún día le toca convertir solicitudes en
+     eventos, se agrega 'solicitudes' aquí y en puede_leer(). */
+  eventos: {
+    ve: ['parrilla'],
+    porque: 'Anota los eventos por cubrir',
+  },
   creacion: {
     /* Este rol existia para la bandeja «Lo que llega», que se retiro
        el 7-oct-2026 porque la agencia pasó a subir directo. Le queda
@@ -9364,6 +9387,29 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-20-a',
+    version: '2026-10-20',
+    titulo: 'Rol nuevo: Eventos',
+    puntos: [
+      { t: 'Para quien sólo anota lo que hay que cubrir',
+        d: 'La pizarra pasa a manos de alguien del área de Eventos, y ninguno ' +
+           'de los seis roles le quedaba: el más cercano, Producción, también ' +
+           'crea y edita piezas de contenido. El rol nuevo ve la parrilla y ' +
+           'escribe eventos. Nada más: ni piezas, ni inventario, ni publicar ' +
+           'en redes.' },
+      { t: 'El formulario le abre directo en «evento por cubrir»',
+        d: 'Lo primero que veía cualquiera al anotar era un selector de cinco ' +
+           'tipos —evento, reunión, entrega, cumple, bloqueo—. Para quien sólo ' +
+           'anota coberturas ésa es la pregunta equivocada: de los 59 eventos ' +
+           'que hay, 46 son coberturas. Para ese rol el selector no sale y la ' +
+           'primera pregunta es el nombre del evento.' },
+      { t: 'El límite lo pone la base, no la pantalla',
+        d: 'Esconder botones no es seguridad. Las reglas de Postgres dicen qué ' +
+           'puede tocar cada rol, así que aunque alguien se saltara la ' +
+           'interfaz, la base le diría que no.' },
+    ],
+  },
   {
     clave: '2026-10-13-a',
     version: '2026-10-13',
