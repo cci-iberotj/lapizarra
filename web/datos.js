@@ -127,6 +127,11 @@ const PERMISOS_UI = {
                 'parrilla_eventos', 'expertos_personas'],
   publicacion: ['parrilla_piezas', 'parrilla_eventos', 'entregas'],
   produccion:  ['parrilla_piezas', 'parrilla_ideas', 'parrilla_eventos', 'entregas'],
+  /* Eventos sólo anota lo que hay que cubrir. Si falta este
+     renglón la base la deja escribir pero la PANTALLA la pone en
+     modo lectura y le apaga «+ Nuevo evento»: el espejo manda en
+     los botones. Le pasó a Belén su primer día. */
+  eventos:     ['parrilla_eventos'],
   creacion:    ['entregas'],
 };
 
