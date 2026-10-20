@@ -3931,26 +3931,6 @@ function abrirPieza(idPieza, prellenado) {
     ${info.quiere === 'ninguno' ? '' : `<section class="bloque">
       <h4><span class="bloque-num">3</span> Con qué</h4>`}
 
-    ${info.quiere === 'ninguno' || (archivosDe(p).length && !p.imagen) ? '' : `
-    <div class="grupo-campo sangrado">
-      <label>${archivosDe(p).length
-        ? 'Miniatura provisional <span class="tenue">· ya no se usa, el arte manda</span>'
-        : 'Mientras no hay arte'}</label>
-      <div class="zona-imagen${p.imagen ? ' con-imagen' : ''}" id="zonaImagen">
-        ${p.imagen
-          ? `<img src="${esc(p.imagen)}" alt="Vista previa">`
-          : '<div class="pista">Haz clic para subir la miniatura que se verá en el calendario</div>'}
-      </div>
-      <input type="file" id="f_imagen" accept="image/*" hidden>
-      <div class="imagen-acciones">
-        <button type="button" class="btn-plano" id="btnCambiarImagen">${p.imagen ? 'Cambiar' : 'Subir imagen'}</button>
-        ${p.imagen ? '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>' : ''}
-      </div>
-      <span class="ayuda">${archivosDe(p).length
-        ? 'Ya hay arte, así que el calendario enseña el arte. Puedes quitarla.'
-        : 'Opcional. Una imagen cualquiera para que la pieza no se vea vacía en el calendario; en cuanto subas lo de arriba, se usa eso.'}</span>
-    </div>`}
-
     ${info.quiere === 'ninguno' ? '' : `
     <div class="grupo-campo">
       <label>${esc(info.arte)}${
@@ -4008,6 +3988,26 @@ function abrirPieza(idPieza, prellenado) {
     
 
     
+
+    ${info.quiere === 'ninguno' || (archivosDe(p).length && !p.imagen) ? '' : `
+    <div class="grupo-campo sangrado">
+      <label>${archivosDe(p).length
+        ? 'Miniatura provisional <span class="tenue">· ya no se usa, el arte manda</span>'
+        : 'Miniatura <span class="tenue">· opcional, mientras llega ' + esc(info.arte.toLowerCase()) + '</span>'}</label>
+      <div class="zona-imagen${p.imagen ? ' con-imagen' : ''}" id="zonaImagen">
+        ${p.imagen
+          ? `<img src="${esc(p.imagen)}" alt="Vista previa">`
+          : '<div class="pista">Sólo una imagen, para que la pieza no se vea vacía en el calendario</div>'}
+      </div>
+      <input type="file" id="f_imagen" accept="image/*" hidden>
+      <div class="imagen-acciones">
+        <button type="button" class="btn-plano" id="btnCambiarImagen">${p.imagen ? 'Cambiar' : 'Subir una imagen'}</button>
+        ${p.imagen ? '<button type="button" class="btn-peligro" id="btnQuitarImagen">Quitar</button>' : ''}
+      </div>
+      <span class="ayuda">${archivosDe(p).length
+        ? 'Ya hay arte, así que el calendario enseña el arte. Puedes quitarla.'
+        : 'No es lo que se publica. Es un marcador para el calendario; en cuanto subas ' + esc(info.arte.toLowerCase()) + ', se usa eso.'}</span>
+    </div>`}
 
     ${info.quiere === 'ninguno' ? '' : '</section>'}
 
@@ -9423,6 +9423,13 @@ const NOVEDADES = [
            'el responsable se llenan después, cuando la pieza avanza. Ahora ' +
            'al dar de alta sólo salen «Qué es» y «Cuándo sale», y lo demás ' +
            'queda plegado a un clic por si ya lo traes a la mano.' },
+      { t: 'Y el video se sube donde dice «subir el video»',
+        d: 'Antes había dos zonas y la equivocada iba primero: una grande que ' +
+           'decía «subir la miniatura» y sólo aceptaba imágenes. Quien ' +
+           'quería subir un reel le daba ahí y el explorador ni siquiera le ' +
+           'enseñaba su MP4. Ahora va primero el archivo de verdad —con su ' +
+           'medida y su peso máximo a la vista— y debajo, en segundo plano, ' +
+           'la miniatura opcional del calendario.' },
       { t: 'Al editar sigue todo abierto',
         d: 'Si entras a una pieza que ya existe es justamente para llenar el ' +
            'copy o subir el arte, así que ahí no se pliega nada. Y lo que ' +
