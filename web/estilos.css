@@ -4752,3 +4752,27 @@ body.solo-creacion #progreso { display: none; }
 .mas-de-la-pieza[open] > summary{border-bottom:1px solid var(--linea-sutil)}
 /* Los paneles de adentro ya no necesitan su propio marco. */
 .mas-de-la-pieza .bloque{border:0; background:none; margin-top:0}
+
+/* ── Lo que todavía no abres ───────────────────────────────
+   Ahora que Eventos anota en el calendario, hace falta notar lo
+   que llegó sin que uno estuviera mirando. Se va solo al abrirlo. */
+/* UN PUNTO, NO UNA PALABRA. Primero puse la pastilla «nuevo» junto
+   a la etiqueta de estado y en la celda del calendario salia cortada
+   -- «NU» --: no hay 84 px para las dos cosas. El punto va en la
+   esquina, fuera del flujo, y no le quita ancho a nada. */
+.cal-evento { position: relative; }
+/* CON --marca-tinta Y NO --marca-solida. La solida es relleno y es
+   oscura en LOS DOS temas: de punto sobre fondo oscuro no se veia.
+   La tinta se aclara en oscuro, que es lo que necesita una marca
+   que esta para notarse. */
+.cal-nuevo {
+  position: absolute; top: 3px; right: 3px; width: 8px; height: 8px;
+  border-radius: 50%; background: var(--marca-tinta);
+  box-shadow: 0 0 0 2px var(--capa-2);
+}
+
+/* La semana en curso, como banda. El recuadro de hoy ya existía;
+   esto es para encontrar la semana de un vistazo al abrir. */
+.celda.semana-ahora { background: var(--marca-velo); }
+.celda.semana-ahora.finde { background: var(--marca-velo); }
+.celda.semana-ahora.fuera { background: var(--capa-0); }

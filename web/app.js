@@ -382,6 +382,8 @@ let datos = {
 };
 let anclaSemana = inicioSemana(new Date());
 let anclaMes = new Date();
+/* Solo una vez por carga: ver arriba, en pintarCalendario. */
+let yaBusqueHoy = false;
 let vistaActual = 'parrilla';
 // El calendario es la vista principal: dice de un vistazo como va
 // la semana. La lista sirve para trabajar una pieza, no para ver.
@@ -635,6 +637,7 @@ function refrescarTodo() {
   refrescarInventario();
   refrescarExpertos();
   pintarRedaccion();
+  sembrarVistos(Almacen.usuario);
   pintarEscritorio();
   refrescarPestanaViaje();
   if (vistaActual === 'viaje') pintarViaje();
@@ -3374,6 +3377,10 @@ function pintarCalendario() {
   const primero = new Date(anio, mes, 1);
   const arranque = inicioSemana(primero);
   const hoy = aTexto(new Date());
+  /* La semana en curso se marca entera, no solo el dia: lo que Leo
+     busca al abrir es «que se vea la semana», no un recuadro. */
+  const lunes = inicioSemana(new Date());
+  const semanaIni = aTexto(lunes), semanaFin = aTexto(sumarDias(lunes, 6));
 
   // Índice de piezas por fecha, respetando los filtros activos
   const fPilar = $('#filtroPilar').value;
@@ -3444,6 +3451,7 @@ function pintarCalendario() {
            tabindex="0" role="button"
            aria-label="${esc(tipoDe(ev).corto)}: ${esc(ev.titulo)}${ev.hora ? ', ' + esc(horaLegible(ev.hora)) : ''}"
            title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}${q ? ' — ' + esc(q) : ''}">
+        ${esNuevoParaMi(ev) ? '<span class="cal-nuevo" aria-label="Todavía no lo abres" title="Todavía no lo abres"></span>' : ''}
         <div class="cal-evento-alto">${selloEstado(etiquetaEvento(ev))}</div>
         <div class="cal-evento-bajo">
           ${ev.hora ? `<span class="hora">${esc(horaLegible(ev.hora))}</span>` : ''}
@@ -3454,7 +3462,7 @@ function pintarCalendario() {
 
     const finde = dia.getDay() === 0 || dia.getDay() === 6;
     celdas.push(`
-      <div class="celda${fuera ? ' fuera' : ''}${despues ? ' del-siguiente' : ''}${txt === hoy ? ' hoy' : ''}${!fuera && txt < hoy ? ' pasado' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
+      <div class="celda${fuera ? ' fuera' : ''}${despues ? ' del-siguiente' : ''}${txt === hoy ? ' hoy' : ''}${txt >= semanaIni && txt <= semanaFin ? ' semana-ahora' : ''}${!fuera && txt < hoy ? ' pasado' : ''}${finde && !fuera ? ' finde' : ''}" data-fecha="${txt}">
         <div class="celda-numero">
           <span>${dia.getDate() === 1 && fuera
             ? MESES[dia.getMonth()].slice(0, 3) + ' 1'
@@ -3485,6 +3493,19 @@ function pintarCalendario() {
     el.addEventListener('click', () => abrirPrevia(el.dataset.id));
     abrirConTeclado(el, () => abrirPrevia(el.dataset.id));
   });
+  /* Si la celda de hoy quedo fuera de pantalla, se trae UNA vez.
+     Si ya se ve, no se mueve nada: nada mas molesto que una pagina
+     que salta sola mientras la lees. */
+  if (!yaBusqueHoy) {
+    const h = $('.celda.hoy', cont);
+    if (h) {
+      const c = h.getBoundingClientRect();
+      const fuera = c.top < 0 || c.bottom > (window.innerHeight || 0);
+      if (fuera) h.scrollIntoView({ block: 'center' });
+      yaBusqueHoy = true;
+    }
+  }
+
   $$('.cal-evento', cont).forEach(el => {
     el.addEventListener('click', ev => { ev.stopPropagation(); abrirFichaEvento(el.dataset.evento); });
     abrirConTeclado(el, () => abrirFichaEvento(el.dataset.evento));
@@ -7146,6 +7167,33 @@ function marcarVisto(usuario, ...ids) {
   catch (e) {}
 }
 
+/* ── Lo que todavia no abres ───────────────────────────────
+   Mismo almacen que los avisos: estado personal, no del equipo.
+   Que Belen haya visto un evento no quiere decir que Leo tambien. */
+
+/* La primera vez se da por visto TODO lo que ya existia. Sin esto,
+   al estrenar el sello los 60 eventos de la casa saldrian marcados
+   como nuevos y no diria nada. */
+function sembrarVistos(yo) {
+  if (!yo) return;
+  const clave = 'pizarra:sembrado:' + yo.id;
+  try {
+    if (localStorage.getItem(clave)) return;
+    marcarVisto(yo, ...(datos.parrilla.eventos || []).map(e => e.id));
+    localStorage.setItem(clave, '1');
+  } catch (e) { /* sin localStorage no hay sello y tampoco estorba */ }
+}
+
+function esNuevoParaMi(ev) {
+  const yo = Almacen.usuario;
+  if (!yo || !ev) return false;
+  /* Lo que uno mismo anoto no sorprende a nadie. */
+  const mio = (ev.creadoPor || '').trim().toLowerCase()
+            === (yo.nombre || '').trim().toLowerCase();
+  if (mio) return false;
+  return !vistosDe(yo)[ev.id];
+}
+
 function avisosPara(yo) {
   if (!yo) return [];
   const piezas = datos.parrilla.piezas || [];
@@ -7381,6 +7429,14 @@ function abrirPrevia(idPieza) {
 function abrirFichaEvento(idEvento) {
   const e = (datos.parrilla.eventos || []).find(x => x.id === idEvento);
   if (!e) return;
+
+  /* Abrirlo es verlo: se le quita el sello de nuevo. Se repinta el
+     calendario para que el sello desaparezca al cerrar la ficha, no
+     a la siguiente recarga. */
+  if (Almacen.usuario && esNuevoParaMi(e)) {
+    marcarVisto(Almacen.usuario, e.id);
+    if (modoParrilla === 'calendario') pintarCalendario();
+  }
 
   previaCtx = { evento: e };
   $('#previaBajarTodo').hidden = true;
@@ -9395,6 +9451,25 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-21-a',
+    version: '2026-10-21',
+    titulo: 'El calendario avisa lo nuevo y abre en tu semana',
+    puntos: [
+      { t: 'Un punto en los eventos que no has abierto',
+        d: 'Ahora que Eventos anota en el calendario, hace falta notar lo que ' +
+           'llegó sin que estuvieras mirando. Los eventos que no has abierto ' +
+           'traen un punto en la esquina; se va solo en cuanto entras a verlos.' },
+      { t: 'Es tuyo, no del equipo',
+        d: 'Que Belén haya visto un evento no quiere decir que tú también. Cada ' +
+           'quien tiene su propia cuenta de lo que ya abrió. Y lo que anotaste ' +
+           'tú no se marca: no te vas a avisar solo.' },
+      { t: 'La semana en curso se ve de entrada',
+        d: 'La semana de hoy sale marcada como banda, y si la celda de hoy ' +
+           'quedó fuera de pantalla el calendario la trae. Una vez, al abrir: ' +
+           'si ya se ve, no se mueve nada.' },
+    ],
+  },
   {
     clave: '2026-10-20-a',
     version: '2026-10-20',
