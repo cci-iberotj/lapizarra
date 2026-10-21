@@ -4776,3 +4776,8 @@ body.solo-creacion #progreso { display: none; }
 .celda.semana-ahora { background: var(--marca-velo); }
 .celda.semana-ahora.finde { background: var(--marca-velo); }
 .celda.semana-ahora.fuera { background: var(--capa-0); }
+
+/* El título del calendario cuando no es un mes sino un rango de seis
+   semanas: «19 oct — 29 nov 2026». El capitalize de la barra lo
+   dejaría como «19 Oct — 29 Nov». */
+#mesTitulo.rango { text-transform: none; }

@@ -382,8 +382,21 @@ let datos = {
 };
 let anclaSemana = inicioSemana(new Date());
 let anclaMes = new Date();
-/* Solo una vez por carga: ver arriba, en pintarCalendario. */
-let yaBusqueHoy = false;
+
+/* DESDE DONDE ARRANCA EL CALENDARIO.
+   'semana' pone la semana en curso en el PRIMER renglon y sigue seis
+   semanas hacia adelante. 'mes' dibuja el mes natural completo.
+
+   Antes solo existia el mes natural, y a mitad de mes la semana de
+   hoy caia en el cuarto renglon: habia que bajar para ver lo de esta
+   semana, que es lo unico que se mira a diario. El primer intento fue
+   traer la celda de hoy con scrollIntoView y era peor: la pagina
+   saltaba sola. El arreglo no era mover la pantalla, era mover de
+   donde arranca la rejilla. */
+let modoArranque = (() => {
+  try { return localStorage.getItem('pizarra:arranque') === 'mes' ? 'mes' : 'semana'; }
+  catch (e) { return 'semana'; }
+})();
 let vistaActual = 'parrilla';
 // El calendario es la vista principal: dice de un vistazo como va
 // la semana. La lista sirve para trabajar una pieza, no para ver.
@@ -809,8 +822,9 @@ function canalDeVista()   { return VISTAS_FIJAS.includes(vista) ? '' : vista; }
    los botones digan lo que se ve y no un total abstracto. */
 function rangoVisible() {
   if (modoParrilla === 'calendario') {
-    const a = anclaMes.getFullYear(), m = anclaMes.getMonth();
-    return [aTexto(new Date(a, m, 1)), aTexto(new Date(a, m + 1, 0))];
+    const { arranque, mes, primero } = ventanaCalendario();
+    if (mes === null) return [aTexto(arranque), aTexto(sumarDias(arranque, 41))];
+    return [aTexto(primero), aTexto(new Date(primero.getFullYear(), mes + 1, 0))];
   }
   if ($('#filtroTodasSemanas').checked) return ['0000-01-01', '9999-12-31'];
   return [aTexto(anclaSemana), aTexto(sumarDias(anclaSemana, 6))];
@@ -3360,6 +3374,34 @@ function aplicarModoParrilla() {
   pintarVistas();   // el rango cambia entre mes y semana: las cuentas tambien
 }
 
+/* QUE SEIS SEMANAS SE ESTAN VIENDO, Y COMO SE LLAMAN.
+   De aqui beben la rejilla, el titulo, las cuentas de los botones de
+   canal y «Acomodar pendientes». Mientras el calendario solo dibujaba
+   meses naturales, cada uno podia deducirlo del mes del ancla y daba
+   igual; desde que puede arrancar en la semana en curso, el mes del
+   ancla y lo que hay en pantalla ya no son lo mismo. Una sola fuente,
+   entonces, o acaban contando un rango que nadie esta viendo.
+
+   mes = null significa «ventana corrida»: no hay dentro ni fuera. */
+function ventanaCalendario() {
+  if (modoArranque === 'semana') {
+    const arranque = inicioSemana(anclaMes);
+    const fin = sumarDias(arranque, 41);
+    const corto = f => MESES[f.getMonth()].slice(0, 3).toLowerCase();
+    return {
+      arranque, mes: null, primero: null,
+      titulo: `${arranque.getDate()} ${corto(arranque)} — `
+            + `${fin.getDate()} ${corto(fin)} ${fin.getFullYear()}`,
+    };
+  }
+  const anio = anclaMes.getFullYear(), mes = anclaMes.getMonth();
+  const primero = new Date(anio, mes, 1);
+  return {
+    arranque: inicioSemana(primero), mes, primero,
+    titulo: MESES[mes] + ' ' + anio,
+  };
+}
+
 function pintarCalendario() {
   if (modoParrilla !== 'calendario') return;
 
@@ -3369,13 +3411,28 @@ function pintarCalendario() {
       `<span class="dia-nombre${i >= 5 ? ' finde' : ''}">${d}</span>`).join('');
   }
 
-  const anio = anclaMes.getFullYear();
-  const mes = anclaMes.getMonth();
-  $('#mesTitulo').textContent = MESES[mes] + ' ' + anio;
+  const { arranque, mes, primero, titulo } = ventanaCalendario();
+  const porSemana = mes === null;
+  $('#mesTitulo').textContent = titulo;
+  /* El h2 va con text-transform:capitalize, que es lo que convierte
+     «octubre 2026» en «Octubre 2026». Sobre un rango abreviado deja
+     «19 Oct — 29 Nov», y en español las abreviaturas de mes van en
+     minúscula. Con rango, se apaga. */
+  $('#mesTitulo').classList.toggle('rango', porSemana);
 
-  // El mes se dibuja completo, arrancando el lunes de la semana del día 1.
-  const primero = new Date(anio, mes, 1);
-  const arranque = inicioSemana(primero);
+  /* Los botones dicen a donde LLEVAN, no donde estas: es lo que se
+     entiende sin leer dos veces. */
+  const bArranque = $('#arranqueCalendario');
+  if (bArranque) {
+    bArranque.textContent = porSemana ? 'Mes completo' : 'Desde esta semana';
+    bArranque.title = porSemana
+      ? 'Ver el mes natural entero, con los días del mes anterior'
+      : 'Arrancar en la semana en curso y seguir seis semanas';
+  }
+  $('#mesHoy').textContent = porSemana ? 'Esta semana' : 'Este mes';
+  $('#mesAnterior').title = porSemana ? 'Cuatro semanas atrás' : 'Mes anterior';
+  $('#mesSiguiente').title = porSemana ? 'Cuatro semanas adelante' : 'Mes siguiente';
+
   const hoy = aTexto(new Date());
   /* La semana en curso se marca entera, no solo el dia: lo que Leo
      busca al abrir es «que se vea la semana», no un recuadro. */
@@ -3397,7 +3454,9 @@ function pintarCalendario() {
   for (let i = 0; i < 42; i++) {
     const dia = sumarDias(arranque, i);
     const txt = aTexto(dia);
-    const fuera = dia.getMonth() !== mes;
+    /* En «desde esta semana» no hay dentro ni fuera: las seis
+       semanas valen igual y ninguna se pinta en gris. */
+    const fuera = !porSemana && dia.getMonth() !== mes;
     /* La sexta fila se dibujaba solo si el mes la usaba, asi que
        cuando el mes cerraba en domingo no quedaba ni un dia del
        siguiente donde soltar algo. Ahora siempre hay cola: mover una
@@ -3493,19 +3552,6 @@ function pintarCalendario() {
     el.addEventListener('click', () => abrirPrevia(el.dataset.id));
     abrirConTeclado(el, () => abrirPrevia(el.dataset.id));
   });
-  /* Si la celda de hoy quedo fuera de pantalla, se trae UNA vez.
-     Si ya se ve, no se mueve nada: nada mas molesto que una pagina
-     que salta sola mientras la lees. */
-  if (!yaBusqueHoy) {
-    const h = $('.celda.hoy', cont);
-    if (h) {
-      const c = h.getBoundingClientRect();
-      const fuera = c.top < 0 || c.bottom > (window.innerHeight || 0);
-      if (fuera) h.scrollIntoView({ block: 'center' });
-      yaBusqueHoy = true;
-    }
-  }
-
   $$('.cal-evento', cont).forEach(el => {
     el.addEventListener('click', ev => { ev.stopPropagation(); abrirFichaEvento(el.dataset.evento); });
     abrirConTeclado(el, () => abrirFichaEvento(el.dataset.evento));
@@ -5377,10 +5423,12 @@ function capturarIdeaClasificada() {
 /* ── Acomodar pendientes en el calendario ──────────────── */
 
 function acomodarPendientes() {
-  const anio = anclaMes.getFullYear();
-  const mes = anclaMes.getMonth();
-  const primerDia = new Date(anio, mes, 1);
-  const ultimoDia = new Date(anio, mes + 1, 0);
+  /* Acomoda en lo que se esta VIENDO, no en el mes del ancla: desde
+     que el calendario puede arrancar en la semana en curso, los dos
+     dejaron de ser lo mismo y soltar piezas fuera de la pantalla
+     seria soltarlas a ciegas. */
+  const [desdeVista, hastaVista] = rangoVisible();
+  const primerDia = aFecha(desdeVista), ultimoDia = aFecha(hastaVista);
 
   const sinFecha = datos.parrilla.piezas.filter(p => !p.fecha);
   const ideas = (datos.parrilla.ideas || []).slice();
@@ -5422,7 +5470,7 @@ function acomodarPendientes() {
   }
 
   if (!dias.length) {
-    avisar('No quedan días libres en este mes. Prueba con el siguiente.');
+    avisar('No quedan días libres en lo que estás viendo. Avanza con ›.');
     return;
   }
 
@@ -8293,16 +8341,27 @@ function conectarEventos() {
   /* Las cuentas de los botones hablan del rango que se ve, asi que
      cambiar de mes las mueve. Se repintan aqui y no dentro de
      pintarCalendario para no armar una recursion entre los dos. */
-  $('#mesAnterior').addEventListener('click', () => {
-    anclaMes = new Date(anclaMes.getFullYear(), anclaMes.getMonth() - 1, 1);
+  /* Las flechas mueven lo que se este viendo: un mes si es el mes
+     natural, cuatro semanas si es la ventana corrida. Saltar un mes
+     entero en una ventana de seis semanas se brinca renglones. */
+  const mover = n => {
+    anclaMes = modoArranque === 'semana'
+      ? sumarDias(inicioSemana(anclaMes), n * 28)
+      : new Date(anclaMes.getFullYear(), anclaMes.getMonth() + n, 1);
     pintarCalendario(); pintarVistas();
-  });
-  $('#mesSiguiente').addEventListener('click', () => {
-    anclaMes = new Date(anclaMes.getFullYear(), anclaMes.getMonth() + 1, 1);
-    pintarCalendario(); pintarVistas();
-  });
+  };
+  $('#mesAnterior').addEventListener('click', () => mover(-1));
+  $('#mesSiguiente').addEventListener('click', () => mover(1));
   $('#mesHoy').addEventListener('click', () => {
     anclaMes = new Date(); pintarCalendario(); pintarVistas();
+  });
+  /* Cambiar de arranque vuelve SIEMPRE a hoy. Si no, se cambiaba de
+     modo estando en marzo y la «semana en curso» salia en marzo. */
+  $('#arranqueCalendario').addEventListener('click', () => {
+    modoArranque = modoArranque === 'semana' ? 'mes' : 'semana';
+    try { localStorage.setItem('pizarra:arranque', modoArranque); } catch (e) { }
+    anclaMes = new Date();
+    pintarCalendario(); pintarVistas();
   });
 
   // Los dos botones del banco de ideas ya no estan en la pagina.
@@ -9464,10 +9523,15 @@ const NOVEDADES = [
         d: 'Que Belén haya visto un evento no quiere decir que tú también. Cada ' +
            'quien tiene su propia cuenta de lo que ya abrió. Y lo que anotaste ' +
            'tú no se marca: no te vas a avisar solo.' },
-      { t: 'La semana en curso se ve de entrada',
-        d: 'La semana de hoy sale marcada como banda, y si la celda de hoy ' +
-           'quedó fuera de pantalla el calendario la trae. Una vez, al abrir: ' +
-           'si ya se ve, no se mueve nada.' },
+      { t: 'El calendario arranca en la semana en curso',
+        d: 'Ya no empieza en el día 1 del mes, con la semana de hoy caída en ' +
+           'el cuarto renglón: ahora el primer renglón ES esta semana, y sigue ' +
+           'seis semanas hacia adelante. La semana de hoy va marcada como banda.' },
+      { t: 'Y si quieres el mes entero, un botón',
+        d: 'Arriba del calendario está «Mes completo»: devuelve el mes natural ' +
+           'de siempre, con sus días del mes anterior en gris. La pizarra se ' +
+           'acuerda de cuál elegiste. En «desde esta semana» las flechas ‹ › ' +
+           'mueven de cuatro en cuatro semanas, no de mes en mes.' },
     ],
   },
   {
