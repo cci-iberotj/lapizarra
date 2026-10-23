@@ -637,6 +637,27 @@ async function marcarPublicada(id: string, pieza: any, salidas: any, quien: stri
 }
 
 
+/* ── Formatos que NO van al muro ───────────────────────────
+
+   Este archivo decide que publicar por el tipo y la cantidad de
+   archivos; el campo 'formato' de la ficha nunca lo ha leido. Para
+   Carrusel o Foto da igual --se deduce igual de bien-- pero para
+   Story no: una historia lleva arte vertical 1080x1920, y mandarla
+   por aqui la cuelga en la cuadricula atravesada. Sin deshacer.
+
+   La Pizarra no publica historias; se suben a mano desde el
+   telefono. Entonces lo correcto no es adivinar: es negarse y
+   decir por que. */
+const FORMATOS_A_MANO: Record<string, string> = {
+  Story: 'Las historias se suben a mano desde el teléfono: La Pizarra '
+       + 'todavía no las publica. Si la mandara, saldría como post en el '
+       + 'muro, con el arte vertical atravesado en la cuadrícula.',
+};
+
+function soloAMano(p: any): string {
+  return FORMATOS_A_MANO[String((p && p.formato) || '').trim()] || '';
+}
+
 /* ── La tanda automatica ───────────────────────────────────
 
    La llama el reloj de la base cada pocos minutos. Publica UNA por
@@ -657,6 +678,7 @@ async function tanda() {
     .filter((f: any) => {
       const p = f.datos || {};
       if (!p.autopublicar) return false;
+      if (soloAMano(p)) return false;      // ver FORMATOS_A_MANO
       const ap = p.aprobacion || {};
       if (ap.estado !== 'aprobado') return false;
       if (ap.sello && ap.sello !== selloDeRevision(p)) return false;
@@ -669,6 +691,32 @@ async function tanda() {
     })
     .sort((a: any, b: any) =>
       (leMomento(a.datos) || '').localeCompare(leMomento(b.datos) || ''));
+
+  /* LAS QUE SE QUEDAN FUERA POR EL FORMATO NO SE CALLAN.
+
+     Saltarlas y ya seria el fallo silencioso de siempre: llega su
+     hora, no sale nada, y nadie se entera hasta que alguien
+     pregunta por el post. Se anota UNA vez --si ya dice lo mismo no
+     se vuelve a escribir-- porque el reloj corre cada pocos minutos
+     y machacar el registro seria peor que no avisar. */
+  for (const f of (filas || [])) {
+    const p = f.datos || {};
+    const porque = soloAMano(p);
+    if (!porque || !p.autopublicar) continue;
+    const momento = leMomento(p);
+    if (!momento || momento > ahora) continue;
+    const posibles = ['ig', 'fb'].filter((c) => (p.canales || []).includes(c));
+    if (!posibles.filter((c) => !(p.publicaciones || {})[c]).length) continue;
+    if ((p.autoerror || {}).texto === porque) continue;
+    p.autoerror = { cuando: new Date().toISOString(), texto: porque };
+    await fetch(
+      `${URL_BASE}/rest/v1/registros?coleccion=eq.parrilla_piezas&id=eq.${encodeURIComponent(f.id)}`, {
+        method: 'PATCH',
+        headers: { apikey: LLAVE_ADMIN, Authorization: 'Bearer ' + LLAVE_ADMIN,
+                   'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify({ datos: p, actualizado: new Date().toISOString() }),
+      });
+  }
 
   if (!listas.length) return { revisadas: filas?.length || 0, publicada: null, ahora };
 
@@ -751,6 +799,14 @@ Deno.serve(async (peticion) => {
       }
 
       const pieza = await leerPieza(idPieza);
+
+      /* Mismo guardia que la tanda: el boton no es una excepcion.
+         Va ANTES que la aprobacion porque no depende de ella -- una
+         historia no se publica por aqui ni aprobada ni sin aprobar.
+         Ver FORMATOS_A_MANO, arriba. */
+      const aMano = soloAMano(pieza);
+      if (aMano) return responder({ error: aMano }, 400);
+
       const ap = pieza.aprobacion || {};
       if (ap.estado !== 'aprobado') {
         return responder({ error: 'Solo se publica lo aprobado. Falta el visto bueno.' }, 400);

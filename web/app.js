@@ -6862,6 +6862,17 @@ function redesDe(p) {
    no tiene por que darla por terminada solo porque una de las dos
    ocurrio. Si no falta ninguna, se ofrecen todas -- volver a
    publicar es legitimo cuando se borro el post, pero se avisa. */
+/* Lo mismo que FORMATOS_A_MANO en la funcion de publicar, para
+   poder decirlo ANTES en vez de dejar que el servidor lo rechace.
+   El guardia de verdad esta alla: esto es la explicacion. */
+function soloSaleAMano(p) {
+  return String((p && p.formato) || '').trim() === 'Story'
+    ? 'Las historias se suben a mano desde el teléfono. Si La Pizarra la '
+      + 'mandara, saldría como post en el muro: el arte vertical atravesado '
+      + 'en la cuadrícula.'
+    : '';
+}
+
 function redesPendientes(p) {
   const faltan = redesDe(p).filter(r => !(p.publicaciones || {})[r.id]);
   return faltan.length ? faltan : redesDe(p);
@@ -6887,6 +6898,26 @@ function redesPendientes(p) {
 function bloqueCuando(p, rev, archivos) {
   if (!archivos.length || !redesDe(p).length) return '';
   if (!puedePublicar() && !puedeAprobar()) return '';
+
+  /* Una historia no se programa ni se publica desde aqui: se
+     ofrece solo anotar que ya salio. Dejar el boton encendido para
+     que el servidor lo rechace despues seria hacerle perder el
+     viaje a quien lo aprieta. */
+  const aMano = soloSaleAMano(p);
+  if (aMano) {
+    return `
+      <div class="previa-cuando">
+        <h4>¿Cuándo sale?</h4>
+        <div class="cuando-estado mano">
+          <b>📱 Esta historia se sube a mano</b>
+          <span>${esc(aMano)}</span>
+        </div>
+        <div class="cuando-acciones">
+          ${p.estado !== 'publicado' && !soloLectura('parrilla_piezas') ? `
+            <button class="btn-primario" id="apPublicado">Ya la publiqué a mano</button>` : ''}
+        </div>
+      </div>`;
+  }
 
   const donde = redesDe(p).map(r => r.nombre).join(' y ');
   const faltas = porQueNoSaldraSola(p);
@@ -6957,6 +6988,7 @@ function quienAnoto(x) {
 function porQueNoSaldraSola(p) {
   if (!p.autopublicar) return null;
   const faltas = [];
+  if (soloSaleAMano(p)) faltas.push('es una historia y ésas van a mano');
   if (!p.hora) faltas.push('falta la hora');
   if (!archivosDe(p).length) faltas.push('no tiene arte');
   if (!redesDe(p).length) faltas.push('ninguno de sus canales se publica solo');
@@ -9513,6 +9545,24 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-23-a',
+    version: '2026-10-23',
+    titulo: 'Marcar «Story» ya no manda la pieza al muro',
+    puntos: [
+      { t: 'Las historias se suben a mano, y ahora la pizarra lo sabe',
+        d: '«Story» se podía elegir como formato desde siempre, pero quien ' +
+           'publica nunca leía ese campo: decidía por el tipo de archivo. Una ' +
+           'historia mandada desde aquí salía COMO POST en la cuadrícula, con ' +
+           'el arte vertical atravesado, y eso no se deshace.' },
+      { t: 'Se frena en el servidor, no en la pantalla',
+        d: 'El botón de publicar desaparece y en su lugar queda «Ya la publiqué ' +
+           'a mano». Pero el freno de verdad está en el servidor, porque el ' +
+           'reloj de las piezas programadas no pasa por la pantalla: si una ' +
+           'historia quedó programada, no sale y lo deja anotado en su ficha ' +
+           'en vez de callarse.' },
+    ],
+  },
   {
     clave: '2026-10-21-a',
     version: '2026-10-21',
