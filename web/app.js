@@ -8857,7 +8857,10 @@ const CASTING_EQUIPO = 'https://cci-iberotj.github.io/convocatoria-imagen/equipo
    vive en el mismo origen (cci-iberotj.github.io). */
 function abrirConvocatoria() {
   const marco = $('#castingMarco');
-  if (marco && !marco.src) marco.src = CASTING_EQUIPO + '?incrustado=1';
+  /* Con un sello de tiempo: si no, el navegador se queda con la copia
+     de hace diez minutos (Pages la manda con caché) y los cambios de la
+     vista del equipo no aparecen aunque se recargue LA PIZARRA. */
+  if (marco && !marco.src) marco.src = CASTING_EQUIPO + '?incrustado=1&t=' + Date.now();
   if (casting.length) castingVisto(casting[0].creado);
   marcarConvocatoria();
   pintarCastingResumen();
