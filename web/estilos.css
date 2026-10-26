@@ -4574,13 +4574,78 @@ body.solo-creacion #progreso { display: none; }
 .isj-marcador .mal b { color: var(--alerta); }
 .isj-marcador .isj-cuenta b { font-size: var(--t-guia); color: var(--marca-tinta); }
 
+/* LA BARRA DE MANDOS DEL VIAJE
+   La leyenda era pasiva: cuatro colores y a ver quién los recuerda.
+   Ahora cada deporte FILTRA, y el mismo filtro vale para las dos
+   vistas — porque quien diseña los posts entra buscando una
+   disciplina, no un día. */
+.isj-mandos {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: var(--e-4) var(--e-5); justify-content: space-between;
+}
+.isj-vistas { display: inline-flex; gap: 2px; padding: 2px;
+  background: var(--capa-2); border-radius: var(--r-control); }
+.isj-vista {
+  font: inherit; font-size: var(--t-sello); cursor: pointer;
+  padding: 5px var(--e-4); border: 0; border-radius: calc(var(--r-control) - 2px);
+  background: transparent; color: var(--tinta-media);
+}
+.isj-vista:hover { color: var(--tinta); }
+.isj-vista.activa { background: var(--capa-1); color: var(--tinta);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+
 .isj-leyenda { display: flex; flex-wrap: wrap; gap: var(--e-3); }
 .isj-chip {
-  font-size: var(--t-sello); color: var(--tinta-media);
+  font: inherit; font-size: var(--t-sello); color: var(--tinta-media);
   display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px var(--e-3); cursor: pointer;
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--r-pastilla);
 }
 .isj-chip::before {
   content: ''; width: 10px; height: 10px; border-radius: 3px; background: var(--isj);
+}
+.isj-chip-todo::before { display: none; }
+.isj-chip b { font-variant-numeric: tabular-nums; color: var(--tinta-tenue); }
+.isj-chip:hover { border-color: var(--borde); color: var(--tinta); }
+/* El activo se marca con su propio color, no con un gris: asi se
+   ve CUAL esta puesto sin leer, que es el punto de los colores. */
+.isj-chip.activo {
+  color: var(--tinta); border-color: var(--isj, var(--borde-fuerte));
+  background: color-mix(in oklab, var(--isj, var(--capa-2)) 12%, transparent);
+}
+.isj-chip.activo b { color: var(--tinta); }
+.isj-chip-todo.activo { border-color: var(--borde-fuerte);
+  background: var(--capa-2); }
+
+/* POR DISCIPLINA
+   Una tabla por deporte, en orden de fecha. La columna del dia va
+   primero y en negritas: lo que se busca aqui es «cuando es», no
+   «contra quien». */
+.isj-discs { display: grid; gap: var(--e-6); }
+.isj-disc { display: grid; gap: var(--e-3); }
+.isj-disc-cabeza {
+  display: flex; align-items: baseline; gap: var(--e-3);
+  padding-left: var(--e-3); border-left: 3px solid var(--isj);
+}
+.isj-disc-cabeza h3 { margin: 0; font-size: var(--t-sub); }
+.isj-disc-tabla { width: 100%; border-collapse: collapse; }
+.isj-disc-tabla tr { cursor: pointer; border-bottom: 1px solid var(--borde); }
+.isj-disc-tabla tr:hover { background: var(--capa-2); }
+.isj-disc-tabla tr.ya-fue { opacity: .5; }
+.isj-disc-tabla td { padding: var(--e-3) var(--e-3); vertical-align: baseline; }
+.isj-disc-dia { white-space: nowrap; width: 1%; }
+.isj-disc-dia b { text-transform: capitalize; }
+.isj-disc-hora { white-space: nowrap; width: 1%;
+  font-variant-numeric: tabular-nums; color: var(--tinta-media); }
+.isj-disc-donde { white-space: nowrap; width: 1%; text-align: right; }
+/* En la tarjeta el «vs» lo separa el gap del flex; dentro de una
+   celda de tabla no hay flex, y salia pegado a los dos nombres. */
+.isj-disc-quien .isj-vs { margin: 0 .45em; }
+
+@media (max-width: 700px) {
+  .isj-disc-donde { display: none; }
+  .isj-mandos { gap: var(--e-3); }
 }
 
 .isj-alarma {

@@ -1374,6 +1374,7 @@ const COLOR_DEPORTE = {
   flag:   'vida',
   volfem: 'orgullo',
   volvar: 'cultura',
+  tkd:    'voz',
 };
 
 /* Dueño del viaje es quien se bloqueó los días. Si nadie se
@@ -1438,6 +1439,12 @@ function refrescarPestanaViaje() {
   if (t.hidden && vistaActual === 'viaje') $('.tab[data-vista="parrilla"]').click();
 }
 
+/* Como se esta mirando el viaje. 'dia' es la rejilla de siempre;
+   'disciplina' agrupa por deporte, que es como lo lee quien disena
+   los posts. El filtro vale para las dos. */
+let isjVista = 'dia';
+let isjFiltro = '';
+
 function pintarViaje() {
   const cont = $('#viaje');
   if (!cont) return;
@@ -1473,21 +1480,33 @@ function pintarViaje() {
                : faltan === 0 ? 'Arranca hoy'
                : 'En curso';
 
-  const porDia = {};
-  citas.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
-  const dias = Object.keys(porDia).sort();
-
+  /* Las disciplinas salen de TODAS las citas, no de las filtradas:
+     si no, al elegir una se irian las demas de la barra y ya no
+     habria por donde volver. */
   const deportes = [];
   citas.forEach(e => {
     if (e.deporteNombre && !deportes.some(d => d.id === e.deporte)) {
       deportes.push({ id: e.deporte, nombre: e.deporteNombre });
     }
   });
+  if (isjFiltro && !deportes.some(d => d.id === isjFiltro)) isjFiltro = '';
+  const cuentaDep = {};
+  citas.forEach(e => { cuentaDep[e.deporte] = (cuentaDep[e.deporte] || 0) + 1; });
+
+  const vistas = isjFiltro ? citas.filter(e => e.deporte === isjFiltro) : citas;
+
+  const porDia = {};
+  vistas.forEach(e => { (porDia[e.fecha] = porDia[e.fecha] || []).push(e); });
+  const dias = Object.keys(porDia).sort();
 
   /* El duelo se arma con los campos, no partiendo el título: el
      nuestro va en negritas y el rival al lado, para que la columna
      se lea en vertical buscando siempre lo mismo. */
   const duelo = (e) => {
+    /* No todo es un duelo: en taekwondo se compite por modalidad
+       contra una llave entera, no contra un equipo. Decir ahi
+       «rival por definirse» es inventar un rival que no existe. */
+    if (e.modalidad) return '<b class="isj-nos">' + esc(e.modalidad) + '</b>';
     if (!e.rival) return '<span class="isj-rival">Rival por definirse</span>';
     const nos = '<b class="isj-nos">IBERO TIJUANA</b>';
     const otro = '<span class="isj-rival">' + esc(e.rival) + '</span>';
@@ -1539,6 +1558,41 @@ function pintarViaje() {
       </div>`;
   };
 
+  /* POR DISCIPLINA. Cada deporte de corrido, con la fecha completa
+     a la izquierda: asi se planea una serie de posts sin tener que
+     recomponerla saltando entre columnas de dias. */
+  const bloqueDisciplina = (d) => {
+    const suyas = vistas.filter(e => e.deporte === d.id);
+    if (!suyas.length) return '';
+    return `
+      <section class="isj-disc" style="--isj:var(--pilar-${COLOR_DEPORTE[d.id] || 'vida'}-solido)">
+        <header class="isj-disc-cabeza">
+          <h3>${esc(d.nombre)}</h3>
+          <span class="tenue">${suyas.length} ${suyas.length === 1 ? 'fecha' : 'fechas'}</span>
+        </header>
+        <table class="isj-disc-tabla"><tbody>
+          ${suyas.map(e => {
+            const f = aFecha(e.fecha);
+            const esLlave = Array.isArray(e.llave) && e.llave.length;
+            return `
+            <tr data-isj-ev="${esc(e.id)}"${e.fecha < hoy ? ' class="ya-fue"' : ''}>
+              <td class="isj-disc-dia">
+                <b>${esc(DIAS[f.getDay()])} ${f.getDate()}</b>
+                <span class="tenue">nov</span>
+              </td>
+              <td class="isj-disc-hora">${esLlave
+                  ? '<span class="isj-hora-dudosa">' + esc((e.llaveHoras || []).join(' / ')) + '</span>'
+                  : esc(e.hora ? horaLegible(e.hora) : '—')}</td>
+              <td class="isj-disc-quien">${esLlave
+                  ? '<b>Fase final</b> <span class="tenue">según el lugar de grupo</span>'
+                  : duelo(e)}</td>
+              <td class="isj-disc-donde tenue">${esc(e.sede || e.lugar || '')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody></table>
+      </section>`;
+  };
+
   const quien = esMio ? 'Vas solo' : (esc(v.dueno) + ' va solo');
   const aviso = !nChoques ? '' : `
     <div class="isj-alarma">
@@ -1581,12 +1635,13 @@ function pintarViaje() {
     <section class="isj-llaves">
       <h3>El viernes todavía no está escrito</h3>
       <p class="isj-nota">
-        Las dos fases finales de voleibol son el viernes y aún no tienen hora:
-        sale de en qué lugar termine Tijuana cada grupo, y eso no se sabe hasta
-        que acabe la última jornada. Lo que sí está fijo son las dos horas
-        posibles, <b>8:00 o 10:00</b>. Y a las 8:00 ya está el último partido de
-        flag en la Cancha de Beisbol, así que de ahí puede salir otro empalme
-        —o dos, si a los dos equipos de voleibol les toca la misma hora.
+        Las dos fases finales de voleibol son el viernes. Las horas y las
+        canchas <b>ya están fijas</b> en el programa oficial; lo único que falta
+        es en qué lugar termina Tijuana su grupo, y eso se sabe al cerrar la
+        última jornada del jueves. Ojo con el choque: el último partido de flag
+        es ese mismo viernes <b>a las 8:00</b> en el Campo de beisbol, así que si
+        al voleibol le toca turno de <b>8:45</b> no se pueden cubrir los dos. A
+        las <b>7:00</b> sí da tiempo, y a las <b>10:30 u 11:00</b> también.
       </p>
       <div class="isj-llave-rejilla">${porDefinir.map(panelLlave).join('')}</div>
     </section>`;
@@ -1609,25 +1664,49 @@ function pintarViaje() {
       </div>
     </header>
 
-    <div class="isj-leyenda">
-      ${deportes.map(d => `
-        <span class="isj-chip" style="--isj:var(--pilar-${COLOR_DEPORTE[d.id] || 'vida'}-solido)">
-          ${esc(d.nombre)}
-        </span>`).join('')}
+    <div class="isj-mandos">
+      <div class="isj-vistas">
+        <button type="button" class="isj-vista${isjVista === 'dia' ? ' activa' : ''}"
+                data-isj-vista="dia">Por día</button>
+        <button type="button" class="isj-vista${isjVista === 'disciplina' ? ' activa' : ''}"
+                data-isj-vista="disciplina">Por disciplina</button>
+      </div>
+      <div class="isj-leyenda">
+        <button type="button" class="isj-chip isj-chip-todo${isjFiltro ? '' : ' activo'}"
+                data-isj-filtro="">Todo <b>${esc(citas.length)}</b></button>
+        ${deportes.map(d => `
+          <button type="button" class="isj-chip${isjFiltro === d.id ? ' activo' : ''}"
+                  data-isj-filtro="${esc(d.id)}"
+                  style="--isj:var(--pilar-${COLOR_DEPORTE[d.id] || 'vida'}-solido)">
+            ${esc(d.nombre)} <b>${esc(cuentaDep[d.id] || 0)}</b>
+          </button>`).join('')}
+      </div>
     </div>
 
     ${aviso}
 
-    <div class="isj-semana">${dias.map(columna).join('')}</div>
+    ${isjVista === 'disciplina'
+      ? `<div class="isj-discs">${deportes.map(bloqueDisciplina).join('')}</div>`
+      : `<div class="isj-semana">${dias.map(columna).join('')}</div>`}
 
     ${notaFinal}
 
     <p class="isj-fuente">
-      Del rol de juegos <b>PRELIMINAR</b> INTERSUJ XLI 2026. Dice preliminar:
-      conviene confirmar cada hora la víspera. Toca cualquier partido para
-      abrir su ficha y ver las notas.
+      Del rol de juegos <b>FINAL</b> del INTERSUJ XLI 2026, cotejado contra los
+      dos archivos oficiales —el programa por día y el rol de juegos—: las doce
+      fechas coinciden en ambos. Toca cualquier partido para abrir su ficha.
     </p>`;
 
+  $$('[data-isj-vista]', cont).forEach(b => b.addEventListener('click', () => {
+    isjVista = b.dataset.isjVista;
+    pintarViaje();
+  }));
+  $$('[data-isj-filtro]', cont).forEach(b => b.addEventListener('click', () => {
+    /* Volver a tocar la que ya está puesta la quita: es lo que se
+       intenta por instinto, y si no hiciera nada se sentiria roto. */
+    isjFiltro = (isjFiltro === b.dataset.isjFiltro) ? '' : b.dataset.isjFiltro;
+    pintarViaje();
+  }));
   $$('[data-isj-ev]', cont).forEach(b =>
     b.addEventListener('click', () => abrirFichaEvento(b.dataset.isjEv)));
   $$('[data-isj-ir]', cont).forEach(b => b.addEventListener('click', () => {
@@ -9545,6 +9624,31 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-26-a',
+    version: '2026-10-26',
+    titulo: 'INTERSUJ: rol FINAL, y la pestaña se puede leer por disciplina',
+    puntos: [
+      { t: 'Ya no es el preliminar',
+        d: 'Llegaron los archivos oficiales finales. Se cotejaron los dos —el ' +
+           'programa por día y el rol de juegos— contra lo que había: las doce ' +
+           'fechas de Tijuana coinciden en ambos y con la pizarra.' },
+      { t: 'Faltaba el taekwondo entero',
+        d: 'Seis atletas de IBERO Tijuana están en las llaves de combate y no ' +
+           'había nada en la pestaña. Son dos días: poomsae el martes 10 y ' +
+           'combate el miércoles 11, los dos a las 8:00 en la Explanada. ' +
+           'Ninguno choca con lo demás.' },
+      { t: 'El viernes ya tiene horas',
+        d: 'Las fases finales de voleibol decían «hora por definirse». Las horas ' +
+           'y las canchas sí estaban en el programa oficial; lo único abierto es ' +
+           'en qué lugar termina Tijuana su grupo. Ahora la tabla dice a qué hora ' +
+           'juega según dónde quede.' },
+      { t: 'Por día o por disciplina, y un filtro',
+        d: 'La leyenda de colores era pasiva. Ahora cada deporte filtra, y hay ' +
+           'una vista que agrupa por disciplina: quien diseña los posts entra ' +
+           'buscando «cuándo juega flag», no «qué pasa el martes».' },
+    ],
+  },
   {
     clave: '2026-10-23-a',
     version: '2026-10-23',
