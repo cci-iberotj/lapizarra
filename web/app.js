@@ -1439,6 +1439,107 @@ function refrescarPestanaViaje() {
   if (t.hidden && vistaActual === 'viaje') $('.tab[data-vista="parrilla"]').click();
 }
 
+/* ══════════════════════════════════════════════════════════
+   LA TABLA DE FLAG FEMENIL
+
+   Flag femenil es grupo unico: 15 partidos, 5 jornadas y NO HAY
+   FINAL -- campeon es quien termine arriba. La tabla no acompaña
+   al torneo, la tabla ES el torneo.
+
+   LO QUE ESTA TABLA NO PUEDE CALCULAR. El primer desempate del
+   reglamento (art. 72) es el Deporte Integral: el juego limpio,
+   medido en sanciones disciplinarias acumuladas. Eso no se publica
+   en tiempo real y nadie lo lleva desde la grada. Asi que aqui se
+   ordena por puntos y se salta directo a diferencia de
+   anotaciones, y se avisa arriba de la tabla. Presumir un orden
+   exacto que no se puede calcular seria mentir con buena letra.
+   ══════════════════════════════════════════════════════════ */
+
+const FLAG_PUNTOS = { ganado: 3, empatado: 1, perdido: 0 };
+
+function flagDatos() {
+  const d = (datos.intersuj || {}).flag;
+  return (d && Array.isArray(d.partidos) && Array.isArray(d.equipos)) ? d : null;
+}
+
+function tablaFlag() {
+  const d = flagDatos();
+  if (!d) return null;
+
+  const t = {};
+  d.equipos.forEach(e => {
+    t[e.id] = { ...e, jj: 0, jg: 0, je: 0, jp: 0, af: 0, ac: 0, pts: 0 };
+  });
+
+  d.partidos.forEach(p => {
+    const x = t[p.a], y = t[p.b];
+    if (!x || !y || p.ga == null || p.gb == null) return;
+    x.jj++; y.jj++;
+    x.af += p.ga; x.ac += p.gb;
+    y.af += p.gb; y.ac += p.ga;
+    if (p.ga > p.gb)      { x.jg++; y.jp++; x.pts += FLAG_PUNTOS.ganado; }
+    else if (p.ga < p.gb) { y.jg++; x.jp++; y.pts += FLAG_PUNTOS.ganado; }
+    else { x.je++; y.je++; x.pts += FLAG_PUNTOS.empatado; y.pts += FLAG_PUNTOS.empatado; }
+  });
+
+  const lista = Object.values(t);
+  const total = d.equipos.length - 1;          // todos contra todos
+  lista.forEach(e => {
+    e.dif = e.af - e.ac;
+    e.faltan = Math.max(0, total - e.jj);
+    /* Techo: a cuanto llega si gana todo lo que le queda. De aqui
+       salen las unicas cuentas honestas sobre quien sigue vivo. */
+    e.techo = e.pts + e.faltan * FLAG_PUNTOS.ganado;
+  });
+  lista.sort((x, y) => y.pts - x.pts || y.dif - x.dif || y.af - x.af
+                    || x.siembra - y.siembra);
+  return lista;
+}
+
+/* En que situacion esta Tijuana AHORA. Solo afirma lo que se puede
+   demostrar con los puntos: campeona si nadie la alcanza aunque
+   gane todo, fuera si no alcanza al lider aunque gane todo, y en
+   juego el resto del tiempo. Nada de pronosticos. */
+function comoVaTijuana(lista) {
+  const yo = lista.find(e => e.id === 'tijuana');
+  if (!yo) return '';
+  const otros = lista.filter(e => e.id !== 'tijuana');
+  if (!yo.jj && otros.every(o => !o.jj)) {
+    return 'Todavía no se juega nada. Cinco partidos, 15 puntos en disputa.';
+  }
+  const techoAjeno = Math.max(...otros.map(o => o.techo));
+  const puntosAjenos = Math.max(...otros.map(o => o.pts));
+  if (yo.pts > techoAjeno) {
+    return '¡CAMPEONAS! Nadie las alcanza aunque gane todo lo que le queda.';
+  }
+  if (yo.techo < puntosAjenos) {
+    return 'Ya no alcanzan el primer lugar: ganando todo lo que falta se '
+         + 'quedan en ' + yo.techo + ' y alguien ya tiene ' + puntosAjenos + '.';
+  }
+  /* TORNEO TERMINADO. Sin esto, con cero partidos por jugar salia
+     «ganando sus 0 partidos quedan en 13», que es justo el caso que
+     mas importa: Torreon y Tijuana empatadas al final. */
+  if (!yo.faltan) {
+    const arriba = lista[0];
+    const empatadas = lista.filter(e => e.pts === yo.pts).length;
+    if (arriba.pts === yo.pts && empatadas > 1) {
+      return 'Terminaron empatadas a ' + yo.pts + ' puntos con '
+           + (empatadas === 2 ? 'otro equipo' : (empatadas - 1) + ' equipos')
+           + '. El título se va al desempate, y el primero del reglamento es '
+           + 'el juego limpio: eso no se calcula aquí, lo resuelve el Comité.';
+    }
+    return 'Terminaron con ' + yo.pts + (yo.pts === 1 ? ' punto' : ' puntos')
+         + ', detrás de ' + arriba.nombre + ' (' + arriba.pts + ').';
+  }
+
+  const lider = lista[0];
+  const falta = yo.faltan === 1 ? 'el último partido' : 'sus ' + yo.faltan + ' partidos';
+  return 'Llevan ' + yo.pts + (yo.pts === 1 ? ' punto' : ' puntos')
+       + ' y pueden llegar a ' + yo.techo + '. Ganando ' + falta
+       + ' quedan en ' + yo.techo + '; ' + esc(lider.nombre) + ' va primero con '
+       + lider.pts + '.';
+}
+
 /* Como se esta mirando el viaje. 'dia' es la rejilla de siempre;
    'disciplina' agrupa por deporte, que es como lo lee quien disena
    los posts. El filtro vale para las dos. */
@@ -1593,6 +1694,81 @@ function pintarViaje() {
       </section>`;
   };
 
+/* LA TABLA DE FLAG. Se pinta aparte de las dos vistas porque no
+     es una forma de mirar las coberturas de Leo: es el marcador
+     del torneo, y lo mira tambien quien no viaja. */
+  const vistaTablaFlag = () => {
+    const lista = tablaFlag();
+    if (!lista) return '<div class="vacio">No hay tabla de flag cargada.</div>';
+    const d = flagDatos();
+    const puedo = !soloLectura('intersuj_flag');
+    const nom = id => (d.equipos.find(e => e.id === id) || {}).nombre || id;
+
+    const jornadas = {};
+    d.partidos.forEach((p, i) => {
+      (jornadas[p.jornada] = jornadas[p.jornada] || []).push({ ...p, i });
+    });
+
+    return `
+      <section class="flag-tabla">
+        <header class="isj-disc-cabeza" style="--isj:var(--pilar-vida-solido)">
+          <h3>Flag femenil · tabla general</h3>
+          <span class="tenue">grupo único, sin final</span>
+        </header>
+        <p class="isj-nota">
+          Los 6 equipos juegan todos contra todos y <b>no hay final</b>:
+          campeón es quien termine arriba. Ganar da 3 puntos, empatar 1.
+          <b>Este orden salta el primer desempate oficial</b>, que es el juego
+          limpio (Deporte Integral, art. 72) y no se puede saber desde aquí:
+          debajo de los puntos se ordena por diferencia de anotaciones. Si dos
+          llegan empatadas, el orden real lo decide el Comité.
+        </p>
+        <table class="flag-pos">
+          <thead><tr>
+            <th></th><th>Equipo</th><th>JJ</th><th>G</th><th>E</th><th>P</th>
+            <th>AF</th><th>AC</th><th>Dif</th><th>Pts</th><th class="tenue">Techo</th>
+          </tr></thead>
+          <tbody>
+            ${lista.map((e, i) => `
+              <tr${e.id === 'tijuana' ? ' class="nos"' : ''}>
+                <td class="flag-pos-n">${i + 1}</td>
+                <td class="flag-pos-eq">${esc(e.nombre)}</td>
+                <td>${e.jj}</td><td>${e.jg}</td><td>${e.je}</td><td>${e.jp}</td>
+                <td>${e.af}</td><td>${e.ac}</td>
+                <td>${e.dif > 0 ? '+' : ''}${e.dif}</td>
+                <td class="flag-pts">${e.pts}</td>
+                <td class="tenue">${e.techo}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <p class="flag-como">${esc(comoVaTijuana(lista))}</p>
+
+        <h4 class="flag-h">Resultados</h4>
+        ${Object.keys(jornadas).sort().map(j => `
+          <div class="flag-jornada">
+            <h5>Jornada ${esc(j)} <span class="tenue">${
+              esc(fechaLegible(jornadas[j][0].fecha))}</span></h5>
+            ${jornadas[j].map(p => `
+              <div class="flag-partido${p.a === 'tijuana' || p.b === 'tijuana' ? ' nos' : ''}">
+                <span class="flag-hora">${esc(horaLegible(p.hora))}</span>
+                <span class="flag-eq der">${esc(nom(p.a))}</span>
+                <input class="flag-marca" type="number" min="0" max="99"
+                       inputmode="numeric" aria-label="Anotaciones de ${esc(nom(p.a))}"
+                       data-flag="${p.i}" data-lado="ga"
+                       value="${p.ga == null ? '' : p.ga}"${puedo ? '' : ' disabled'}>
+                <span class="flag-guion">·</span>
+                <input class="flag-marca" type="number" min="0" max="99"
+                       inputmode="numeric" aria-label="Anotaciones de ${esc(nom(p.b))}"
+                       data-flag="${p.i}" data-lado="gb"
+                       value="${p.gb == null ? '' : p.gb}"${puedo ? '' : ' disabled'}>
+                <span class="flag-eq izq">${esc(nom(p.b))}</span>
+              </div>`).join('')}
+          </div>`).join('')}
+        ${puedo ? '<p class="isj-fuente">Escribe las anotaciones y se guarda solo. '
+                + 'Deja los dos en blanco si el partido no se ha jugado.</p>' : ''}
+      </section>`;
+  };
+
   const quien = esMio ? 'Vas solo' : (esc(v.dueno) + ' va solo');
   const aviso = !nChoques ? '' : `
     <div class="isj-alarma">
@@ -1670,6 +1846,8 @@ function pintarViaje() {
                 data-isj-vista="dia">Por día</button>
         <button type="button" class="isj-vista${isjVista === 'disciplina' ? ' activa' : ''}"
                 data-isj-vista="disciplina">Por disciplina</button>
+        ${flagDatos() ? `<button type="button" class="isj-vista${
+          isjVista === 'flag' ? ' activa' : ''}" data-isj-vista="flag">Tabla de flag</button>` : ''}
       </div>
       <div class="isj-leyenda">
         <button type="button" class="isj-chip isj-chip-todo${isjFiltro ? '' : ' activo'}"
@@ -1685,9 +1863,11 @@ function pintarViaje() {
 
     ${aviso}
 
-    ${isjVista === 'disciplina'
-      ? `<div class="isj-discs">${deportes.map(bloqueDisciplina).join('')}</div>`
-      : `<div class="isj-semana">${dias.map(columna).join('')}</div>`}
+    ${isjVista === 'flag'
+      ? vistaTablaFlag()
+      : isjVista === 'disciplina'
+        ? `<div class="isj-discs">${deportes.map(bloqueDisciplina).join('')}</div>`
+        : `<div class="isj-semana">${dias.map(columna).join('')}</div>`}
 
     ${notaFinal}
 
@@ -1696,6 +1876,18 @@ function pintarViaje() {
       dos archivos oficiales —el programa por día y el rol de juegos—: las doce
       fechas coinciden en ambos. Toca cualquier partido para abrir su ficha.
     </p>`;
+
+  /* Se guarda al salir del campo, no en cada tecla: escribiendo
+     «21» se dispararia primero con «2». */
+  $$('[data-flag]', cont).forEach(inp => inp.addEventListener('change', () => {
+    const d = flagDatos();
+    if (!d) return;
+    const p = d.partidos[Number(inp.dataset.flag)];
+    const v = inp.value.trim();
+    p[inp.dataset.lado] = v === '' ? null : Math.max(0, Math.min(99, Number(v) || 0));
+    guardar('intersuj');
+    pintarViaje();
+  }));
 
   $$('[data-isj-vista]', cont).forEach(b => b.addEventListener('click', () => {
     isjVista = b.dataset.isjVista;
@@ -9624,6 +9816,28 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-27-a',
+    version: '2026-10-27',
+    titulo: 'Tabla de flag femenil en la pestaña INTERSUJ',
+    puntos: [
+      { t: 'En flag no hay final: la tabla ES el campeonato',
+        d: 'Grupo único, 15 partidos, 5 jornadas. Campeón es quien termine ' +
+           'arriba. Por eso la tabla no es un adorno durante la semana: es el ' +
+           'marcador del torneo, y sin ella un resultado suelto no dice nada.' },
+      { t: 'Escribes las anotaciones y se acomoda sola',
+        d: 'Los 15 partidos ya están con su día, hora y rival, del rol oficial. ' +
+           'Escribes el marcador y la tabla recalcula puntos (3 por ganar, 1 por ' +
+           'empatar), diferencia de anotaciones y el techo de cada equipo. Abajo ' +
+           'dice en qué situación está Tijuana: si ya es campeona, si quedó sin ' +
+           'opciones o cuánto le falta.' },
+      { t: 'Lo que la tabla NO puede saber, y lo dice',
+        d: 'El primer desempate del reglamento es el juego limpio —Deporte ' +
+           'Integral, artículo 72— y eso no se publica en tiempo real. La tabla ' +
+           'ordena por puntos y salta a diferencia de anotaciones, con el aviso ' +
+           'arriba. Si dos llegan empatadas, el orden real lo decide el Comité.' },
+    ],
+  },
   {
     clave: '2026-10-26-a',
     version: '2026-10-26',

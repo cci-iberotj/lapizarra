@@ -41,6 +41,11 @@ const MAPA_COLECCIONES = {
    registro único con id fijo. */
 const AJUSTES = {
   redaccion: { equipo: 'ajustes_equipo' },
+  /* La tabla de flag del INTERSUJ: un solo documento con el rol y
+     los marcadores. No es una lista de registros porque no se dan
+     de alta ni de baja -- los 15 partidos ya están y lo único que
+     cambia son los resultados. */
+  intersuj:  { flag: 'intersuj_flag' },
 };
 
 
@@ -502,6 +507,10 @@ const Almacen = {
       }
     }
     for (const [coleccion, ajustes] of Object.entries(AJUSTES)) {
+      /* Si la colección sólo vive en AJUSTES y no en
+         MAPA_COLECCIONES, nadie creó el objeto todavía. Pasaba
+         desapercibido porque 'redaccion' estaba en los dos. */
+      destino[coleccion] = destino[coleccion] || {};
       for (const [clave, nombreReal] of Object.entries(ajustes)) {
         const guardado = (registros[nombreReal] || [])[0];
         if (guardado) {

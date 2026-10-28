@@ -4846,3 +4846,45 @@ body.solo-creacion #progreso { display: none; }
    semanas: «19 oct — 29 nov 2026». El capitalize de la barra lo
    dejaría como «19 Oct — 29 Nov». */
 #mesTitulo.rango { text-transform: none; }
+
+/* ── Tabla de flag femenil ─────────────────────────────────
+   La fila de Tijuana se marca: en una tabla de seis, buscar la
+   nuestra cada vez es el gesto que se repite. */
+.flag-tabla { display: grid; gap: var(--e-4); }
+.flag-pos { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.flag-pos th { font-size: var(--t-sello); color: var(--tinta-tenue);
+  font-weight: var(--peso-normal); text-align: right; padding: 0 var(--e-2) var(--e-2); }
+.flag-pos th:nth-child(2) { text-align: left; }
+.flag-pos td { padding: var(--e-2); text-align: right;
+  border-top: 1px solid var(--borde); }
+.flag-pos-n { color: var(--tinta-tenue); width: 1%; }
+.flag-pos-eq { text-align: left; }
+.flag-pts { font-weight: var(--peso-alto); }
+.flag-pos tr.nos { background: var(--marca-velo); }
+.flag-pos tr.nos .flag-pos-eq { font-weight: var(--peso-alto); color: var(--marca-tinta); }
+.flag-como { font-size: var(--t-sello); color: var(--tinta-media);
+  padding: var(--e-3) var(--e-4); background: var(--capa-2);
+  border-radius: var(--r-control); }
+.flag-h { margin: var(--e-4) 0 0; font-size: var(--t-sub); }
+.flag-jornada { display: grid; gap: var(--e-2); margin-top: var(--e-3); }
+.flag-jornada h5 { margin: 0; font-size: var(--t-sello); color: var(--tinta-media);
+  font-weight: var(--peso-normal); }
+.flag-partido { display: flex; align-items: center; gap: var(--e-2);
+  padding: var(--e-2) 0; }
+.flag-partido.nos { font-weight: var(--peso-alto); }
+.flag-hora { width: 4.5em; font-size: var(--t-sello); color: var(--tinta-tenue);
+  font-variant-numeric: tabular-nums; }
+.flag-eq { flex: 1; min-width: 0; }
+.flag-eq.der { text-align: right; }
+.flag-marca { width: 3em; text-align: center; padding: 3px;
+  font: inherit; font-variant-numeric: tabular-nums;
+  background: var(--capa-1); color: var(--tinta);
+  border: 1px solid var(--borde); border-radius: var(--r-control); }
+.flag-marca:disabled { background: transparent; border-color: transparent; }
+.flag-guion { color: var(--tinta-tenue); }
+
+@media (max-width: 700px) {
+  .flag-pos th:nth-child(n+7):nth-child(-n+8),
+  .flag-pos td:nth-child(n+7):nth-child(-n+8) { display: none; }
+  .flag-hora { width: 3.6em; }
+}
