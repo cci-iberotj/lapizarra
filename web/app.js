@@ -300,11 +300,24 @@ function marcaAprobacion(p) {
 
    No hace falta ningún color nuevo: los --estado-* ya existen y ya
    están medidos contra los dos temas. */
+/* LA FLECHA DICE «ESTO SE PUBLICA».
+
+   Misma regla que los eventos: el icono dice QUÉ es y la palabra en
+   qué estado va. Antes las piezas se saltaban la primera mitad, y
+   en el calendario una pieza y un evento eran dos pastillas del
+   mismo tamaño —una con símbolo y otra sin— que se confundían.
+
+   Se eligió una flecha y no otra figura porque los iconos de evento
+   son todos manchas sólidas (◆ ● ▲ ★ ▬): a 9.5 px lo único que
+   sobrevive es la silueta, y la flecha es la única que no es una
+   mancha. Y significa lo que debe: esto sale hacia afuera. */
+const ICONO_PIEZA = '↗';
+
 const ETIQUETAS = {
-  idea:       { texto: 'Idea',        tono: 'var(--estado-idea)',       ayuda: 'Anotada, sin trabajar todavía' },
-  produccion: { texto: 'Produciendo', tono: 'var(--estado-produccion)', ayuda: 'En manos de diseño' },
-  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   ayuda: 'Esperando el visto bueno' },
-  publicado:  { texto: 'Publicado',   tono: 'var(--estado-publicado)',  ayuda: 'Ya salió', solida: true },
+  idea:       { texto: 'Idea',        tono: 'var(--estado-idea)',       icono: ICONO_PIEZA, ayuda: 'Publicación · anotada, sin trabajar todavía' },
+  produccion: { texto: 'Produciendo', tono: 'var(--estado-produccion)', icono: ICONO_PIEZA, ayuda: 'Publicación · en manos de diseño' },
+  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   icono: ICONO_PIEZA, ayuda: 'Publicación · esperando el visto bueno' },
+  publicado:  { texto: 'Publicado',   tono: 'var(--estado-publicado)',  icono: ICONO_PIEZA, ayuda: 'Publicación · ya salió', solida: true },
 };
 
 function etiquetaPieza(p) {
@@ -316,10 +329,19 @@ function etiquetaPieza(p) {
        apretar el botón. */
     const impedimento = porQueNoSaldraSola(p);
     return p.autopublicar && !impedimento
+      /* LLEVABA UN RELOJ Y AHORA LLEVA LA FLECHA. El reloj decia
+         «se dispara sola», pero eso YA lo dicen dos cosas: la
+         palabra --«Programado» frente a «Listo»-- y la pastilla
+         rellena frente a la de contorno. Era el tercer aviso de lo
+         mismo, y a cambio dejaba sin marca de origen justo a las
+         piezas mas confundibles: las que ya estan listas y en el
+         calendario se ven igual de resueltas que un evento. */
       ? { texto: 'Programado', tono: 'var(--estado-programado)', solida: true,
-          icono: '⏱', ayuda: 'Sale sola a su hora, sin que nadie la toque' }
-      : { texto: 'Listo', tono: 'var(--estado-programado)',
-          ayuda: impedimento || 'Listo, pero alguien tiene que publicarlo a mano' };
+          icono: ICONO_PIEZA,
+          ayuda: 'Publicación · sale sola a su hora, sin que nadie la toque' }
+      : { texto: 'Listo', tono: 'var(--estado-programado)', icono: ICONO_PIEZA,
+          ayuda: impedimento
+            || 'Publicación · lista, pero alguien tiene que publicarla a mano' };
   }
   return ETIQUETAS[est] || ETIQUETAS.idea;
 }
@@ -9816,6 +9838,24 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-28-a',
+    version: '2026-10-28',
+    titulo: 'En el calendario ya se ve qué es evento y qué es publicación',
+    puntos: [
+      { t: 'Una flecha en las publicaciones',
+        d: 'Los eventos siempre han traído su símbolo en la pastilla —◆ por ' +
+           'cubrir, ● reunión, ▲ entrega, ★ cumpleaños, ▬ bloqueo— pero las ' +
+           'piezas no traían ninguno. Dos pastillas del mismo tamaño, una con ' +
+           'símbolo y otra sin: por eso se confundían. Ahora toda publicación ' +
+           'lleva ↗, que quiere decir «esto sale».' },
+      { t: 'No se tocó el título',
+        d: 'Poner «Evento:» delante del nombre se habría repetido en cada ' +
+           'tarjeta para siempre, robando el ancho que más falta en la celda ' +
+           'del mes, y se habría arrastrado a la ficha y a las listas, donde ' +
+           'ya se sabe qué se está viendo.' },
+    ],
+  },
   {
     clave: '2026-10-27-a',
     version: '2026-10-27',
