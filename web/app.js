@@ -1400,10 +1400,16 @@ function eventosDeParrilla() {
    vistazo y ver de qué es cada bloque sin leerlo. Salen de los
    tonos de pilar, que ya están medidos en claro y en oscuro. */
 const COLOR_DEPORTE = {
-  flag:   'vida',
-  volfem: 'orgullo',
-  volvar: 'cultura',
-  tkd:    'voz',
+  flag:      'vida',
+  volfem:    'orgullo',
+  volvar:    'cultura',
+  tkd:       'voz',
+  /* La inauguración, la animación y la clausura no son un deporte,
+     pero sí son citas con fecha y hora que hay que cubrir. Entran
+     como una disciplina más para que tengan chip, color y bloque
+     propios; sin color propio caían en el de reserva, que es el
+     mismo del flag. */
+  ceremonia: 'se',
 };
 
 /* Dueño del viaje es quien se bloqueó los días. Si nadie se
@@ -1508,8 +1514,10 @@ const ACTOS_INTERSUJ = [
     regla: 'Asistencia obligatoria para todas las delegaciones: se pide '
          + 'llegar puntual y no retirarse hasta que termine (art. 36).' },
   { id: 'animacion', nombre: 'Evento de animación', obligatorio: true,
-    regla: 'Cuenta como acto oficial, igual que la inauguración y la '
-         + 'clausura: asistencia obligatoria de toda la delegación (art. 36).' },
+    regla: 'Asistencia obligatoria igual que la inauguración y la clausura '
+         + '(art. 36). Ésta sí viene en el programa oficial, pero escondida: '
+         + 'no como ceremonia sino como disciplina —«Animación · Quintetas» y '
+         + '«Grupos mixtos»—, doce rutinas seguidas. Tijuana no compite.' },
   { id: 'premiacion', nombre: 'Premiaciones', obligatorio: false,
     regla: 'La sede decide cómo y dónde: pueden ir dentro de la clausura o '
          + 'en otro momento y escenario (art. 19). Trofeo y medalla a los '
@@ -1846,13 +1854,13 @@ function pintarViaje() {
         </header>
 
         <p class="isj-nota">
-          <b>Estas fechas no vienen en ningún archivo oficial.</b> Se buscó
-          «inauguración», «premiación», «clausura», «ceremonia» y «junta
-          técnica» en los cuatro documentos que mandó la sede —el programa
-          por día, el rol de juegos, el manual de uso y el reglamento— y sólo
-          el reglamento habla de esos actos, sin decir cuándo: es la norma
-          permanente, no el programa de este año. Hay que pedírselas a
-          Deportes (Lic. Rodolfo Martín Ramos Torres) y escribirlas aquí.
+          <b>De dónde sale cada fecha.</b> La inauguración y la clausura las
+          confirmó por escrito Deportes de Tijuana el 28 de octubre: no vienen
+          en ningún archivo de la sede. El evento de animación sí viene en el
+          programa oficial, pero escondido —ahí no es una ceremonia, es una
+          disciplina más—. <b>Las premiaciones y las juntas previas siguen sin
+          fecha</b>: hay que pedirlas y escribirlas aquí; se guardan y las ve
+          todo el equipo.
         </p>
 
         <div class="isj-prog-actos">
@@ -10073,12 +10081,16 @@ const NOVEDADES = [
            'tres primeros la delegación TIENE que entrar puntual y quedarse ' +
            'hasta el final (art. 36), y quien falte a una junta previa pierde ' +
            'el derecho a protestar en esa disciplina (art. 37).' },
-      { t: 'Las fechas están vacías porque no existen',
-        d: 'Se buscó «inauguración», «premiación», «clausura», «ceremonia» y ' +
-           '«junta técnica» en los cuatro archivos que mandó la sede. Sólo el ' +
-           'reglamento habla de esos actos, y no trae fechas: es la norma ' +
-           'permanente. Hay que pedírselas a Deportes y escribirlas ahí; se ' +
-           'guardan y las ve todo el equipo.' },
+      { t: 'Inauguración, animación y clausura ya tienen fecha',
+        d: 'Domingo 8: inauguración a las 6 de la tarde y evento de ' +
+           'animación a las 7:20, los dos en la Explanada Central. Clausura ' +
+           'el viernes 13 a las 2. Lo confirmó Deportes de Tijuana, y las ' +
+           'tres entraron también como cobertura en la vista por día.' },
+      { t: 'Faltan las premiaciones y las juntas previas',
+        d: 'Esas dos no vienen en ningún archivo y Deportes no las ' +
+           'mencionó. Hay que preguntar si la premiación va dentro de la ' +
+           'clausura o aparte, y cuándo son las juntas previas de nuestras ' +
+           'cuatro disciplinas. Se escriben ahí y las ve todo el equipo.' },
       { t: 'Cómo se premia, y qué pesa en la mejor delegación',
         d: 'Trofeo y medalla a los tres primeros de cada disciplina, con ' +
            'medalla también para los entrenadores en los deportes de ' +
