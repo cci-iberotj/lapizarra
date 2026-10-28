@@ -45,7 +45,13 @@ const AJUSTES = {
      los marcadores. No es una lista de registros porque no se dan
      de alta ni de baja -- los 15 partidos ya están y lo único que
      cambia son los resultados. */
-  intersuj:  { flag: 'intersuj_flag' },
+  intersuj:  { flag: 'intersuj_flag',
+  /* El programa general: los actos oficiales --inauguración,
+     clausura, premiaciones-- con sus fechas. Un documento, no una
+     lista: los actos son los mismos siempre y lo único que cambia
+     es cuándo y dónde. Nace vacío a propósito; las fechas no están
+     en ningún archivo oficial y hay que pedírselas a la sede. */
+               programa: 'intersuj_programa' },
 };
 
 

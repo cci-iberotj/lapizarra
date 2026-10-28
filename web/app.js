@@ -1486,6 +1486,101 @@ function refrescarPestanaViaje() {
 
 const FLAG_PUNTOS = { ganado: 3, empatado: 1, perdido: 0 };
 
+
+/* ══════════════════════════════════════════════════════════
+   EL PROGRAMA GENERAL DEL INTERSUJ
+
+   Lo que NO se sabe. Se revisaron los cuatro archivos oficiales
+   —el programa por día, el rol de juegos, el manual de uso y el
+   reglamento— buscando inauguración, premiación, clausura, misa,
+   ceremonia, desfile y junta técnica. Sólo el reglamento habla de
+   esos actos, y el reglamento NO TRAE FECHAS: es la norma
+   permanente, no el programa de este año.
+
+   Por eso cada acto nace con la fecha vacía. Lo que el reglamento
+   sí fija —quién tiene que ir, cómo se premia, con qué artículo—
+   va aquí abajo y no se edita: es la norma, y lo último que debe
+   pasar es que alguien la cambie sin querer al llenar una hora.
+   ══════════════════════════════════════════════════════════ */
+
+const ACTOS_INTERSUJ = [
+  { id: 'inauguracion', nombre: 'Inauguración', obligatorio: true,
+    regla: 'Asistencia obligatoria para todas las delegaciones: se pide '
+         + 'llegar puntual y no retirarse hasta que termine (art. 36).' },
+  { id: 'animacion', nombre: 'Evento de animación', obligatorio: true,
+    regla: 'Cuenta como acto oficial, igual que la inauguración y la '
+         + 'clausura: asistencia obligatoria de toda la delegación (art. 36).' },
+  { id: 'premiacion', nombre: 'Premiaciones', obligatorio: false,
+    regla: 'La sede decide cómo y dónde: pueden ir dentro de la clausura o '
+         + 'en otro momento y escenario (art. 19). Trofeo y medalla a los '
+         + 'tres primeros lugares de cada disciplina; en los deportes de '
+         + 'conjunto también medalla para el entrenador titular y el '
+         + 'auxiliar (art. 35).' },
+  { id: 'clausura', nombre: 'Clausura', obligatorio: true,
+    regla: 'Asistencia obligatoria (art. 36). Aquí se entrega el Premio a '
+         + 'la Trayectoria SUJ, y es donde suelen caber las premiaciones '
+         + 'que la sede no haya hecho antes.' },
+  { id: 'juntas', nombre: 'Juntas previas por disciplina', obligatorio: false,
+    regla: 'Remotas y en vivo, mínimo una semana antes del inicio —o sea, '
+         + 'alrededor del 1 de noviembre—. La sede fija día y hora. El '
+         + 'plantel que falte a una pierde el derecho a protestar en toda '
+         + 'esa disciplina durante el torneo (art. 37).' },
+];
+
+/* Lo que el reglamento fija sobre los premios. Va aparte de los
+   actos porque no es una cita en el calendario: es con qué se
+   premia, y cambia lo que hay que ir a fotografiar. */
+const PREMIOS_INTERSUJ = [
+  { que: 'Cada disciplina',
+    d: 'Trofeo y medalla al primero, segundo y tercer lugar, tanto en las '
+     + 'individuales como en las de equipo (art. 35).' },
+  { que: 'Deportes de conjunto',
+    d: 'La premiación incluye medalla para el entrenador titular y, si lo '
+     + 'hay, para el auxiliar (art. 35).' },
+  { que: 'Taekwondo · combate',
+    d: 'Es la excepción: se premian DOS terceros lugares. En formas '
+     + '(poomsae) sí hay un solo primero, segundo y tercero (art. 35).' },
+  { que: 'Todo el estudiantado',
+    d: 'El Comité Organizador está obligado a entregar reconocimientos de '
+     + 'participación al terminar los encuentros (art. 18).' },
+  { que: 'Premio a la Trayectoria SUJ',
+    d: 'Para un estudiante de último semestre destacado en lo deportivo, lo '
+     + 'académico y lo social. OJO: lo nombra cada universidad, no la sede '
+     + '—o sea que Tijuana propone al suyo— y se entrega en ceremonia.' },
+];
+
+/* La mejor delegación. Se pone a la vista porque cambia qué vale
+   la pena cubrir: el criterio que más pesa no son los resultados.
+   Los porcentajes salen de las páginas 73 a 75 del reglamento. */
+const MEJOR_DELEGACION = [
+  { pct: 45, que: 'Criterio ético',
+    d: 'Comportamiento del delegado y entrenadores, en la cancha, de las '
+     + 'porras, en el hotel, convivencia con otras delegaciones, '
+     + 'participación en actividades NO deportivas, asistencia a la junta '
+     + 'previa y apoyo a la sede.' },
+  { pct: 35, que: 'Criterio deportivo',
+    d: '30 % son los resultados —puntos obtenidos contra puntos posibles— y '
+     + '5 % es haber mejorado respecto al año pasado.' },
+  { pct: 20, que: 'Criterio administrativo',
+    d: 'Puntualidad al entregar la documentación, confirmar a tiempo en qué '
+     + 'deportes se compite, credenciales vigentes y uniformes completos.' },
+];
+
+function programaDatos() {
+  const g = (datos.intersuj || {}).programa || {};
+  const porId = g.actos || {};
+  return ACTOS_INTERSUJ.map(a => ({ ...a, ...(porId[a.id] || {}) }));
+}
+
+function guardarActo(id, campo, valor) {
+  datos.intersuj = datos.intersuj || {};
+  const g = datos.intersuj.programa = datos.intersuj.programa || {};
+  g.actos = g.actos || {};
+  g.actos[id] = g.actos[id] || {};
+  g.actos[id][campo] = valor;
+  guardar('intersuj');
+}
+
 function flagDatos() {
   const d = (datos.intersuj || {}).flag;
   return (d && Array.isArray(d.partidos) && Array.isArray(d.equipos)) ? d : null;
@@ -1723,7 +1818,113 @@ function pintarViaje() {
       </section>`;
   };
 
-/* LA TABLA DE FLAG. Se pinta aparte de las dos vistas porque no
+/* EL PROGRAMA GENERAL. Los actos que no son partidos: la
+     inauguracion, la clausura, las premiaciones. No salen de los
+     eventos de la parrilla --no existen todavia-- sino de un
+     documento aparte que se llena a mano cuando la sede conteste. */
+  const vistaProgramaGeneral = () => {
+    const puedo = !soloLectura('intersuj_programa');
+    const ini = dias[0], fin = dias[dias.length - 1];
+
+    const campo = (a, clave, tipo, pista) => {
+      const v = a[clave] || '';
+      if (!puedo) {
+        if (!v) return `<span class="isj-prog-hueco">${esc(pista)}</span>`;
+        return `<span class="isj-prog-dato">${esc(
+          tipo === 'date' ? fechaLegible(v) : tipo === 'time' ? horaLegible(v) : v)}</span>`;
+      }
+      return `<input type="${tipo}" class="isj-prog-campo" data-prog="${esc(a.id)}"
+                     data-campo="${esc(clave)}" value="${esc(v)}"
+                     placeholder="${esc(pista)}" aria-label="${esc(pista)} de ${esc(a.nombre)}">`;
+    };
+
+    return `
+      <section class="isj-prog">
+        <header class="isj-disc-cabeza" style="--isj:var(--pilar-vida-solido)">
+          <h3>Programa general</h3>
+          <span class="tenue">lo que no es un partido</span>
+        </header>
+
+        <p class="isj-nota">
+          <b>Estas fechas no vienen en ningún archivo oficial.</b> Se buscó
+          «inauguración», «premiación», «clausura», «ceremonia» y «junta
+          técnica» en los cuatro documentos que mandó la sede —el programa
+          por día, el rol de juegos, el manual de uso y el reglamento— y sólo
+          el reglamento habla de esos actos, sin decir cuándo: es la norma
+          permanente, no el programa de este año. Hay que pedírselas a
+          Deportes (Lic. Rodolfo Martín Ramos Torres) y escribirlas aquí.
+        </p>
+
+        <div class="isj-prog-actos">
+          ${programaDatos().map(a => `
+            <article class="isj-prog-acto${a.fecha ? ' con-fecha' : ''}">
+              <header>
+                <b>${esc(a.nombre)}</b>
+                ${a.obligatorio
+                  ? '<span class="isj-prog-sello">Asistencia obligatoria</span>' : ''}
+              </header>
+              <div class="isj-prog-campos">
+                ${campo(a, 'fecha', 'date', 'Fecha')}
+                ${campo(a, 'hora',  'time', 'Hora')}
+                ${campo(a, 'lugar', 'text', 'Dónde')}
+              </div>
+              ${puedo || a.nota ? `<div class="isj-prog-campos">
+                ${campo(a, 'nota', 'text', 'Nota: a quién le toca, qué llevar…')}
+              </div>` : ''}
+              <p class="isj-prog-regla">${esc(a.regla)}</p>
+            </article>`).join('')}
+        </div>
+
+        <h4 class="isj-prog-titulo">Lo que sí está fechado</h4>
+        <ul class="isj-prog-lista">
+          <!-- rangoLegible y no dos fechaLegible: ya resuelve el «del … al»
+               y baja la mayúscula del día, que en media frase se lee mal. -->
+          <li><b>La competencia va ${esc(rangoLegible(ini, fin))}</b> — seis
+              días, justo lo que el reglamento manda para un Encuentro
+              (art. 32).</li>
+          <li>El rol arranca el domingo 8 a las 8:00 y el último partido
+              programado es el viernes 13 a mediodía. Lo que pase antes del
+              domingo o después de ese partido —inauguración, clausura— no
+              está en el rol.</li>
+          <li>Se juega en dos sedes: <b>IBERO Ciudad de México</b> y
+              <b>La Salle</b>.</li>
+          <li>Las juntas previas caen alrededor del <b>1 de noviembre</b>, una
+              semana antes del arranque, y son remotas.</li>
+        </ul>
+
+        <h4 class="isj-prog-titulo">Cómo se premia</h4>
+        <dl class="isj-prog-def">
+          ${PREMIOS_INTERSUJ.map(p => `
+            <dt>${esc(p.que)}</dt><dd>${esc(p.d)}</dd>`).join('')}
+        </dl>
+
+        <h4 class="isj-prog-titulo">Mejor delegación</h4>
+        <p class="isj-nota">
+          Lo que más pesa no son los resultados: el <b>criterio ético vale
+          45 %</b> y el deportivo 35 %. Ahí entran las porras, la convivencia,
+          el comportamiento en el hotel y la participación en lo que no es
+          deporte — todo eso es material, y se cubre o no se cubre.
+        </p>
+        <div class="isj-prog-barras">
+          ${MEJOR_DELEGACION.map(c => `
+            <div class="isj-prog-barra">
+              <div class="isj-prog-barra-alto">
+                <b>${esc(c.que)}</b><span>${esc(c.pct)} %</span>
+              </div>
+              <div class="isj-prog-riel"><i style="width:${esc(c.pct)}%"></i></div>
+              <p>${esc(c.d)}</p>
+            </div>`).join('')}
+        </div>
+        <p class="isj-prog-pie">
+          Los porcentajes salen de las páginas 73 a 75 del reglamento. Ahí
+          aparecen numerados como cuatro criterios que sumarían 105 %; suman
+          100 leyendo el deportivo como lo que es: 30 % de resultados más 5 %
+          de superación respecto al año anterior.
+        </p>
+      </section>`;
+  };
+
+  /* LA TABLA DE FLAG. Se pinta aparte de las dos vistas porque no
      es una forma de mirar las coberturas de Leo: es el marcador
      del torneo, y lo mira tambien quien no viaja. */
   const vistaTablaFlag = () => {
@@ -1877,8 +2078,13 @@ function pintarViaje() {
                 data-isj-vista="disciplina">Por disciplina</button>
         ${flagDatos() ? `<button type="button" class="isj-vista${
           isjVista === 'flag' ? ' activa' : ''}" data-isj-vista="flag">Tabla de flag</button>` : ''}
+        <button type="button" class="isj-vista${isjVista === 'programa' ? ' activa' : ''}"
+                data-isj-vista="programa">Programa general</button>
       </div>
-      <div class="isj-leyenda">
+      <!-- Los chips filtran partidos por deporte. En el programa general no
+           hay partidos que filtrar, así que ahí no salen: un control que no
+           hace nada se siente roto. -->
+      <div class="isj-leyenda${isjVista === 'programa' ? ' oculta' : ''}">
         <button type="button" class="isj-chip isj-chip-todo${isjFiltro ? '' : ' activo'}"
                 data-isj-filtro="">Todo <b>${esc(citas.length)}</b></button>
         ${deportes.map(d => `
@@ -1892,7 +2098,9 @@ function pintarViaje() {
 
     ${aviso}
 
-    ${isjVista === 'flag'
+    ${isjVista === 'programa'
+      ? vistaProgramaGeneral()
+      : isjVista === 'flag'
       ? vistaTablaFlag()
       : isjVista === 'disciplina'
         ? `<div class="isj-discs">${deportes.map(bloqueDisciplina).join('')}</div>`
@@ -1916,6 +2124,13 @@ function pintarViaje() {
     p[inp.dataset.lado] = v === '' ? null : Math.max(0, Math.min(99, Number(v) || 0));
     guardar('intersuj');
     pintarViaje();
+  }));
+
+  /* Al salir del campo, no en cada tecla: igual que la tabla de
+     flag. Y sin repintar, porque repintar le quita el foco al
+     siguiente campo cuando se va con el tabulador. */
+  $$('[data-prog]', cont).forEach(inp => inp.addEventListener('change', () => {
+    guardarActo(inp.dataset.prog, inp.dataset.campo, inp.value.trim());
   }));
 
   $$('[data-isj-vista]', cont).forEach(b => b.addEventListener('click', () => {
@@ -9847,6 +10062,31 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-28-b',
+    version: '2026-10-28',
+    titulo: 'Programa general del INTERSUJ, en su pestaña',
+    puntos: [
+      { t: 'Los actos que no son partidos',
+        d: 'Inauguración, evento de animación, premiaciones, clausura y las ' +
+           'juntas previas, cada uno con lo que el reglamento obliga: a los ' +
+           'tres primeros la delegación TIENE que entrar puntual y quedarse ' +
+           'hasta el final (art. 36), y quien falte a una junta previa pierde ' +
+           'el derecho a protestar en esa disciplina (art. 37).' },
+      { t: 'Las fechas están vacías porque no existen',
+        d: 'Se buscó «inauguración», «premiación», «clausura», «ceremonia» y ' +
+           '«junta técnica» en los cuatro archivos que mandó la sede. Sólo el ' +
+           'reglamento habla de esos actos, y no trae fechas: es la norma ' +
+           'permanente. Hay que pedírselas a Deportes y escribirlas ahí; se ' +
+           'guardan y las ve todo el equipo.' },
+      { t: 'Cómo se premia, y qué pesa en la mejor delegación',
+        d: 'Trofeo y medalla a los tres primeros de cada disciplina, con ' +
+           'medalla también para los entrenadores en los deportes de ' +
+           'conjunto; combate de taekwondo premia DOS terceros lugares. Y el ' +
+           'criterio que más pesa para mejor delegación no son los ' +
+           'resultados: el ético vale 45 % y el deportivo 35 %.' },
+    ],
+  },
   {
     clave: '2026-10-28-a',
     version: '2026-10-28',

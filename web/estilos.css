@@ -2529,6 +2529,86 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
+.isj-leyenda.oculta { display: none; }
+
+/* ── Programa general del INTERSUJ ─────────────────────────
+   Tarjetas y no tabla: cada acto trae fecha, hora, lugar, nota y
+   la regla que lo gobierna, y eso en renglones de tabla obliga a
+   una columna por dato en una caja que no da para cinco. */
+.isj-prog { display: block; }
+.isj-prog-actos {
+  display: grid; gap: 10px; margin: 14px 0 22px;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+.isj-prog-acto {
+  border: 1px solid var(--linea-sutil); border-radius: var(--r);
+  background: var(--capa-1); padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+/* Un acto con fecha ya no es una pregunta abierta: se marca con
+   el riel, igual que las piezas resueltas del calendario. */
+.isj-prog-acto.con-fecha { border-left: 4px solid var(--ok); }
+.isj-prog-acto > header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; flex-wrap: wrap;
+}
+.isj-prog-acto > header b { font-size: var(--t-med); }
+.isj-prog-sello {
+  font-size: 9.5px; font-weight: var(--peso-alto);
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 1px 6px; border-radius: var(--r-pastilla);
+  background: var(--alerta-velo); color: var(--alerta);
+}
+.isj-prog-campos { display: flex; gap: 6px; flex-wrap: wrap; }
+.isj-prog-campo {
+  font: inherit; font-size: var(--t-meta); color: var(--texto);
+  background: var(--capa-2); border: 1px solid var(--linea-control);
+  border-radius: var(--r-xs); padding: 5px 7px; min-width: 0;
+}
+.isj-prog-campo[type="text"] { flex: 1 1 140px; }
+.isj-prog-campo:focus-visible { outline: 2px solid var(--primario); outline-offset: 1px; }
+.isj-prog-dato { font-size: var(--t-meta); font-weight: var(--peso-alto); }
+.isj-prog-hueco {
+  font-size: var(--t-meta); color: var(--tinta-tenue); font-style: italic;
+}
+.isj-prog-regla {
+  margin: 0; font-size: var(--t-meta); line-height: 1.45;
+  color: var(--texto-medio);
+}
+
+.isj-prog-titulo {
+  margin: 22px 0 8px; font-size: var(--t-med);
+  padding-bottom: 5px; border-bottom: 1px solid var(--linea-sutil);
+}
+.isj-prog-lista { margin: 0; padding-left: 18px; }
+.isj-prog-lista li { margin-bottom: 6px; line-height: 1.5; }
+.isj-prog-def { margin: 0; }
+.isj-prog-def dt {
+  font-weight: var(--peso-alto); margin-top: 10px; color: var(--marca-tinta);
+}
+.isj-prog-def dd { margin: 2px 0 0; line-height: 1.5; color: var(--texto-medio); }
+
+.isj-prog-barras { display: grid; gap: 12px; margin-top: 12px; }
+.isj-prog-barra-alto {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.isj-prog-barra-alto span {
+  font-variant-numeric: tabular-nums; font-weight: var(--peso-alto);
+  color: var(--marca-tinta);
+}
+.isj-prog-riel {
+  height: 7px; border-radius: 4px; background: var(--linea-sutil);
+  overflow: hidden; margin: 5px 0 5px;
+}
+.isj-prog-riel i { display: block; height: 100%; background: var(--marca-solida); }
+.isj-prog-barra p {
+  margin: 0; font-size: var(--t-meta); line-height: 1.45; color: var(--texto-medio);
+}
+.isj-prog-pie {
+  margin-top: 14px; font-size: var(--t-meta); line-height: 1.45;
+  color: var(--tinta-tenue);
+}
+
 /* ── Media pastilla: qué es ────────────────────────────────
    La rotula de origen. Redondeada por fuera, cuadrada por dentro:
    apunta a lo que rotula y se lee fundida al título, no como una
