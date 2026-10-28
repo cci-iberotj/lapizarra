@@ -2512,7 +2512,7 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   transition: transform var(--dur-instantanea), box-shadow var(--dur-instantanea);
 }
 .cal-evento:hover { transform: translateY(-1px); box-shadow: var(--elev-1); }
-.cal-evento-alto { display: flex; min-width: 0; overflow: hidden; }
+.cal-evento-alto { display: flex; flex-wrap: wrap; gap: 3px; min-width: 0; }
 .cal-evento-bajo { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
 /* En la caja del mes quedan ~80px utiles. El sello con su
    interletrado normal se los comia enteros. */
@@ -2528,6 +2528,48 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
   font-weight: var(--peso-medio);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ── Media pastilla: qué es ────────────────────────────────
+   La rotula de origen. Redondeada por fuera, cuadrada por dentro:
+   apunta a lo que rotula y se lee fundida al título, no como una
+   segunda etiqueta suelta peleando con la del estado.
+
+   Antes esto lo cargaba un icono de 8 px dentro del sello, y un
+   símbolo a ese tamaño al lado de una palabra se lee como adorno.
+
+   Los contrastes son los ya medidos de los velos: --marca-tinta
+   sobre --marca-velo da 8.60, y --info sobre --info-velo, 7.15. */
+.que-es {
+  display: inline-block; vertical-align: 1px;
+  font-size: 9.5px; font-weight: var(--peso-alto);
+  letter-spacing: .07em; text-transform: uppercase;
+  padding: 1px 6px; margin-right: 4px;
+  line-height: 1.5; white-space: nowrap;
+  border-radius: var(--r-pastilla) 2px 2px var(--r-pastilla);
+  /* El par que el sistema ya tiene para un chip relleno: los
+     --*-solido son RELLENO y no se aclaran en oscuro, así que el
+     mismo blanco encima da 10.16 en los dos temas. */
+  color: var(--texto-sobre-marca);
+}
+/* RELLENA, y el sello de estado se queda de contorno. Al revés
+   pesaba menos que el sello que tiene al lado, y el ojo leía
+   primero el estado —el dato secundario— y después el origen. */
+.que-es.es-post   { background: var(--marca-solida); }
+.que-es.es-evento { background: var(--info-solido); }
+
+/* Encima de una tarjeta ya resuelta —que viene pintada del color
+   de su pilar— un relleno oscuro sobre color se ensucia, así que
+   la media pastilla se invierte: fondo de capa y tinta de marca.
+   Es la misma salida que ya usa el sello y está medida en 10.16. */
+.cal-pieza.lista .que-es {
+  background: var(--capa-2); color: var(--marca-tinta);
+}
+
+/* El sello del evento ya no repite el icono del tipo: eso lo dice
+   la media pastilla de al lado. En las LISTAS sí se queda, porque
+   allá no hay media pastilla que lo diga. */
+.cal-evento .sello-icono { display: none; }
+.cal-evento .que-es { margin-right: 0; }
 
 /* La etiqueta que dice qué es cada bloque. Sin esto el calendario
    mezcla dos cosas distintas sin avisar. */

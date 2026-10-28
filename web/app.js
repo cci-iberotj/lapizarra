@@ -300,24 +300,15 @@ function marcaAprobacion(p) {
 
    No hace falta ningún color nuevo: los --estado-* ya existen y ya
    están medidos contra los dos temas. */
-/* LA FLECHA DICE «ESTO SE PUBLICA».
-
-   Misma regla que los eventos: el icono dice QUÉ es y la palabra en
-   qué estado va. Antes las piezas se saltaban la primera mitad, y
-   en el calendario una pieza y un evento eran dos pastillas del
-   mismo tamaño —una con símbolo y otra sin— que se confundían.
-
-   Se eligió una flecha y no otra figura porque los iconos de evento
-   son todos manchas sólidas (◆ ● ▲ ★ ▬): a 9.5 px lo único que
-   sobrevive es la silueta, y la flecha es la única que no es una
-   mancha. Y significa lo que debe: esto sale hacia afuera. */
-const ICONO_PIEZA = '↗';
-
+/* EL SELLO SOLO DICE EL ESTADO. Qué es --publicación o agenda-- lo
+   dice la media pastilla pegada al título (queEs), y por eso aquí
+   no va ningún icono: se probó con una flecha y a 8 px un símbolo
+   al lado de una palabra se lee como adorno. */
 const ETIQUETAS = {
-  idea:       { texto: 'Idea',        tono: 'var(--estado-idea)',       icono: ICONO_PIEZA, ayuda: 'Publicación · anotada, sin trabajar todavía' },
-  produccion: { texto: 'Produciendo', tono: 'var(--estado-produccion)', icono: ICONO_PIEZA, ayuda: 'Publicación · en manos de diseño' },
-  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   icono: ICONO_PIEZA, ayuda: 'Publicación · esperando el visto bueno' },
-  publicado:  { texto: 'Publicado',   tono: 'var(--estado-publicado)',  icono: ICONO_PIEZA, ayuda: 'Publicación · ya salió', solida: true },
+  idea:       { texto: 'Idea',        tono: 'var(--estado-idea)',       ayuda: 'Publicación · anotada, sin trabajar todavía' },
+  produccion: { texto: 'Produciendo', tono: 'var(--estado-produccion)', ayuda: 'Publicación · en manos de diseño' },
+  revision:   { texto: 'Por revisar', tono: 'var(--estado-revision)',   ayuda: 'Publicación · esperando el visto bueno' },
+  publicado:  { texto: 'Publicado',   tono: 'var(--estado-publicado)',  ayuda: 'Publicación · ya salió', solida: true },
 };
 
 function etiquetaPieza(p) {
@@ -329,17 +320,13 @@ function etiquetaPieza(p) {
        apretar el botón. */
     const impedimento = porQueNoSaldraSola(p);
     return p.autopublicar && !impedimento
-      /* LLEVABA UN RELOJ Y AHORA LLEVA LA FLECHA. El reloj decia
-         «se dispara sola», pero eso YA lo dicen dos cosas: la
-         palabra --«Programado» frente a «Listo»-- y la pastilla
-         rellena frente a la de contorno. Era el tercer aviso de lo
-         mismo, y a cambio dejaba sin marca de origen justo a las
-         piezas mas confundibles: las que ya estan listas y en el
-         calendario se ven igual de resueltas que un evento. */
+      /* LLEVABA UN RELOJ Y SE LE QUITO. El reloj decia «se dispara
+         sola», pero eso YA lo dicen dos cosas: la palabra
+         --«Programado» frente a «Listo»-- y la pastilla rellena
+         frente a la de contorno. Era el tercer aviso de lo mismo. */
       ? { texto: 'Programado', tono: 'var(--estado-programado)', solida: true,
-          icono: ICONO_PIEZA,
           ayuda: 'Publicación · sale sola a su hora, sin que nadie la toque' }
-      : { texto: 'Listo', tono: 'var(--estado-programado)', icono: ICONO_PIEZA,
+      : { texto: 'Listo', tono: 'var(--estado-programado)',
           ayuda: impedimento
             || 'Publicación · lista, pero alguien tiene que publicarla a mano' };
   }
@@ -354,6 +341,26 @@ function etiquetaEvento(e) {
     texto: s.nombre, tono: s.tono, icono: t.icono, solida: !!s.solida,
     ayuda: t.nombre + ' · ' + s.nota.charAt(0).toLowerCase() + s.nota.slice(1),
   };
+}
+
+/* MEDIA PASTILLA: DICE QUE ES, PEGADA A LO QUE ROTULA.
+
+   En el calendario conviven dos cosas que no son lo mismo --lo que
+   publicamos y lo que hay en la agenda-- y se veian igual: dos
+   pastillas del mismo tamaño con una palabra de estado dentro.
+
+   Se probo antes con un icono y no alcanza: un simbolo de 8 px al
+   lado de una palabra se lee como adorno, y para que signifique
+   algo hay que conocer el codigo. La palabra no hay que
+   aprenderla.
+
+   Va redondeada por fuera y CUADRADA por dentro --media pastilla--
+   para que apunte a lo que rotula y se lea fundida al titulo, en
+   vez de parecer una segunda etiqueta suelta compitiendo con la
+   del estado. Y el color hace la mitad del trabajo de lejos: el
+   rojo de casa es lo que publicamos, el azul es la agenda. */
+function queEs(texto, clase) {
+  return `<span class="que-es ${clase}">${esc(texto)}</span>`;
 }
 
 function selloEstado(et) {
@@ -3785,7 +3792,8 @@ function pintarCalendario() {
              title="${esc(p.titulo)}${rotulo ? ' — ' + esc(rotulo) : ''}">
           ${img}
           <div class="cal-cuerpo" style="border-left-color:${color}">
-            <div class="cal-titulo">${acotada ? '<span class="marca-ventana" title="' + esc(rotulo) + '">⧖</span> ' : ''}${
+            <div class="cal-titulo">${queEs('Post', 'es-post')}${
+              acotada ? '<span class="marca-ventana" title="' + esc(rotulo) + '">⧖</span> ' : ''}${
               esc(p.titulo || 'Sin título')}</div>
             <div class="cal-meta">${selloEstado(etiquetaPieza(p))}${
               p.formato ? `<span class="cal-formato">${esc(p.formato)}</span>` : ''}</div>
@@ -3804,7 +3812,8 @@ function pintarCalendario() {
            aria-label="${esc(tipoDe(ev).corto)}: ${esc(ev.titulo)}${ev.hora ? ', ' + esc(horaLegible(ev.hora)) : ''}"
            title="${esc(ev.titulo)}${ev.lugar ? ' — ' + esc(ev.lugar) : ''}${q ? ' — ' + esc(q) : ''}">
         ${esNuevoParaMi(ev) ? '<span class="cal-nuevo" aria-label="Todavía no lo abres" title="Todavía no lo abres"></span>' : ''}
-        <div class="cal-evento-alto">${selloEstado(etiquetaEvento(ev))}</div>
+        <div class="cal-evento-alto">${
+          queEs(tipoDe(ev).corto, 'es-evento')}${selloEstado(etiquetaEvento(ev))}</div>
         <div class="cal-evento-bajo">
           ${ev.hora ? `<span class="hora">${esc(horaLegible(ev.hora))}</span>` : ''}
           <span class="titulo">${esc(ev.titulo)}</span>
@@ -9843,12 +9852,16 @@ const NOVEDADES = [
     version: '2026-10-28',
     titulo: 'En el calendario ya se ve qué es evento y qué es publicación',
     puntos: [
-      { t: 'Una flecha en las publicaciones',
-        d: 'Los eventos siempre han traído su símbolo en la pastilla —◆ por ' +
-           'cubrir, ● reunión, ▲ entrega, ★ cumpleaños, ▬ bloqueo— pero las ' +
-           'piezas no traían ninguno. Dos pastillas del mismo tamaño, una con ' +
-           'símbolo y otra sin: por eso se confundían. Ahora toda publicación ' +
-           'lleva ↗, que quiere decir «esto sale».' },
+      { t: 'Una media pastilla delante del título',
+        d: 'POST en rojo si es algo que publicamos; EVENTO, REUNIÓN, ' +
+           'ENTREGA, CUMPLE o BLOQUEO en azul si es agenda. Va rellena y ' +
+           'con la esquina cuadrada del lado del título, para que se lea ' +
+           'pegada a lo que rotula y no como otra etiqueta suelta.' },
+      { t: 'El sello de estado se queda con un solo trabajo',
+        d: 'Antes cargaba dos cosas a la vez: un símbolo que decía qué era ' +
+           'y una palabra que decía cómo iba. El símbolo se quitó del ' +
+           'calendario —en las listas sigue— y la pastilla se quedó sólo ' +
+           'con el estado: Produciendo, Listo, Programado, Publicado.' },
       { t: 'No se tocó el título',
         d: 'Poner «Evento:» delante del nombre se habría repetido en cada ' +
            'tarjeta para siempre, robando el ancho que más falta en la celda ' +
