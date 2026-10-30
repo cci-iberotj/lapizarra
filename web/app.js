@@ -7465,6 +7465,20 @@ function queCambio(p) {
   return cambios;
 }
 
+/* Aprobada y programada es exactamente lo que significa «Programada»
+   en la parrilla. Antes el boton de Programar solo armaba la salida
+   y la tarjeta se quedaba en Revisión: Leo autorizaba piezas y la
+   parrilla seguia diciendo que faltaba revisarlas. Da igual el
+   orden (aprobar y luego programar, o al reves): la que complete
+   las dos condiciones la mueve. Nunca la regresa ni toca una ya
+   publicada. */
+function pasarAProgramada(p) {
+  if (p.autopublicar && estadoRevision(p).estado === 'aprobado'
+      && ['idea', 'produccion', 'revision'].includes(p.estado)) {
+    p.estado = 'programado';
+  }
+}
+
 function estadoRevision(p) {
   const ap = p.aprobacion || {};
   const crudo = ap.estado || 'pendiente';
@@ -8537,6 +8551,7 @@ function conectarPrevia() {
     // La huella de lo que se acaba de revisar, para saber despues
     // si lo que hay sigue siendo esto.
     p.aprobacion.sello = selloDeRevision(p);
+    pasarAProgramada(p);
     if (texto) {
       p.aprobacion.comentarios = p.aprobacion.comentarios || [];
       p.aprobacion.comentarios.push({
@@ -8644,6 +8659,7 @@ function conectarPrevia() {
   const armar = (hora) => {
     p.autopublicar = true;
     if (hora) p.hora = hora;
+    pasarAProgramada(p);
     p.actualizado = ahora();
     guardar('parrilla');
     registrar(`Programó «${p.titulo}» para salir sola`);
@@ -10177,6 +10193,19 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-30-b',
+    version: '2026-10-30',
+    titulo: 'Programar ya mueve la pieza a «Programada»',
+    puntos: [
+      { t: 'Antes se quedaba en Revisión',
+        d: 'El botón Programar armaba la salida, pero la tarjeta seguía diciendo ' +
+           'Revisión y había que cambiarla a mano.' },
+      { t: 'Ahora cambia sola',
+        d: 'En cuanto una pieza está aprobada y programada pasa a Programada, sin ' +
+           'importar qué hiciste primero.' },
+    ],
+  },
   {
     clave: '2026-10-30-a',
     version: '2026-10-30',
