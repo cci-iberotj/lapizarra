@@ -377,6 +377,14 @@ const MotorSupabase = {
     return this._rest('/casting?select=folio,nombre,carrera,semestre,estado,creado&order=creado.desc&limit=500');
   },
 
+  /* Quienes se apuntaron a la sesión de video del INTERSUJ (tabla
+     `grabaciones_intersuj`, la llena cci-iberotj.github.io/intersuj).
+     Se piden sólo nombre, equipo y teléfono: es para localizarlos
+     durante el viaje, no para administrar la agenda. */
+  listarAtletasIntersuj() {
+    return this._rest('/grabaciones_intersuj?select=folio,nombre,equipo,telefono&order=nombre.asc&limit=300');
+  },
+
   atenderSolicitud(folio, campos) {
     return this._rest('/solicitudes?folio=eq.' + encodeURIComponent(folio), {
       method: 'PATCH',
@@ -578,6 +586,11 @@ const Almacen = {
   async casting() {
     if (!this.enLaNube) return [];
     return (await this.motor.listarCasting()) || [];
+  },
+
+  async atletasIntersuj() {
+    if (!this.enLaNube) return [];
+    return (await this.motor.listarAtletasIntersuj()) || [];
   },
 
   atenderSolicitud(folio, campos) {

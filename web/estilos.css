@@ -2536,6 +2536,45 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
    la regla que lo gobierna, y eso en renglones de tabla obliga a
    una columna por dato en una caja que no da para cinco. */
 .isj-prog { display: block; }
+
+/* Contactos de la delegación: una fila por atleta con su número y el
+   botón de WhatsApp. El número es enlace para llamar; el botón es la
+   acción principal, por eso va lleno. */
+.isj-contactos-grupo .isj-prog-titulo { border-left: 4px solid var(--isj); padding-left: 8px; }
+.isj-contactos-lista {
+  list-style: none; margin: 0 0 6px; padding: 0;
+  display: grid; gap: 6px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+.isj-contacto {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--linea-sutil); border-radius: var(--r);
+  background: var(--capa-1); padding: 8px 10px 8px 12px;
+}
+.isj-contacto-nombre {
+  flex: 1 1 auto; min-width: 0; font-weight: var(--peso-alto);
+  overflow-wrap: anywhere;
+}
+.isj-contacto-tel {
+  font-size: var(--t-meta); color: var(--texto-medio); white-space: nowrap;
+  text-decoration: none; font-variant-numeric: tabular-nums;
+}
+.isj-contacto-tel:hover { color: var(--texto); text-decoration: underline; }
+.isj-contacto-wa {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  padding: 5px 11px; border-radius: var(--r-pastilla);
+  background: var(--marca-solida); color: var(--texto-sobre-marca);
+  font-size: var(--t-meta); font-weight: var(--peso-alto); text-decoration: none;
+}
+.isj-contacto-wa svg { width: 15px; height: 15px; fill: currentColor; }
+.isj-contacto-wa:hover { filter: brightness(1.12); }
+.isj-contacto-tel:focus-visible,
+.isj-contacto-wa:focus-visible { outline: 2px solid var(--primario); outline-offset: 2px; }
+@media (max-width: 520px) {
+  .isj-contactos-lista { grid-template-columns: 1fr; }
+  .isj-contacto { flex-wrap: wrap; }
+  .isj-contacto-nombre { flex-basis: 100%; }
+}
 .isj-prog-actos {
   display: grid; gap: 10px; margin: 14px 0 22px;
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));

@@ -1678,6 +1678,109 @@ function comoVaTijuana(lista) {
 let isjVista = 'dia';
 let isjFiltro = '';
 
+/* LOS CONTACTOS DE LA DELEGACION. Salen de la agenda de la sesión
+   de video, que es el único lugar donde los atletas dejaron su
+   teléfono. Se piden la primera vez que se abre la vista y no en
+   cada carga: son números de alumnos y no tienen por qué viajar si
+   nadie los va a ver. null = todavía no se piden. */
+let isjAtletas = null;
+
+async function cargarAtletasIntersuj() {
+  if (isjAtletas !== null) return;
+  isjAtletas = 'cargando';
+  try { isjAtletas = await Almacen.atletasIntersuj(); }
+  catch (e) { isjAtletas = { error: e.message || 'No se pudo leer la lista.' }; }
+  if (isjVista === 'contactos') pintarViaje();
+}
+
+/* Cuántos son en cada equipo, según las credenciales oficiales
+   (Credenciales_Atletas.pdf). Sirve para decir «4 de 10» y que se
+   note quién no dejó su número. */
+const PLANTEL_INTERSUJ = [
+  { id: 'flag',   nombre: 'Flag femenil',     total: 9 },
+  { id: 'volfem', nombre: 'Voleibol femenil', total: 10 },
+  { id: 'volvar', nombre: 'Voleibol varonil', total: 8 },
+  { id: 'tkd',    nombre: 'Taekwondo',        total: 6 },
+];
+
+/* El formulario de la agenda escribe el equipo en texto («Taekwondo
+   varonil», «Voleibol femenil»); aquí se traduce al id de deporte de
+   la parrilla para usar los mismos colores. Taekwondo se junta. */
+function deporteDeEquipo(equipo) {
+  const t = (equipo || '').toLowerCase();
+  if (t.includes('flag')) return 'flag';
+  if (t.includes('taekwondo') || t.includes('tae kwon')) return 'tkd';
+  if (t.includes('voleibol') && t.includes('var')) return 'volvar';
+  if (t.includes('voleibol')) return 'volfem';
+  return '';
+}
+
+/* El teléfono se capturó como cada quien lo escribió: 10 dígitos,
+   +52 o +1. Para el enlace sólo dígitos y 52 si vino sin país —igual
+   que la lista de confirmados de la agenda—; para leerlo, en grupos. */
+function telefonoParaWa(t) {
+  const d = (t || '').replace(/\D/g, '');
+  return d.length === 10 ? '52' + d : d;
+}
+
+function telefonoLegible(t) {
+  let d = (t || '').replace(/\D/g, '');
+  let pais = '';
+  if (d.length === 12 && d.startsWith('52')) d = d.slice(2);
+  else if (d.length === 11 && d.startsWith('1')) { pais = '+1 '; d = d.slice(1); }
+  return d.length === 10 ? pais + d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : (t || '');
+}
+
+const ICONO_WA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20zm4.4-5.8c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1l-.7.9c-.1.2-.3.2-.5.1a6.6 6.6 0 0 1-3.2-2.8c-.1-.2 0-.4.1-.5l.4-.5.2-.4v-.4l-.7-1.7c-.2-.4-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.5.6 2.1.6 2.9.5.5 0 1.4-.6 1.6-1.1.2-.6.2-1 .1-1.1l-.6-.1z"/></svg>';
+
+function vistaContactos() {
+  if (isjAtletas === null || isjAtletas === 'cargando') {
+    cargarAtletasIntersuj();
+    return '<div class="vacio">Cargando contactos…</div>';
+  }
+  if (isjAtletas.error) return `<div class="vacio">${esc(isjAtletas.error)}</div>`;
+
+  const grupos = PLANTEL_INTERSUJ.map(d => ({
+    ...d, gente: isjAtletas.filter(a => deporteDeEquipo(a.equipo) === d.id),
+  }));
+  const sueltos = isjAtletas.filter(a => !deporteDeEquipo(a.equipo));
+  if (sueltos.length) grupos.push({ id: '', nombre: 'Otros', total: 0, gente: sueltos });
+  const plantel = PLANTEL_INTERSUJ.reduce((s, d) => s + d.total, 0);
+
+  const fila = a => {
+    const num = telefonoParaWa(a.telefono);
+    return `
+      <li class="isj-contacto">
+        <span class="isj-contacto-nombre">${esc(a.nombre)}</span>
+        ${num ? `
+          <a class="isj-contacto-tel" href="tel:+${esc(num)}"
+             title="Llamar">${esc(telefonoLegible(a.telefono))}</a>
+          <a class="isj-contacto-wa" href="https://wa.me/${esc(num)}" target="_blank"
+             rel="noopener" aria-label="Mandar WhatsApp a ${esc(a.nombre)}">${ICONO_WA}<span>Mensaje</span></a>`
+          : '<span class="isj-prog-hueco">Sin teléfono</span>'}
+      </li>`;
+  };
+
+  return `
+    <section class="isj-contactos">
+      <p class="isj-nota">
+        Son quienes se apuntaron a la sesión de video del abanderamiento:
+        <b>${esc(isjAtletas.length)} de ${esc(plantel)}</b>. Es el único lugar
+        donde dejaron su número, así que quien no se apuntó no aparece. Toca el
+        número para llamar o «Mensaje» para abrir WhatsApp.
+      </p>
+      ${grupos.map(g => `
+        <div class="isj-contactos-grupo"
+             style="--isj:var(--pilar-${COLOR_DEPORTE[g.id] || 'vida'}-solido)">
+          <h3 class="isj-prog-titulo">${esc(g.nombre)} <span class="tenue">${
+            esc(g.total ? g.gente.length + ' de ' + g.total : g.gente.length)}</span></h3>
+          ${g.gente.length
+            ? `<ul class="isj-contactos-lista">${g.gente.map(fila).join('')}</ul>`
+            : '<p class="isj-prog-hueco">Nadie de este equipo se apuntó.</p>'}
+        </div>`).join('')}
+    </section>`;
+}
+
 function pintarViaje() {
   const cont = $('#viaje');
   if (!cont) return;
@@ -2088,11 +2191,13 @@ function pintarViaje() {
           isjVista === 'flag' ? ' activa' : ''}" data-isj-vista="flag">Tabla de flag</button>` : ''}
         <button type="button" class="isj-vista${isjVista === 'programa' ? ' activa' : ''}"
                 data-isj-vista="programa">Programa general</button>
+        <button type="button" class="isj-vista${isjVista === 'contactos' ? ' activa' : ''}"
+                data-isj-vista="contactos">Contactos</button>
       </div>
-      <!-- Los chips filtran partidos por deporte. En el programa general no
-           hay partidos que filtrar, así que ahí no salen: un control que no
-           hace nada se siente roto. -->
-      <div class="isj-leyenda${isjVista === 'programa' ? ' oculta' : ''}">
+      <!-- Los chips filtran partidos por deporte. En el programa general y
+           en los contactos no hay partidos que filtrar, así que ahí no
+           salen: un control que no hace nada se siente roto. -->
+      <div class="isj-leyenda${isjVista === 'programa' || isjVista === 'contactos' ? ' oculta' : ''}">
         <button type="button" class="isj-chip isj-chip-todo${isjFiltro ? '' : ' activo'}"
                 data-isj-filtro="">Todo <b>${esc(citas.length)}</b></button>
         ${deportes.map(d => `
@@ -2108,6 +2213,8 @@ function pintarViaje() {
 
     ${isjVista === 'programa'
       ? vistaProgramaGeneral()
+      : isjVista === 'contactos'
+      ? vistaContactos()
       : isjVista === 'flag'
       ? vistaTablaFlag()
       : isjVista === 'disciplina'
@@ -10070,6 +10177,20 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-30-a',
+    version: '2026-10-30',
+    titulo: 'Los contactos de la delegación, en el INTERSUJ',
+    puntos: [
+      { t: 'Una vista nueva: Contactos',
+        d: 'En la pestaña INTERSUJ, junto al programa general. Cada atleta con ' +
+           'su número: tócalo para llamar o toca «Mensaje» para abrir WhatsApp.' },
+      { t: 'De dónde salen',
+        d: 'De la agenda de la sesión de video: es el único lugar donde dejaron ' +
+           'su teléfono. Por eso cada equipo dice cuántos son de cuántos; quien ' +
+           'no se apuntó no aparece.' },
+    ],
+  },
   {
     clave: '2026-10-28-b',
     version: '2026-10-28',
