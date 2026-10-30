@@ -4079,6 +4079,8 @@ function pintarCalendario() {
     .filter(p => !fCanal || (p.canales || []).includes(fCanal))
     .filter(p => !fEstado || p.estado === fEstado)
     .forEach(p => { (porFecha[p.fecha] = porFecha[p.fecha] || []).push(p); });
+  // Con varias piezas en un día, que se lean en el orden en que salen.
+  Object.values(porFecha).forEach(l => l.sort((a, b) => (a.hora || '').localeCompare(b.hora || '')));
 
   const celdas = [];
   for (let i = 0; i < 42; i++) {
@@ -4407,13 +4409,15 @@ function conectarArrastre(cont) {
       ev.dataTransfer.effectAllowed = 'move';
       ev.dataTransfer.setData('text/plain', el.dataset.id);
 
-      // Pinta de una vez qué días aceptan esta pieza y cuáles no
+      /* Pinta de una vez qué días aceptan esta pieza y cuáles no.
+         Un día ocupado ya no veta: la regla de «una por día» dejaba
+         la parrilla del INTERSUJ (una pieza diaria del 30-oct al
+         12-nov) entera en rojo, sin un solo hueco donde soltar. Leo
+         eligió permitir varias por día; sólo veta la ventana. */
       if (piezaArrastrada) {
         $$('.celda', cont).forEach(c => {
           if (c.classList.contains('fuera') && !c.classList.contains('del-siguiente')) return;
-          const f = c.dataset.fecha;
-          const ocupada = datos.parrilla.piezas.some(p => p.fecha === f && p.id !== piezaArrastrada.id);
-          c.classList.add(fueraDeVentana(piezaArrastrada, f) || ocupada ? 'veta' : 'acepta');
+          c.classList.add(fueraDeVentana(piezaArrastrada, c.dataset.fecha) ? 'veta' : 'acepta');
         });
       }
     });
@@ -4452,19 +4456,36 @@ function conectarArrastre(cont) {
       const problema = fueraDeVentana(piezaArrastrada, destino);
       if (problema) { avisar(`«${piezaArrastrada.titulo}»: ${problema}`); return; }
 
-      if (datos.parrilla.piezas.some(p => p.fecha === destino && p.id !== piezaArrastrada.id)) {
-        avisar('Ese día ya tiene una pieza. Deja una por día.');
-        return;
-      }
+      const p = piezaArrastrada;
+      const vecinas = datos.parrilla.piezas.filter(x => x.fecha === destino && x.id !== p.id);
 
-      const nombre = piezaArrastrada.titulo;
-      piezaArrastrada.fecha = destino;
-      piezaArrastrada.actualizado = ahora();
+      /* La fecha es parte de lo aprobado (ver selloDeRevision), asi
+         que moverla caducaba la aprobacion y la pieza programada
+         dejaba de salir sola sin que nadie lo notara. Si quien la
+         mueve es quien aprueba, mover ES aprobar la fecha nueva: se
+         vuelve a sellar y queda anotado. Si la mueve otra persona,
+         la aprobacion se cae como antes, que es justo para lo que
+         existe. */
+      const seguiaAprobada = estadoRevision(p).estado === 'aprobado';
+      const nombre = p.titulo;
+      p.fecha = destino;
+      let reaprobada = false;
+      if (seguiaAprobada && puedeAprobar()) {
+        const quien = Almacen.usuario ? Almacen.usuario.nombre : '';
+        p.aprobacion.sello = selloDeRevision(p);
+        p.aprobacion.comentarios = p.aprobacion.comentarios || [];
+        p.aprobacion.comentarios.push({ quien, cuando: ahora(),
+          texto: `Movió la fecha al ${fechaLegible(destino)}; sigue aprobada.` });
+        reaprobada = true;
+      }
+      p.actualizado = ahora();
       guardar('parrilla');
       registrar(`Movió «${nombre.slice(0, 30)}${nombre.length > 30 ? '…' : ''}» al ${destino.slice(8)}`);
       refrescarParrilla();
       refrescarAuditoria();
-      avisar(`Movida al ${fechaLegible(destino)}.`);
+      avisar(`Movida al ${fechaLegible(destino)}.` +
+        (vecinas.length ? ` Ese día ya había ${vecinas.length === 1 ? 'otra pieza' : vecinas.length + ' piezas'}.` : '') +
+        (seguiaAprobada && !reaprobada ? ' La aprobación se cayó: hay que aprobarla otra vez.' : ''));
     });
   });
 }
@@ -10193,6 +10214,20 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-10-30-c',
+    version: '2026-10-30',
+    titulo: 'Arrastrar posts a días que ya tienen otro',
+    puntos: [
+      { t: 'Ya no hay «uno por día»',
+        d: 'Puedes soltar un post en un día ocupado; sólo te avisa que ya había otro. ' +
+           'En el calendario se ordenan por hora.' },
+      { t: 'Si lo mueves tú, sigue aprobado',
+        d: 'Mover un post aprobado ya no le quita la aprobación cuando lo mueve quien ' +
+           'aprueba: queda anotado en sus comentarios y sigue saliendo solo. Si lo ' +
+           'mueve otra persona, hay que volver a aprobarlo.' },
+    ],
+  },
   {
     clave: '2026-10-30-b',
     version: '2026-10-30',
