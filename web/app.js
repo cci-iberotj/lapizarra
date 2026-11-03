@@ -7740,6 +7740,16 @@ function soloSaleAMano(p) {
     : '';
 }
 
+/* Una pieza que ya salio en todas sus redes no tiene nada que
+   decidir: ni aprobarla ni programarla. Las fichas que se crean desde
+   «Lo publicado en redes» llegaban asi y la vista previa las ofrecia
+   como pendientes de revisar y de programar. Si falta una red (fallo
+   Instagram, por ejemplo) NO cuenta como cerrada: ahi sigue haciendo
+   falta el boton de publicar. */
+function yaSalioCompleta(p) {
+  return p.estado === 'publicado' && redesDe(p).every(r => (p.publicaciones || {})[r.id]);
+}
+
 function redesPendientes(p) {
   const faltan = redesDe(p).filter(r => !(p.publicaciones || {})[r.id]);
   return faltan.length ? faltan : redesDe(p);
@@ -8419,7 +8429,10 @@ function pintarPrevia() {
   const est = ESTADOS.find(x => x.id === p.estado);
   const ap = p.aprobacion || { estado: 'pendiente', comentarios: [] };
   const rev = estadoRevision(p);
-  const marca = APROBACIONES[rev.estado] || APROBACIONES.pendiente;
+  const cerrada = yaSalioCompleta(p);
+  const marca = cerrada && rev.estado === 'pendiente'
+    ? { nombre: 'Publicada', color: 'var(--ok)' }
+    : APROBACIONES[rev.estado] || APROBACIONES.pendiente;
   const archivos = archivosDe(p);
   const esCarrusel = archivos.length > 1 || p.formato === 'Carrusel';
 
@@ -8522,7 +8535,7 @@ function pintarPrevia() {
             </div>`;
           })()}
 
-          ${rev.caducada ? (() => {
+          ${rev.caducada && !cerrada ? (() => {
             const qs = queCambio(p);
             const lista = qs.length
               ? qs.slice(0, -1).join(', ') + (qs.length > 1 ? ' y ' : '') + qs[qs.length - 1]
@@ -8538,7 +8551,7 @@ function pintarPrevia() {
                    como corregida, así que quien la revise va a ver algo distinto.`}
             </div>`; })() : ''}
 
-          <div class="ap-acciones">
+          ${cerrada ? '' : `<div class="ap-acciones">
             ${puedeAprobar() ? `
               <button class="btn-primario" id="apAprobar">✓ Aprobar</button>
               <button class="btn-plano" id="apCambios">Pedir cambios</button>` : ''}
@@ -8551,10 +8564,10 @@ function pintarPrevia() {
             <textarea class="campo" id="apTexto" rows="2"
               placeholder="${puedeAprobar() ? 'Comentario (opcional al aprobar, necesario al pedir cambios)' : 'Deja un comentario'}"></textarea>
             <button class="btn-plano" id="apComentar">Comentar sin decidir</button>
-          </div>
+          </div>`}
         </div>
 
-        ${bloqueCuando(p, rev, archivos)}
+        ${cerrada ? '' : bloqueCuando(p, rev, archivos)}
       </div>
     </div>`;
 
