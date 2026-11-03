@@ -4174,6 +4174,32 @@ body.en-otra-piel { box-shadow: inset 0 0 0 3px var(--alerta); }
 .red-estado.muerta { --tono: var(--tinta-tenue); }
 .red-estado span { color: var(--texto-medio); }
 
+/* Lo publicado en redes: una fila por publicacion, con su portada y
+   si ya tiene ficha. Lo que falta se marca con la orilla de marca
+   para que se vea de un vistazo en una lista de cuarenta. */
+.red-bloque { margin-top: 14px; }
+.red-bloque h4 { margin: 0 0 6px; font-size: .95rem; }
+.red-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.red-pub {
+  display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: start;
+  padding: 8px 10px; background: var(--capa-2);
+  border-left: 3px solid var(--borde-fuerte);
+  border-radius: 0 var(--radio-chico, 6px) var(--radio-chico, 6px) 0;
+}
+.red-pub.sin-ficha { border-left-color: var(--marca-tinta); }
+.red-pub-mini { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; background: var(--superficie-2); display: block; }
+.red-pub-cuerpo { min-width: 0; font-size: .86rem; }
+.red-pub-meta { color: var(--texto-medio); }
+.red-pub-copy { margin: 2px 0 4px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.red-pub-ficha { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.red-pub-ficha.falta b { color: var(--marca-tinta); }
+.red-pub-ficha .btn-mini { float: none; }
+.red-pub-ficha .campo-mini { max-width: 100%; }
+.btn-enlace {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--primario);
+  text-decoration: underline; cursor: pointer; text-align: left;
+}
+
 /* Confirmar antes de publicar. Sale a 5,700 personas y no se
    deshace: un solo clic para eso es poco clic. */
 .ap-confirma {

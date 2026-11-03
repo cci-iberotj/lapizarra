@@ -4391,6 +4391,198 @@ function conectarArrastreLaminas(laminas) {
 }
 
 
+/* ── Lo publicado en redes ─────────────────────────────────
+
+   Un Reel subido desde el telefono o un post de Business Suite no
+   pasaba por la Pizarra, y la parrilla se quedaba sin saber que habia
+   salido: el calendario mentia por omision. Aqui se le pregunta a Meta
+   que hay publicado (solo lectura, ver recientes() en la funcion
+   publicar) y cada publicacion sin ficha se puede convertir en ficha
+   nueva o ligar a una que ya existia -- por ejemplo, la pieza que
+   estaba planeada y al final se subio a mano. */
+function puedeVerRedes() {
+  const rol = Almacen.usuario && Almacen.usuario.rol;
+  return !!Almacen.enLaNube && ['admin', 'direccion', 'publicacion'].includes(rol);
+}
+
+const FORMATO_DE_RED = { Reel: 'Reel', Carrusel: 'Carrusel', Foto: 'Foto', Video: 'Video',
+                         Story: 'Story', Post: 'Foto' };
+
+/* Meta da la hora en UTC y con «+0000», que Date no siempre entiende.
+   La fecha de la ficha es la de Tijuana: el post de las 6 p. m. del
+   domingo no puede quedar anotado el lunes. */
+function enTijuana(iso) {
+  const d = new Date(String(iso || '').replace(/([+-]\d\d)(\d\d)$/, '$1:$2'));
+  if (isNaN(d)) return { fecha: '', hora: '' };
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Tijuana', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  const g = t => (partes.find(x => x.type === t) || {}).value || '';
+  return { fecha: `${g('year')}-${g('month')}-${g('day')}`, hora: `${g('hour')}:${g('minute')}` };
+}
+
+let redesRecientes = null;
+
+async function abrirPublicadoEnRedes() {
+  modalCtx = { tipo: 'redes', datos: {}, esNuevo: false };
+  $('#modalTitulo').textContent = 'Lo publicado en redes';
+  $('#modalEliminar').hidden = true;
+  $('#modalGuardar').hidden = true;
+  $('#modalCancelar').textContent = 'Cerrar';
+  $('#modalCuerpo').innerHTML = '<p class="tenue nota">Preguntándole a Meta…</p>';
+  mostrarModal();
+  try {
+    redesRecientes = await llamarFuncion('publicar', { accion: 'recientes' });
+  } catch (e) {
+    $('#modalCuerpo').innerHTML = `<p class="lamina-error">⚠ ${esc(e.message)}</p>`;
+    return;
+  }
+  pintarPublicadoEnRedes();
+}
+
+/* Las fichas a las que tiene sentido ligar una publicacion: las que
+   todavia no registran nada en esa red, de una semana antes a una
+   despues. Mas lejos es otra pieza; mas cerca dejaria fuera la que se
+   movio un par de dias. Cuenta como «nada» lo que se anoto con «Ya lo
+   publique a mano»: guarda que salio, pero no cual publicacion es
+   (id 'manual', sin enlace), y ligarla es justo lo que le falta. */
+function candidatasParaLigar(item) {
+  const { fecha } = enTijuana(item.cuando);
+  if (!fecha) return [];
+  const desde = aTexto(sumarDias(new Date(fecha + 'T12:00'), -7));
+  const hasta = aTexto(sumarDias(new Date(fecha + 'T12:00'), 7));
+  return datos.parrilla.piezas
+    .filter(p => p.fecha && p.fecha >= desde && p.fecha <= hasta)
+    .filter(p => { const r = (p.publicaciones || {})[item.red]; return !r || !r.enlace; })
+    .sort((a, b) => Math.abs(new Date(a.fecha) - new Date(fecha)) -
+                    Math.abs(new Date(b.fecha) - new Date(fecha)));
+}
+
+function pintarPublicadoEnRedes() {
+  const d = redesRecientes || {};
+  const puedo = !soloLectura('parrilla_piezas');
+  const fila = (item, i) => {
+    const { fecha, hora } = enTijuana(item.cuando);
+    const copy = (item.copy || '').trim();
+    const candidatas = item.ficha ? [] : candidatasParaLigar(item);
+    return `
+      <li class="red-pub${item.ficha ? '' : ' sin-ficha'}">
+        ${item.miniatura ? `<img class="red-pub-mini" src="${esc(item.miniatura)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+                         : '<span class="red-pub-mini vacia"></span>'}
+        <div class="red-pub-cuerpo">
+          <div class="red-pub-meta">
+            <b>${esc(item.tipo)}</b> · ${esc(fecha ? fechaLegible(fecha) : '')}${hora ? ' · ' + esc(horaLegible(hora)) : ''}
+            ${item.enlace ? `· <a href="${esc(item.enlace)}" target="_blank" rel="noopener">Ver</a>` : ''}
+          </div>
+          <div class="red-pub-copy">${esc(copy ? copy.slice(0, 160) + (copy.length > 160 ? '…' : '') : 'Sin texto')}</div>
+          ${item.ficha
+            ? `<div class="red-pub-ficha">✓ Ficha: <button class="btn-enlace" data-abrir="${esc(item.ficha.id)}">${esc(item.ficha.titulo || 'Sin título')}</button></div>`
+            : `<div class="red-pub-ficha falta"><b>Sin ficha</b>${puedo ? `
+                 <button class="btn-mini" data-crear="${i}">Crear ficha</button>
+                 ${candidatas.length ? `
+                   <select class="campo-mini" data-elegir="${i}" aria-label="Ligar a una ficha existente">
+                     <option value="">Ligar a una ficha…</option>
+                     ${candidatas.map(p => `<option value="${esc(p.id)}">${esc(fechaLegible(p.fecha))} · ${esc(p.titulo || 'Sin título')}</option>`).join('')}
+                   </select>
+                   <button class="btn-mini" data-ligar="${i}">Ligar</button>` : ''}` : ''}
+               </div>`}
+        </div>
+      </li>`;
+  };
+
+  const todas = [...(d.instagram || []), ...(d.facebook || [])];
+  const bloque = (titulo, red, lista) => {
+    const err = (d.errores || {})[red];
+    const faltan = lista.filter(x => !x.ficha).length;
+    return `
+      <section class="red-bloque">
+        <h4>${titulo} <span class="tenue">${err ? '' : faltan ? `· ${faltan} sin ficha` : '· todo tiene ficha'}</span></h4>
+        ${err ? `<p class="lamina-error">⚠ ${esc(err)}</p>` : ''}
+        <ul class="red-lista">${lista.map(x => fila(x, todas.indexOf(x))).join('') ||
+          (err ? '' : '<li class="tenue nota">Nada publicado todavía.</li>')}</ul>
+      </section>`;
+  };
+
+  $('#modalCuerpo').innerHTML = `
+    <p class="tenue nota">Las últimas publicaciones de cada cuenta. Lo que se subió a mano
+      aparece como <b>Sin ficha</b>: créale una o lígala a la pieza que estaba planeada,
+      para que la parrilla diga lo que de verdad salió. Esto sólo lee las redes; no
+      publica ni cambia nada en ellas.</p>
+    ${bloque('Instagram', 'ig', d.instagram || [])}
+    ${bloque('Facebook', 'fb', d.facebook || [])}`;
+
+  $$('[data-abrir]', $('#modalCuerpo')).forEach(b => b.addEventListener('click', () => {
+    cerrarModal();
+    abrirPieza(b.dataset.abrir);
+  }));
+  $$('[data-crear]', $('#modalCuerpo')).forEach(b => b.addEventListener('click', async () => {
+    b.disabled = true;
+    b.textContent = 'Creando…';
+    await crearFichaDePublicacion(todas[+b.dataset.crear]);
+  }));
+  $$('[data-ligar]', $('#modalCuerpo')).forEach(b => b.addEventListener('click', () => {
+    const i = +b.dataset.ligar;
+    const sel = $(`[data-elegir="${i}"]`, $('#modalCuerpo'));
+    if (!sel || !sel.value) { avisar('Elige primero a qué ficha.'); return; }
+    ligarPublicacion(todas[i], sel.value);
+  }));
+}
+
+function registroDePublicacion(item) {
+  return { id: item.id, enlace: item.enlace || '', cuando: item.cuando,
+           por: Almacen.usuario ? Almacen.usuario.nombre + ' (a mano)' : 'A mano' };
+}
+
+async function crearFichaDePublicacion(item) {
+  const { fecha, hora } = enTijuana(item.cuando);
+  const quien = Almacen.usuario ? Almacen.usuario.nombre : '';
+  const renglon = (item.copy || '').split('\n').map(s => s.trim()).find(Boolean) || '';
+  const p = {
+    id: id(), titulo: `${item.tipo} · ${renglon.slice(0, 50) || 'Publicado a mano'}`,
+    pilar: 'vida', canales: [item.red], formato: FORMATO_DE_RED[item.tipo] || 'Foto',
+    fecha, hora, responsable: quien, estado: 'publicado', publicado: item.cuando,
+    copy: item.copy || '', copy_fb: '', notas: `Se publicó a mano, fuera de la Pizarra. ` +
+      `La ficha se creó después desde «Lo publicado en redes» para que la parrilla lo registre.`,
+    produccion: '', imagen: '', no_antes: '', no_despues: '', experto: '', estado_nota: '',
+    autopublicar: false, archivos: [], publicaciones: { [item.red]: registroDePublicacion(item) },
+    creado: ahora(), creadoPor: quien, actualizado: ahora(),
+  };
+  // La portada se guarda en la cubeta: el enlace de Meta caduca en horas.
+  try {
+    const r = await llamarFuncion('publicar', { accion: 'portada', red: item.red, medio: item.id, pieza: p.id });
+    p.archivos = [{ ruta: r.ruta, nombre: `Portada del ${item.tipo.toLowerCase()}.jpg`, peso: r.peso, tipo: r.tipo }];
+  } catch (e) {
+    p.notas += `\n\nNo se pudo guardar la portada: ${e.message}`;
+  }
+  datos.parrilla.piezas.push(p);
+  guardar('parrilla');
+  registrar(`Registró «${p.titulo.slice(0, 40)}», publicada a mano`);
+  item.ficha = { id: p.id, titulo: p.titulo };
+  refrescarParrilla();
+  avisar('Ficha creada. Ábrela para ponerle pilar y título si hace falta.');
+  pintarPublicadoEnRedes();
+}
+
+function ligarPublicacion(item, idPieza) {
+  const p = datos.parrilla.piezas.find(x => x.id === idPieza);
+  if (!p) return;
+  p.publicaciones = p.publicaciones || {};
+  p.publicaciones[item.red] = registroDePublicacion(item);
+  p.canales = p.canales || [];
+  if (!p.canales.includes(item.red)) p.canales.push(item.red);
+  p.estado = 'publicado';
+  p.publicado = p.publicado || item.cuando;
+  if (!p.copy && item.copy) p.copy = item.copy;
+  p.actualizado = ahora();
+  guardar('parrilla');
+  registrar(`Ligó «${(p.titulo || '').slice(0, 40)}» con lo publicado a mano en ${item.red === 'ig' ? 'Instagram' : 'Facebook'}`);
+  item.ficha = { id: p.id, titulo: p.titulo };
+  refrescarParrilla();
+  avisar('Ligada. La ficha queda como publicada.');
+  pintarPublicadoEnRedes();
+}
+
 /* ── Arrastrar y soltar en el calendario ───────────────── */
 
 let piezaArrastrada = null;
@@ -9115,6 +9307,7 @@ function conectarEventos() {
 
   $('#nuevaPieza').addEventListener('click', () => abrirPieza(null));
   $('#nuevoEvento').addEventListener('click', () => abrirEvento(null));
+  $('#publicadoAMano').addEventListener('click', abrirPublicadoEnRedes);
 
   /* Sólo quien administra: es una herramienta para comprobar la
      aplicación, no una forma de asomarse a la cuenta de otro. */
@@ -10058,6 +10251,8 @@ function soloLectura(coleccion) {
 
 function aplicarPermisos() {
   aplicarVistasPorRol();
+  const bRedes = $('#publicadoAMano');
+  if (bRedes) bRedes.hidden = !puedeVerRedes();
 
   for (const [vista, controles] of Object.entries(CONTROLES_QUE_EDITAN)) {
     let algoSeEdita = false;
@@ -10214,6 +10409,21 @@ async function pasarAdentro(usuario) {
    todas las que sean mas nuevas que lo ultimo que vio la persona,
    asi que quien falto dos semanas recibe las dos tandas juntas. */
 const NOVEDADES = [
+  {
+    clave: '2026-11-02-a',
+    version: '2026-11-02',
+    titulo: 'Lo que se publica a mano ya no se pierde',
+    puntos: [
+      { t: 'Botón nuevo: Lo publicado en redes',
+        d: 'En la Parrilla, junto a «Nuevo evento». Enseña las últimas publicaciones de ' +
+           'Instagram y Facebook y marca cuáles no tienen ficha.' },
+      { t: 'Crear o ligar',
+        d: 'A lo que se subió a mano le creas una ficha (con su portada, copy, fecha y ' +
+           'enlace) o la ligas a la pieza que estaba planeada. Queda como publicada.' },
+      { t: 'Sólo lee',
+        d: 'No publica, no borra ni cambia nada en las redes.' },
+    ],
+  },
   {
     clave: '2026-10-30-c',
     version: '2026-10-30',

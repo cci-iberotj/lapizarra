@@ -658,6 +658,121 @@ function soloAMano(p: any): string {
   return FORMATOS_A_MANO[String((p && p.formato) || '').trim()] || '';
 }
 
+/* ── Lo que ya está en las redes ───────────────────────────
+
+   Hasta aqui la Pizarra solo hablaba con Meta para publicar. Lo que
+   se subia a mano (un Reel desde el telefono, un post desde Business
+   Suite) no dejaba rastro, y la parrilla se quedaba sin saber que
+   habia salido. Esto LEE las ultimas publicaciones de cada red y dice
+   cuales ya tienen ficha y cuales no. Solo lee: no publica, no borra,
+   no cambia nada en Meta. */
+async function fichasPublicadas() {
+  const r = await fetch(
+    `${URL_BASE}/rest/v1/registros?coleccion=eq.parrilla_piezas&borrado=is.false&select=id,datos`,
+    { headers: { apikey: LLAVE_ADMIN, Authorization: 'Bearer ' + LLAVE_ADMIN } });
+  const filas = await r.json();
+  const mapa: Record<string, { id: string; titulo: string }> = {};
+  for (const f of (filas || [])) {
+    const p = f.datos || {};
+    for (const [red, pub] of Object.entries(p.publicaciones || {}) as [string, any][]) {
+      const ficha = { id: f.id, titulo: p.titulo || '' };
+      if (pub?.id) mapa[`${red}:${pub.id}`] = ficha;
+      // Facebook guarda a veces el id del video y a veces el del post;
+      // el enlace desempata.
+      if (pub?.enlace) mapa[`${red}:${pub.enlace}`] = ficha;
+    }
+  }
+  return mapa;
+}
+
+function tipoIG(m: any) {
+  if (m.media_product_type === 'REELS') return 'Reel';
+  if (m.media_product_type === 'STORY') return 'Story';
+  if (m.media_type === 'CAROUSEL_ALBUM') return 'Carrusel';
+  if (m.media_type === 'VIDEO') return 'Video';
+  return 'Foto';
+}
+
+function tipoFB(p: any) {
+  const t = String(p.attachments?.data?.[0]?.media_type || p.attachments?.data?.[0]?.type || '');
+  if (/video|reel/i.test(t)) return 'Video';
+  if (/album/i.test(t)) return 'Carrusel';
+  if (/photo/i.test(t)) return 'Foto';
+  return 'Post';
+}
+
+async function recientes() {
+  const fichas = await fichasPublicadas();
+  const ficha = (red: string, id: string, enlace: string) =>
+    fichas[`${red}:${id}`] || (enlace ? fichas[`${red}:${enlace}`] : undefined) || null;
+  const salida: any = { instagram: [], facebook: [], errores: {} };
+
+  if (TOKEN_IG) {
+    try {
+      const yo = await aMeta(`${IG}/me?fields=user_id&access_token=${TOKEN_IG}`);
+      const idIG = yo.user_id || yo.id;
+      const d = await aMeta(`${IG}/${idIG}/media?fields=id,caption,media_type,` +
+        `media_product_type,permalink,timestamp,thumbnail_url,media_url&limit=20&access_token=${TOKEN_IG}`);
+      salida.instagram = (d.data || []).map((m: any) => ({
+        red: 'ig', id: m.id, tipo: tipoIG(m), cuando: m.timestamp, copy: m.caption || '',
+        enlace: m.permalink || '', miniatura: m.thumbnail_url || m.media_url || '',
+        ficha: ficha('ig', m.id, m.permalink || ''),
+      }));
+    } catch (e) { salida.errores.ig = (e as Error).message; }
+  } else salida.errores.ig = 'No hay llave de Instagram en el servidor.';
+
+  if (TOKEN_FB) {
+    try {
+      const pg = await aMeta(`${FB}/me?fields=id&access_token=${TOKEN_FB}`);
+      const d = await aMeta(`${FB}/${pg.id}/posts?fields=id,message,created_time,` +
+        `permalink_url,full_picture,attachments{media_type,type}&limit=20&access_token=${TOKEN_FB}`);
+      salida.facebook = (d.data || []).map((p: any) => ({
+        red: 'fb', id: p.id, tipo: tipoFB(p), cuando: p.created_time, copy: p.message || '',
+        enlace: p.permalink_url || '', miniatura: p.full_picture || '',
+        ficha: ficha('fb', p.id, p.permalink_url || ''),
+      }));
+    } catch (e) { salida.errores.fb = (e as Error).message; }
+  } else salida.errores.fb = 'No hay llave de Facebook en el servidor.';
+
+  return salida;
+}
+
+/* La portada de una publicacion, guardada en la cubeta para que la
+   ficha tenga algo que mostrar. Los enlaces de imagen de Meta caducan
+   en horas: guardar el enlace seria guardar una ficha que se queda en
+   blanco manana. La URL se vuelve a pedir a Meta por el id -- nunca se
+   descarga lo que mande el navegador. */
+async function guardarPortada(red: string, medio: string, idPieza: string) {
+  if (!/^[a-z0-9]{6,30}$/.test(idPieza)) throw new Error('Pieza no válida.');
+  if (!/^[0-9_]{5,60}$/.test(medio)) throw new Error('Publicación no válida.');
+  let url = '';
+  if (red === 'ig') {
+    const m = await aMeta(`${IG}/${medio}?fields=thumbnail_url,media_url&access_token=${TOKEN_IG}`);
+    url = m.thumbnail_url || m.media_url || '';
+  } else if (red === 'fb') {
+    const p = await aMeta(`${FB}/${medio}?fields=full_picture&access_token=${TOKEN_FB}`);
+    url = p.full_picture || '';
+  } else throw new Error('Red no válida.');
+  if (!url) throw new Error('Esa publicación no trae imagen de portada.');
+
+  const img = await fetch(url);
+  if (!img.ok) throw new Error('Meta no entregó la portada.');
+  const tipo = img.headers.get('content-type') || 'image/jpeg';
+  if (!tipo.startsWith('image/')) throw new Error('La portada no es una imagen.');
+  const bytes = new Uint8Array(await img.arrayBuffer());
+  if (bytes.length > 8 * 1024 * 1024) throw new Error('La portada pesa demasiado.');
+
+  const ruta = `${idPieza}/portada-${red}-${medio}.jpg`;
+  const s = await fetch(`${URL_BASE}/storage/v1/object/piezas/${ruta}`, {
+    method: 'POST',
+    headers: { apikey: LLAVE_ADMIN, Authorization: 'Bearer ' + LLAVE_ADMIN,
+               'Content-Type': tipo, 'x-upsert': 'true' },
+    body: bytes,
+  });
+  if (!s.ok) throw new Error('No pude guardar la portada.');
+  return { ruta, peso: bytes.length, tipo };
+}
+
 /* ── La tanda automatica ───────────────────────────────────
 
    La llama el reloj de la base cada pocos minutos. Publica UNA por
@@ -776,6 +891,12 @@ Deno.serve(async (peticion) => {
       const ok = SECRETO_RELOJ.length > 0 && dado.length === SECRETO_RELOJ.length &&
         dado.split('').reduce((a, c, i) => a | (c.charCodeAt(0) ^ SECRETO_RELOJ.charCodeAt(i)), 0) === 0;
       if (!ok) return responder({ error: 'Reloj no reconocido.' }, 403);
+      /* Con la misma llave se puede LEER lo publicado sin sesion de
+         nadie: asi se coteja desde la terminal (supabase/recientes.py)
+         sin abrir el navegador. Solo leer; publicar sigue siendo cosa
+         de la tanda y de las personas. */
+      const c = await peticion.json().catch(() => ({}));
+      if (c.accion === 'recientes') return responder(await recientes());
       return responder(await tanda());
     }
 
@@ -791,6 +912,17 @@ Deno.serve(async (peticion) => {
         return responder({ error: 'Tu rol no puede revisar la conexión.' }, 403);
       }
       return responder(await comprobar());
+    }
+
+    /* Leer lo publicado y traer la portada para una ficha: lo mismo
+       que puede quien publica o revisa. No cambia nada en Meta. */
+    if (accion === 'recientes' || accion === 'portada') {
+      if (!['admin', 'direccion', 'publicacion'].includes(quien.rol)) {
+        return responder({ error: 'Tu rol no puede ver lo publicado en las redes.' }, 403);
+      }
+      if (accion === 'recientes') return responder(await recientes());
+      return responder(await guardarPortada(String(cuerpo.red || ''),
+        String(cuerpo.medio || ''), String(cuerpo.pieza || '')));
     }
 
     if (accion === 'publicar') {
