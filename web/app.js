@@ -4424,6 +4424,11 @@ function enTijuana(iso) {
 
 let redesRecientes = null;
 
+/* El cotejo arranca aqui. Lo de antes ya paso y Leo no quiere verlo
+   en rojo cada vez que abre esto: lo que sirve es que de ahora en
+   adelante nada publicado a mano se quede sin ficha. */
+const COTEJO_DESDE = '2026-11-02';
+
 async function abrirPublicadoEnRedes() {
   modalCtx = { tipo: 'redes', datos: {}, esNuevo: false };
   $('#modalTitulo').textContent = 'Lo publicado en redes';
@@ -4491,7 +4496,10 @@ function pintarPublicadoEnRedes() {
       </li>`;
   };
 
-  const todas = [...(d.instagram || []), ...(d.facebook || [])];
+  const vigente = x => enTijuana(x.cuando).fecha >= COTEJO_DESDE;
+  const ig = (d.instagram || []).filter(vigente);
+  const fb = (d.facebook || []).filter(vigente);
+  const todas = [...ig, ...fb];
   const bloque = (titulo, red, lista) => {
     const err = (d.errores || {})[red];
     const faltan = lista.filter(x => !x.ficha).length;
@@ -4500,17 +4508,17 @@ function pintarPublicadoEnRedes() {
         <h4>${titulo} <span class="tenue">${err ? '' : faltan ? `· ${faltan} sin ficha` : '· todo tiene ficha'}</span></h4>
         ${err ? `<p class="lamina-error">⚠ ${esc(err)}</p>` : ''}
         <ul class="red-lista">${lista.map(x => fila(x, todas.indexOf(x))).join('') ||
-          (err ? '' : '<li class="tenue nota">Nada publicado todavía.</li>')}</ul>
+          (err ? '' : `<li class="tenue nota">Nada publicado desde el ${esc(fechaLegible(COTEJO_DESDE))}.</li>`)}</ul>
       </section>`;
   };
 
   $('#modalCuerpo').innerHTML = `
-    <p class="tenue nota">Las últimas publicaciones de cada cuenta. Lo que se subió a mano
+    <p class="tenue nota">Lo publicado en cada cuenta desde el ${esc(fechaLegible(COTEJO_DESDE))}. Lo que se subió a mano
       aparece como <b>Sin ficha</b>: créale una o lígala a la pieza que estaba planeada,
       para que la parrilla diga lo que de verdad salió. Esto sólo lee las redes; no
       publica ni cambia nada en ellas.</p>
-    ${bloque('Instagram', 'ig', d.instagram || [])}
-    ${bloque('Facebook', 'fb', d.facebook || [])}`;
+    ${bloque('Instagram', 'ig', ig)}
+    ${bloque('Facebook', 'fb', fb)}`;
 
   $$('[data-abrir]', $('#modalCuerpo')).forEach(b => b.addEventListener('click', () => {
     cerrarModal();
@@ -10415,8 +10423,8 @@ const NOVEDADES = [
     titulo: 'Lo que se publica a mano ya no se pierde',
     puntos: [
       { t: 'Botón nuevo: Lo publicado en redes',
-        d: 'En la Parrilla, junto a «Nuevo evento». Enseña las últimas publicaciones de ' +
-           'Instagram y Facebook y marca cuáles no tienen ficha.' },
+        d: 'En la Parrilla, junto a «Nuevo evento». Enseña lo publicado en Instagram y ' +
+           'Facebook desde el 2 de noviembre y marca qué no tiene ficha.' },
       { t: 'Crear o ligar',
         d: 'A lo que se subió a mano le creas una ficha (con su portada, copy, fecha y ' +
            'enlace) o la ligas a la pieza que estaba planeada. Queda como publicada.' },

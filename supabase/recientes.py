@@ -2,7 +2,8 @@
 LA PIZARRA - Lo que ya esta publicado en Instagram y Facebook
 IBERO Tijuana
 
-    python supabase/recientes.py
+    python supabase/recientes.py          desde el 2-nov-2026
+    python supabase/recientes.py --todo   todo lo que devuelve Meta
 
 Lista las ultimas publicaciones de cada red y dice cuales tienen
 ficha en la parrilla y cuales no -- lo que se subio a mano y la
@@ -24,6 +25,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import correr
 
 FUNCION = "https://{}.supabase.co/functions/v1/publicar".format(correr.PROYECTO)
+# Igual que COTEJO_DESDE en app.js: lo de antes ya paso y no se coteja.
+COTEJO_DESDE = "2026-11-02"
 
 
 def llave_del_reloj(token):
@@ -55,7 +58,7 @@ def hora_tijuana(iso):
         inicio = datetime.datetime.combine(_domingo(a, 3, 2), datetime.time(10))  # 2 a. m. PST
         fin = datetime.datetime.combine(_domingo(a, 11, 1), datetime.time(9))     # 2 a. m. PDT
         local = u - datetime.timedelta(hours=7 if inicio <= u < fin else 8)
-        return local.strftime("%d-%m %H:%M")
+        return local.strftime("%Y-%m-%d %H:%M")
     except Exception:
         return iso[:16].replace("T", " ") + " UTC"
 
@@ -79,6 +82,8 @@ def main():
         if err:
             print("  No se pudo leer: " + err)
         for p in d.get(red) or []:
+            if "--todo" not in sys.argv and hora_tijuana(p.get("cuando") or "")[:10] < COTEJO_DESDE:
+                continue
             ficha = p.get("ficha")
             marca = ("ficha: " + ficha["titulo"][:40]) if ficha else "** SIN FICHA **"
             copy = " ".join((p.get("copy") or "").split())[:60]
