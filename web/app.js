@@ -2399,11 +2399,12 @@ const ROLES_SISTEMA = [
      producción, también crea y edita piezas de contenido. */
   { id: 'eventos',     nombre: 'Eventos',     que: 'Anota lo que hay que cubrir' },
   { id: 'creacion',    nombre: 'Creación',    que: 'Entrega material y ve el calendario' },
-  /* Otras áreas (Vinculación, por ejemplo) que necesitan ver lo que
-     viene sin tocarlo. Las herramientas no piden sesión: el menú ya
-     se lo da a cualquiera. La base le cierra además las tablas con
-     datos personales (rol_consulta.sql). */
-  { id: 'consulta',    nombre: 'Consulta',    que: 'Ve el calendario y usa las herramientas; no edita' },
+  /* Otras áreas (Vinculación, por ejemplo): la parrilla —ver y
+     editar piezas y eventos— y las herramientas, que no piden sesión.
+     El id se quedó en 'consulta' porque así nació (sólo lectura); se
+     cambió el nombre visible cuando Leo pidió que pudiera editar. La
+     base le cierra las tablas con datos personales (rol_consulta.sql). */
+  { id: 'consulta',    nombre: 'Otras áreas', que: 'Ve y edita la parrilla; usa las herramientas' },
 ];
 
 let usuariosDelSistema = [];
@@ -10178,11 +10179,11 @@ const VISTAS_POR_ROL = {
     ve: ['parrilla'],
     porque: 'Ve el calendario',
   },
-  /* Otras áreas: ver lo que viene y nada más. Mismo recorte que
+  /* Otras áreas: la parrilla y nada más. Mismo recorte que
      Creación (sin rieles de ideas ni balance interno). */
   consulta: {
     ve: ['parrilla'],
-    porque: 'Consulta el calendario desde otra área',
+    porque: 'Ve y edita el calendario desde otra área',
   },
 };
 

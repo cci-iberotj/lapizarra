@@ -144,8 +144,8 @@ const PERMISOS_UI = {
      los botones. Le pasó a Belén su primer día. */
   eventos:     ['parrilla_eventos'],
   creacion:    ['entregas'],
-  /* Otras áreas que sólo miran el calendario: no escriben nada. */
-  consulta:    [],
+  /* Otras áreas (Vinculación): ven y editan la parrilla. */
+  consulta:    ['parrilla_piezas', 'parrilla_eventos'],
 };
 
 const LLAVE_SESION = 'la-pizarra-sesion';
