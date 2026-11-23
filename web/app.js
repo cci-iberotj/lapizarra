@@ -10129,6 +10129,8 @@ function marcarPendientes() {
   g.title = n === 1 ? 'una pieza sin revisar' : n + ' piezas sin revisar';
 }
 
+/* «Convocatoria» (registros con foto y teléfono de alumnos) sólo la
+   ven admin y direccion, igual que en la base (casting_solo_direccion.sql). */
 const VISTAS_POR_ROL = {
   admin: {
     ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'verificar', 'inventario', 'redaccion', 'expertos', 'auditoria', 'ajustes'],
@@ -10142,7 +10144,7 @@ const VISTAS_POR_ROL = {
     porque: 'Dirige el área y escribe las notas',
   },
   redaccion: {
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'redaccion', 'expertos', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'redaccion', 'expertos', 'ajustes'],
     porque: 'Escribe las notas académicas',
   },
   publicacion: {
@@ -10150,13 +10152,13 @@ const VISTAS_POR_ROL = {
     // la mesa de redacción, que es de donde le llegan. No necesita
     // el directorio de expertos — él no entrevista a nadie — ni el
     // inventario, ni el diagnóstico del área.
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'redaccion', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'redaccion', 'ajustes'],
     porque: 'Publica las notas en el sitio',
   },
   produccion: {
     // Quien produce las piezas: el calendario y lo suyo. Sin
     // inventario, sin la mesa de redacción, sin el diagnóstico.
-    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'convocatoria', 'ajustes'],
+    ve: ['parrilla', 'escritorio', 'viaje', 'solicitudes', 'ajustes'],
     porque: 'Produce las piezas del calendario',
   },
   /* Sólo la parrilla. No tiene escritorio porque no se le asignan
