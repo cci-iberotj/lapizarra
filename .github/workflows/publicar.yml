@@ -34,11 +34,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publicar:
+  # Dos tareas y no una: el 23 y 24-nov-2026 el paso de publicar buscaba
+  # el paquete medio segundo despues de subirlo y GitHub aun no lo tenia
+  # registrado ("No artifacts named github-pages"). Asi lo hace la
+  # plantilla oficial: «publicar» arranca cuando «empaquetar» ya cerro.
+  empaquetar:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.despliegue.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
 
@@ -61,6 +62,17 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: web
+
+  publicar:
+    needs: empaquetar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      # Margen para que GitHub termine de registrar el paquete.
+      - name: Esperar a que el paquete aparezca
+        run: sleep 15
 
       - name: Publicar
         id: despliegue
