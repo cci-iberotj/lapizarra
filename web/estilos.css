@@ -5075,3 +5075,10 @@ body.solo-creacion #progreso { display: none; }
   .flag-pos td:nth-child(n+7):nth-child(-n+8) { display: none; }
   .flag-hora { width: 3.6em; }
 }
+
+/* Portada de un reel: la tapa del video, en vertical como sale */
+.portada-reel { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.portada-foto { display: block; width: 108px; height: 192px; border-radius: 10px;
+  background: var(--capa-0, #F1EDE9) center / cover no-repeat;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+.portada-vacia { font-size: 13.5px; color: var(--tinta-tenue, #655C54); }

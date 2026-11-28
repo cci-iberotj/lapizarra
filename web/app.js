@@ -4915,6 +4915,9 @@ function abrirPieza(idPieza, prellenado) {
 
     
 
+    ${info.quiere === 'video' && (info.canales || []).some(c => c === 'ig' || c === 'fb')
+      ? bloquePortada(p) : ''}
+
     ${info.quiere === 'ninguno' || (archivosDe(p).length && !p.imagen) ? '' : `
     <div class="grupo-campo sangrado">
       <label>${archivosDe(p).length
@@ -5075,6 +5078,8 @@ function abrirPieza(idPieza, prellenado) {
     $('#btnCambiarImagen').textContent = 'Subir imagen';
   });
   }
+
+  conectarPortada();
 
   /* Acotar fechas se pide poco: arranca guardado y se abre de un
      clic. Antes ocupaba dos selectores de fecha y tres renglones de
@@ -5729,6 +5734,84 @@ function pintarMiniaturas(raiz) {
 
 /* Una lamina son sus tres tamaños. Se sube en un solo sitio para
    que agregar y reemplazar no acaben haciendo cosas distintas. */
+/* PORTADA DE UN REEL
+
+   Meta permite mandar la portada junto con el reel: Instagram la
+   baja de un enlace y Facebook la recibe como miniatura del video.
+   Sin ella cada red toma un cuadro del video por su cuenta, y casi
+   nunca es el que uno elegiria. Va aparte de las laminas porque NO
+   se publica como lamina: es la tapa del video. */
+function bloquePortada(p) {
+  const pt = p.portada;
+  const fuera = pt && pt.ancho && pt.alto && Math.abs(pt.ancho / pt.alto - 0.5625) > 0.03;
+  return `
+    <div class="grupo-campo" id="grupoPortada">
+      <label>Portada del reel <span class="tenue">· opcional</span></label>
+      <div class="portada-reel">
+        ${pt ? `<span class="portada-foto" data-sello="${esc(pt.mini || pt.ruta)}"
+                  title="${esc(pt.nombre || '')}"></span>`
+             : '<span class="portada-vacia">Sin portada: cada red toma un cuadro del video</span>'}
+      </div>
+      <input type="file" id="f_portada" accept="image/jpeg" hidden>
+      <div class="imagen-acciones">
+        <button type="button" class="btn-plano" id="btnPortada">${pt ? 'Cambiar portada' : 'Subir portada'}</button>
+        ${pt ? '<button type="button" class="btn-peligro" id="btnQuitarPortada">Quitar</button>' : ''}
+      </div>
+      <span class="ayuda">JPG vertical de 1080×1920. Al publicarse sale de portada en Instagram y en Facebook. Es parte del arte: cambiarla en una pieza aprobada pide volver a aprobarla.</span>
+      ${fuera ? `<span class="ayuda alerta-campo">Mide ${pt.ancho}×${pt.alto}. El reel es 9:16
+         (1080×1920): con otra proporción Meta la recorta.</span>` : ''}
+    </div>`;
+}
+
+function redibujarPortada() {
+  const g = $('#grupoPortada');
+  if (!g || !modalCtx) return;
+  g.outerHTML = bloquePortada(modalCtx.datos);
+  conectarPortada();
+}
+
+function conectarPortada() {
+  const g = $('#grupoPortada');
+  if (!g) return;
+  pintarMiniaturas(g);
+  $('#btnPortada').addEventListener('click', () => $('#f_portada').click());
+  $('#f_portada').addEventListener('change', async ev => {
+    const f = ev.target.files[0];
+    ev.target.value = '';            // para que elegir el mismo archivo otra vez si dispare
+    if (!f) return;
+    const d = modalCtx.datos;
+    if (modalCtx.esNuevo) return avisar('Guarda la pieza primero: la portada se cuelga de ella.');
+    if (f.type !== 'image/jpeg' && !/\.jpe?g$/i.test(f.name)) {
+      return avisar('La portada tiene que ser JPG: Instagram no acepta otro formato.');
+    }
+    if (f.size > 8 * 1024 * 1024) return avisar('La portada pasa de 8 MB. Expórtala con menos calidad.');
+    const b = $('#btnPortada');
+    b.disabled = true; b.textContent = 'Subiendo…';
+    try {
+      const raiz = nombreLimpio(f.name).replace(/\.[^.]+$/, '');
+      const nueva = { ruta: await subirArchivo(d.id, f, 'portada-' + raiz + '.jpg'),
+                      nombre: f.name, peso: f.size, tipo: 'image/jpeg' };
+      const med = await medirImagen(f);
+      if (med && med.ancho) { nueva.ancho = med.ancho; nueva.alto = med.alto; }
+      const sello = await versionLigera(f, ANCHO_SELLO, 0.78);
+      if (sello) nueva.mini = await subirArchivo(d.id, sello, 'mini-portada-' + raiz + '.jpg');
+      d.portada = nueva;
+      redibujarPortada();
+      asentarLaminas('Portada arriba, ya guardada.');
+    } catch (e) {
+      avisar((e && e.message) || 'No se pudo subir la portada.');
+      b.disabled = false; b.textContent = d.portada ? 'Cambiar portada' : 'Subir portada';
+    }
+  });
+  const q = $('#btnQuitarPortada');
+  if (q) q.addEventListener('click', () => {
+    if (!confirm('¿Quitar la portada? Cada red tomará un cuadro del video.')) return;
+    delete modalCtx.datos.portada;
+    redibujarPortada();
+    asentarLaminas('Portada quitada, ya guardada.');
+  });
+}
+
 async function subirLamina(idPieza, f) {
   const lamina = { ruta: await subirArchivo(idPieza, f),
                    nombre: f.name, peso: f.size, tipo: f.type };
@@ -7659,8 +7742,11 @@ function selloDeRevision(p) {
      invisible en vez de ser un elemento aparte: asi una pieza sin
      copy propio de Facebook conserva la huella que ya tenia y no se
      caducan de golpe las aprobaciones viejas. */
+  /* La portada de un reel es arte: se cuelga de la lista de archivos
+     SOLO si existe, para no caducar las aprobaciones de siempre. */
   return JSON.stringify([
-    archivosDe(p).map(a => a.ruta),
+    [...archivosDe(p).map(a => a.ruta),
+     ...(p.portada && p.portada.ruta ? ['portada:' + p.portada.ruta] : [])],
     (p.copy || '') + (p.copy_fb ? '\u0000' + p.copy_fb : ''),
     p.titulo || '', p.fecha || '', (p.canales || []).join(','),
   ]);

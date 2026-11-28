@@ -193,8 +193,12 @@ function selloDeRevision(p: any) {
      tenga copy propio de Facebook conserva EXACTAMENTE la huella que
      ya tenia, y las aprobaciones viejas no se caducan de golpe por un
      cambio de formato. */
+  /* La portada de un reel se ve antes que el video: es arte, y se
+     cuelga de la lista de archivos SOLO si existe, para que las
+     piezas sin portada conserven la huella que ya tenian. */
   return JSON.stringify([
-    archivos.map((a: any) => a.ruta),
+    [...archivos.map((a: any) => a.ruta),
+     ...(p.portada?.ruta ? ['portada:' + p.portada.ruta] : [])],
     (p.copy || '') + (p.copy_fb ? '\u0000' + p.copy_fb : ''),
     p.titulo || '', p.fecha || '', (p.canales || []).join(','),
   ]);
@@ -368,6 +372,14 @@ function revisarArte(pieza: any, red: 'ig' | 'fb') {
     throw new Error('Un carrusel necesita al menos dos láminas.');
   }
 
+  // La portada de un reel va igual que una foto: JPEG.
+  if (pieza.portada?.ruta) {
+    const e = extension(pieza.portada.ruta);
+    if (e !== '.jpg' && e !== '.jpeg') {
+      throw new Error('La portada tiene que ser JPG. Vuelve a exportarla y súbela otra vez.');
+    }
+  }
+
   // Sólo las láminas de foto: en un carrusel mixto el video no
   // tiene por qué ser JPEG.
   if (red === 'ig') {
@@ -484,6 +496,11 @@ async function publicarEnInstagram(pieza: any) {
       share_to_feed: 'true',
       caption: copy,
       access_token: TOKEN_IG,
+      /* PORTADA. Si la ficha trae una imagen, Instagram la pone de
+         portada del reel (en el perfil y en la pestaña de Reels). Sin
+         ella, toma un cuadro del video por su cuenta. */
+      ...(pieza.portada?.ruta
+        ? { cover_url: await enlaceFirmado(pieza.portada.ruta) } : {}),
     });
     contenedor = d.id;
     await esperarContenedor(contenedor, true);
@@ -540,6 +557,20 @@ async function publicarEnInstagram(pieza: any) {
   return { id: salida.id, enlace, laminas: archivos.length, video };
 }
 
+/* La portada de un video de Facebook se sube como archivo: el punto
+   de /thumbnails no la baja de un enlace como hace Instagram. */
+async function portadaFacebook(idVideo: string, ruta: string) {
+  const img = await fetch(await enlaceFirmado(ruta));
+  if (!img.ok) throw new Error('no pude leer la portada de la cubeta');
+  const forma = new FormData();
+  forma.append('source', new Blob([await img.arrayBuffer()], { type: 'image/jpeg' }), 'portada.jpg');
+  forma.append('is_preferred', 'true');
+  forma.append('access_token', TOKEN_FB);
+  const r = await fetch(`${FB}/${idVideo}/thumbnails`, { method: 'POST', body: forma });
+  const d = await r.json().catch(() => null);
+  if (!r.ok || d?.error) throw new Error(d?.error?.message || `Meta respondió ${r.status}`);
+}
+
 /* Facebook no tiene carrusel como Instagram. Varias fotos se suben
    sin publicar y despues se juntan en un solo post: asi salen como
    una publicacion con galeria y no como cinco posts sueltos. */
@@ -551,6 +582,7 @@ async function publicarEnFacebook(pieza: any) {
   const pagina = await aMeta(`${FB}/me?fields=id,name&access_token=${TOKEN_FB}`);
   const copy = copyDe(pieza, 'fb');
   let idPost: string;
+  let aviso = '';
 
   if (archivos.length === 1 && esVideo(archivos[0])) {
     /* El video de pagina va por su propio punto de entrada, y el
@@ -560,6 +592,14 @@ async function publicarEnFacebook(pieza: any) {
       description: copy,
       access_token: TOKEN_FB });
     idPost = d.post_id || d.id;
+    /* PORTADA. /videos no acepta la imagen por enlace: se baja de la
+       cubeta y se le sube al video ya creado como miniatura
+       preferida. El video YA salio, asi que si esto falla no se
+       tumba nada: se anota y se cambia a mano en Facebook. */
+    if (pieza.portada?.ruta && d.id) {
+      try { await portadaFacebook(d.id, pieza.portada.ruta); }
+      catch (e) { aviso = `Salió sin la portada (${(e as Error).message}); cámbiala a mano en Facebook.`; }
+    }
   } else if (!archivos.length) {
     const d = await aMetaPost(`${FB}/${pagina.id}/feed`, {
       message: copy, access_token: TOKEN_FB });
@@ -611,6 +651,7 @@ async function publicarEnFacebook(pieza: any) {
   return {
     id: idPost, enlace, laminas: archivos.length - dejados,
     ...(dejados ? { sinVideo: dejados } : {}),
+    ...(aviso ? { aviso } : {}),
   };
 }
 
@@ -624,7 +665,8 @@ async function marcarPublicada(id: string, pieza: any, salidas: any, quien: stri
   pieza.actualizado = cuando;
   pieza.publicaciones = { ...(pieza.publicaciones || {}) };
   for (const [red, r] of Object.entries<any>(salidas)) {
-    pieza.publicaciones[red] = { id: r.id, enlace: r.enlace, cuando, por: quien };
+    pieza.publicaciones[red] = { id: r.id, enlace: r.enlace, cuando, por: quien,
+                                 ...(r.aviso ? { aviso: r.aviso } : {}) };
   }
 
   await fetch(
